@@ -1,124 +1,206 @@
-![GitHub release](https://img.shields.io/github/v/release/YOURNAME/YOURREPO)
-# TUI
-A modern **text-mode UI engine** designed for building terminal-style applications and games.
+# Pro Football Fantasm (PFF)
 
-Originally created to power a cogmind style graphical text game. It was a phase I went through, and then the project died and this TUI was shelved for a few years. 
+Pro Football Fantasm (PFF) is a modern C++17 recreation and evolution of a classic tabletop-style football simulation game, built on a custom Text User Interface (TUI) engine.
 
-But I gained renewed interst in continuing its development while creating a digital version of the tabletop football simulation **Pro Football Fantasm**. I just thought this would be the perfect retro 80's and early 90's feel for that style of game.
+The project combines strategic play-calling, probabilistic outcomes, and real-time game state management with a console-driven UI designed for performance, clarity, and extensibility.
 
-The engine is evolving into a flexible **terminal UI framework** for building console-style interfaces and games using C++.
+PFF serves both as a playable football simulation and as a showcase for the modular TUI framework supporting layered rendering, custom XP (RexPaint) assets, and future expansion into advanced gameplay systems such as playbooks, team tendencies, and full league management.
 
-## Screenshots
+---
 
-*Reminder from Dabil: (Add screenshots or animated GIFs here once you have something exciting to share)*
+##  Features
+
+*  Strategic play-calling (offense vs defense)
+*  Probabilistic play resolution system
+*  Full game loop (downs, distance, clock, scoring)
+*  Real-time scoreboard and game state tracking
+*  Play-by-play drive log
+*  Modular architecture (domain logic separated from UI)
+*  Custom Text User Interface (TUI) engine
+*  Support for RexPaint `.xp` assets
+*  Built with C++17 and object-oriented design
+
+---
+
+##  Tech Stack
+
+* **Language:** C++17
+* **Architecture:** Object-Oriented Design (OOP)
+* **UI:** Custom Text User Interface (TUI) Engine
+* **Rendering:** Terminal-based (console host or modern terminal)
+* **Assets:** RexPaint `.xp` format
+* **Build System:** Visual Studio (`.sln` / `.vcxproj`)
+
+---
+
+##  Project Structure
+
+```text
+Pro Football Fantasm/
+│
+├── PFF/
+│   ├── App/            # Application entry + bootstrap
+│   ├── Core/           # Engine + shared systems
+│   ├── Rendering/      # TUI rendering system
+│   ├── Screens/        # UI screens (game, menus, etc.)
+│   ├── ThirdParty/     # External dependencies - zlib for .xp RexPaint files
+│   ├── Utilities/      # Helper utilities
+│   ├── main.cpp        # Entry point
+│   └── PFF.vcxproj     # Main project file
+│
+├── Hike.sln            # Visual Studio solution
+├── README.md
+└── ROADMAP.md
 ```
-    ┌─────────────────────────────────────────────┐
-    │ TUI **text-mode UI Engine                   │
-    │                                             │
-    │ Press Any Key To Continue...                │
-    └─────────────────────────────────────────────┘
+
+> Note: The project currently integrates the TUI engine directly. Future versions may separate engine and game into distinct modules.
+
+---
+
+##  Getting Started
+
+### Prerequisites
+
+* Windows 10/11
+* Visual Studio 2022 (or newer)
+* C++ Desktop Development workload installed
+
+### Setup
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/yourusername/pro-football-fantasm.git
 ```
-# Features
 
-## Current capabilities:
-	- Layout regions and composable screen design
-	- ASCII object rendering
-	- Flexible style system
-	- Theme-based styling
-	- Word-wrapped text rendering
-	- Text alignment helpers
-	- Page composition system
+2. Open the solution:
 
-## API examples:
-```C++
-	page.writeTextInRegion(
-		"Footer",
-		HorizontalAlign::Center,
-		VerticalAlign::Bottom,
-		"Press Any Key...",
-		Themes::Danger);
+```text
+PFF.sln
 ```
-# Architecture
-## The engine is structured into several core systems:
-```
-	App/
-		Application loop
-		Screen manager
 
-	Composition/
-		PageComposer
-		RegionRegistry
-		Layout helpers
+3. Build the solution:
 
-	Rendering/
-		ScreenBuffer
-		ConsoleRenderer
-		Object rendering
-		Style system
+* `Build → Build Solution` (Ctrl + Shift + B)
 
-	Screens/
-		Game screens and UI pages
+4. Run the project:
 
-	Assets/
-		ASCII art
-		fonts
-```
-## Example Page Code:    
-```
-	page.createDesignScreen(200, 62, "DesignScreen");
+* `Debug → Start Without Debugging` (Ctrl + F5)
 
-	page.writeVisibleObject(
-		m_helmet1,
-		HorizontalAlign::Left,
-		VerticalAlign::Center,
-		"DesignScreen",
-		Themes::Helmets);
-```
-# Building
+---
 
-	Requirements:
-		Windows
-		Visual Studio 2022
-		C++17
+##  Current Status
 
-	Build steps:
-		git clone https://github.com/YOURNAME/YOURPROJECT.git
-		open TUI.sln
-		build
-		run
+PFF is currently in **early non-playable development**.
 
-# Project Goals
-## The engine is evolving toward:
-```
-	1) a reusable text UI toolkit
-	2) support for multiple render backends
-	3) layout and widget systems
-	4) scriptable page definitions
-	5) retro terminal visual effect
-```	
-# Roadmap
+### Working
 
-	See: Roadmap.md
+* Core TUI rendering engine
+* XP asset loading (RexPaint)
+* Screen system and layout
+* Basic application loop
 
-# Contributing
+### In Progress
 
-	Not accepting pull requests at the moment for general participation while getting this 
-	to a stable version but will in the near future. There is a high likelyhood of a 
-	pull request being accepted if it fixes a critical bug.
-	
-	Feedback and feature requests are welcome. 
-	
-	The intitial implementation for this proejct will be for PFF, so there is certain 
-	functionality I want to focus on without distraction.
+* Game state model (score, down, distance, clock)
+* Play selection system
+* Play resolution engine
+* Game screen integration
 
-	See: CONTRIBUTING.md
+### Planned
 
+* Pro Football Fantasm 1990 Core Game
+* Support for all 3 Modes of play (Generic, Basic, and Advanced)
+* Full rosters, with offensive and defensive alignment boards.
+* CPU vs CPU Simulation, Solitaire Play, or PvP (up to 28 players!)
+* Weather Effects, Injuries, Penalties, Wild Plays, etc. 
+* League and stat tracking
+* Save/load system
+* Support for original Team Tendency Charts Add-on
 
-# License
+---
 
-	GPL 3.0
-	See: LICENSE
+##  Architecture Overview
 
-# Author
-	Created by Dabil
+PFF follows a layered architecture:
 
+### Domain Layer (Game Logic)
+
+* `GameState`
+* `PlayCall`
+* `PlayResult`
+* Rules engine and simulation logic
+
+### Presentation Layer
+
+* View models derived from game state
+* UI-friendly formatting of data
+
+### Screen / Controller Layer
+
+* Handles input
+* Updates game state
+* Triggers rendering
+
+### TUI Engine
+
+* Rendering
+* Layout
+* Text objects
+* XP asset support
+
+---
+
+##  Design Goals
+
+*  Fast, responsive console UI
+*  Clean separation of concerns
+*  Extensible gameplay systems
+*  Faithful tabletop-style mechanics
+*  Developer-friendly architecture
+
+---
+
+##  Screenshots
+
+*(Coming soon)*
+
+---
+
+##  Roadmap
+
+See [ROADMAP.md](ROADMAP.md) for full development plan.
+
+---
+
+##  Contributing
+
+Contributions are welcome!
+
+Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+---
+
+##  License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+---
+
+##  Inspiration
+
+Pro Football Fantasm is inspired by the classic 1990 tabletop sports simulation of the same name, combining strategy, probability, and imagination into an interactive digital format.
+
+---
+
+##  Future Vision
+
+The long-term goal is to evolve PFF into:
+
+* A full-featured football simulation engine
+* A powerful terminal-based UI framework
+* A customizable platform for sports simulation enthusiasts
+
+---
+
+*Built with passion for football, simulation, and great software design.*
