@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{7b1913c2-8fbd-43bd-a252-cc65de1cc789}</ProjectGuid>
+    <RootNamespace>PFF</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)ThirdParty\zlib-1.3.1;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)ThirdParty\zlib-1.3.1;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>PFF_XP_ART_LOADER_HAS_ZLIB=1</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)ThirdParty\zlib-1.3.1;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>PFF_XP_ART_LOADER_HAS_ZLIB=1</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)ThirdParty\zlib-1.3.1;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="App\Application.h" />
+    <ClInclude Include="App\CommandLineOptions.h" />
+    <ClInclude Include="App\ScreenManager.h" />
+    <ClInclude Include="App\StartupConfig.h" />
+    <ClInclude Include="App\StartupOptions.h" />
+    <ClInclude Include="App\TerminalLauncher.h" />
+    <ClInclude Include="Core\Enums.h" />
+    <ClInclude Include="Core\Point.h" />
+    <ClInclude Include="Core\Rect.h" />
+    <ClInclude Include="Core\Size.h" />
+    <ClInclude Include="Rendering\Backends\ConsoleCapabilityDetector.h" />
+    <ClInclude Include="Rendering\Backends\RendererCapabilityDetector.h" />
+    <ClInclude Include="Rendering\Backends\TerminalCapabilityDetector.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Rendering\Backends\TerminalHostClassifier.h" />
+    <ClInclude Include="Rendering\Backends\TerminalHostInfo.h" />
+    <ClInclude Include="Rendering\Capabilities\CapabilityReport.h" />
+    <ClInclude Include="Rendering\Capabilities\ColorSupport.h" />
+    <ClInclude Include="Rendering\Capabilities\RendererCapabilities.h" />
+    <ClInclude Include="Rendering\ConsoleRenderer.h" />
+    <ClInclude Include="Rendering\Diagnostics\AuthorRenderHints.h" />
+    <ClInclude Include="Rendering\Diagnostics\RenderDiagnostics.h" />
+    <ClInclude Include="Rendering\Diagnostics\RenderDiagnosticsWriter.h" />
+    <ClInclude Include="Rendering\Diagnostics\RendererSelectionTrace.h" />
+    <ClInclude Include="Rendering\Diagnostics\StartupDiagnosticsContext.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Rendering\FrameDiff.h" />
+    <ClInclude Include="Rendering\IRenderer.h" />
+    <ClInclude Include="Rendering\Objects\AnsiLoader.h" />
+    <ClInclude Include="Rendering\Objects\BinaryArtLoader.h" />
+    <ClInclude Include="Rendering\Objects\Cp437Encoding.h" />
+    <ClInclude Include="Rendering\Objects\ObjectFactory.h" />
+    <ClInclude Include="Rendering\Objects\PlainTextLoader.h" />
+    <ClInclude Include="Rendering\Objects\SauceSupport.h" />
+    <ClInclude Include="Rendering\Objects\TextObjectBuilder.h" />
+    <ClInclude Include="Rendering\Objects\TextObjectExporter.h" />
+    <ClInclude Include="Rendering\Objects\XpArtExporter.h" />
+    <ClInclude Include="Rendering\Objects\XpArtLoader.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Rendering\Objects\XpArtLoaderTests.h" />
+    <ClInclude Include="Rendering\ScreenBuffer.h" />
+    <ClInclude Include="Rendering\ScreenCell.h" />
+    <ClInclude Include="Rendering\SgrEmitter.h" />
+    <ClInclude Include="Rendering\Styles\AppThemes.h" />
+    <ClInclude Include="Rendering\Styles\BannerThemes.h" />
+    <ClInclude Include="Rendering\Styles\Color.h" />
+    <ClInclude Include="Rendering\Styles\ColorMapping.h" />
+    <ClInclude Include="Rendering\Styles\ColorResolutionDiagnostics.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Rendering\Styles\ColorResolver.h" />
+    <ClInclude Include="Rendering\Styles\Style.h" />
+    <ClInclude Include="Rendering\Styles\StyleBuilder.h" />
+    <ClInclude Include="Rendering\Styles\StyleMerge.h" />
+    <ClInclude Include="Rendering\Styles\StylePolicy.h" />
+    <ClInclude Include="Rendering\Styles\StylePolicyFactory.h" />
+    <ClInclude Include="Rendering\Styles\ThemeColor.h" />
+    <ClInclude Include="Rendering\Styles\UIThemes.h" />
+    <ClInclude Include="Rendering\Surface.h" />
+    <ClInclude Include="Rendering\TerminalPresentPolicy.h" />
+    <ClInclude Include="Rendering\TerminalRenderer.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Rendering\TerminalSessionOptions.h" />
+    <ClInclude Include="Rendering\Objects\TextObject.h" />
+    <ClInclude Include="Rendering\Text\TextCluster.h" />
+    <ClInclude Include="Rendering\Text\TextTypes.h" />
+    <ClInclude Include="Rendering\Styles\Themes.h" />
+    <ClInclude Include="Rendering\VtFrameEmitter.h" />
+    <ClInclude Include="Rendering\VTRun.h" />
+    <ClInclude Include="Screens\DigitalRainScreen.h" />
+    <ClInclude Include="Screens\Donut3DScreen.h" />
+    <ClInclude Include="Screens\FireScreen.h" />
+    <ClInclude Include="Screens\PffFieldScreen.h" />
+    <ClInclude Include="Screens\RendererDiagnosticsScreen.h" />
+    <ClInclude Include="Screens\Screen.h" />
+    <ClInclude Include="Screens\ShowcaseScreen.h" />
+    <ClInclude Include="Screens\TerminalCapabilitiesScreen.h" />
+    <ClInclude Include="Screens\TextObjectExportValidationScreen.h" />
+    <ClInclude Include="Screens\WaterEffectScreen.h" />
+    <ClInclude Include="ThirdParty\zlib-1.3.1\zconf.h" />
+    <ClInclude Include="ThirdParty\zlib-1.3.1\zutil.h" />
+    <ClInclude Include="Utilities\Text\TextWrap.h" />
+    <ClInclude Include="Utilities\Unicode\GraphemeSegmentation.h" />
+    <ClInclude Include="Utilities\Unicode\UnicodeConversion.h" />
+    <ClInclude Include="Utilities\Unicode\UnicodeWidth.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="App\Application.cpp" />
+    <ClCompile Include="App\CommandLineOptions.cpp" />
+    <ClCompile Include="App\ScreenManager.cpp" />
+    <ClCompile Include="App\StartupConfig.cpp" />
+    <ClCompile Include="App\StartupOptions.cpp" />
+    <ClCompile Include="App\TerminalLauncher.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Rendering\Backends\ConsoleCapabilityDetector.cpp" />
+    <ClCompile Include="Rendering\Backends\RendererCapabiltiyDetector.cpp" />
+    <ClCompile Include="Rendering\Backends\TerminalCapabilityDetector.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Rendering\Backends\TerminalHostClassifier.cpp" />
+    <ClCompile Include="Rendering\Backends\TerminalHostInfo.cpp" />
+    <ClCompile Include="Rendering\Capabilities\CapabilityReport.cpp" />
+    <ClCompile Include="Rendering\Capabilities\RendererCapabilities.cpp" />
+    <ClCompile Include="Rendering\ConsoleRenderer.cpp" />
+    <ClCompile Include="Rendering\Diagnostics\AuthorRenderHints.cpp" />
+    <ClCompile Include="Rendering\Diagnostics\RenderDiagnostics.cpp" />
+    <ClCompile Include="Rendering\Diagnostics\RenderDiagnosticsWriter.cpp" />
+    <ClCompile Include="Rendering\Diagnostics\RendererSelectionTrace.cpp" />
+    <ClCompile Include="Rendering\FrameDiff.cpp" />
+    <ClCompile Include="Rendering\Objects\AnsiLoader.cpp" />
+    <ClCompile Include="Rendering\Objects\BinaryArtLoader.cpp" />
+    <ClCompile Include="Rendering\Objects\Cp437Encoding.cpp" />
+    <ClCompile Include="Rendering\Objects\ObjectFactory.cpp" />
+    <ClCompile Include="Rendering\Objects\PlainTextLoader.cpp" />
+    <ClCompile Include="Rendering\Objects\SauceSupport.cpp" />
+    <ClCompile Include="Rendering\Objects\TextObject.cpp" />
+    <ClCompile Include="Rendering\Objects\TextObjectBuilder.cpp" />
+    <ClCompile Include="Rendering\Objects\TextObjectExporter.cpp" />
+    <ClCompile Include="Rendering\Objects\XpArtExporter.cpp" />
+    <ClCompile Include="Rendering\Objects\XpArtLoader.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Rendering\Objects\XpArtLoaderTests.cpp" />
+    <ClCompile Include="Rendering\ScreenBuffer.cpp" />
+    <ClCompile Include="Rendering\SgrEmitter.cpp" />
+    <ClCompile Include="Rendering\Styles\Color.cpp" />
+    <ClCompile Include="Rendering\Styles\ColorMapping.cpp" />
+    <ClCompile Include="Rendering\Styles\ColorResolutionDiagnostics.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Rendering\Styles\ColorResolver.cpp" />
+    <ClCompile Include="Rendering\Styles\Style.cpp" />
+    <ClCompile Include="Rendering\Styles\StyleBuilder.cpp" />
+    <ClCompile Include="Rendering\Styles\StyleMerge.cpp" />
+    <ClCompile Include="Rendering\Styles\StylePolicy.cpp" />
+    <ClCompile Include="Rendering\Styles\StylePolicyFactory.cpp" />
+    <ClCompile Include="Rendering\Styles\ThemeColor.cpp" />
+    <ClCompile Include="Rendering\Surface.cpp" />
+    <ClCompile Include="Rendering\TerminalPresentPolicy.cpp" />
+    <ClCompile Include="Rendering\TerminalRenderer.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Rendering\TerminalSessionOptions.cpp" />
+    <ClCompile Include="Rendering\VtFrameEmitter.cpp" />
+    <ClCompile Include="Screens\DigitalRainScreen.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Screens\Donut3DScreen.cpp" />
+    <ClCompile Include="Screens\FireScreen.cpp" />
+    <ClCompile Include="Screens\PffFieldScreen.cpp" />
+    <ClCompile Include="Screens\RendererDiagnosticsScreen.cpp" />
+    <ClCompile Include="Screens\ShowcaseScreen.cpp" />
+    <ClCompile Include="Screens\TerminalCapabilitiesScreen.cpp" />
+    <ClCompile Include="Screens\TextObjectExportValidationScreen.cpp" />
+    <ClCompile Include="Screens\WaterEffectScreen.cpp" />
+    <ClCompile Include="ThirdParty\zlib-1.3.1\adler32.c" />
+    <ClCompile Include="ThirdParty\zlib-1.3.1\crc32.c" />
+    <ClCompile Include="ThirdParty\zlib-1.3.1\inffast.c" />
+    <ClCompile Include="ThirdParty\zlib-1.3.1\inflate.c" />
+    <ClCompile Include="ThirdParty\zlib-1.3.1\inftrees.c" />
+    <ClCompile Include="ThirdParty\zlib-1.3.1\zutil.c" />
+    <ClCompile Include="Utilities\Unicode\GraphemeSegmentation.cpp" />
+    <ClCompile Include="Utilities\Unicode\UnicodeConversion.cpp" />
+    <ClCompile Include="Utilities\Unicode\UnicodeWidth.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="startup.config" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

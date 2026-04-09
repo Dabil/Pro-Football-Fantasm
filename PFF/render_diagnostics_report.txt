@@ -1,0 +1,178 @@
+Render Diagnostics Report
+=========================
+
+Configuration
+-------------
+Output path: render_diagnostics_report.txt
+Append mode: false
+Diagnostics enabled: true
+
+Startup Host / Renderer Selection
+---------------------------------
+Startup config source: startup.config
+Startup config file found: false
+Configured host preference: Auto
+Configured renderer preference: Auto
+Requested host: WindowsTerminal
+Actual host: WindowsTerminal
+Requested renderer: TerminalRenderer
+Actual renderer: TerminalRenderer
+Active render path: VirtualTerminalSequencePath
+Launcher relaunch attempted: false
+Launcher relaunch performed: false
+Launched-by-WT flag present: true
+WT_SESSION hint present: true
+
+Renderer Selection Trace
+------------------------
+[StartupConfiguration] decision=Captured startup sources, detail=configFileFound=false, configHost=Auto, configRenderer=Auto, configValidation=False
+[StartupConfiguration] decision=Applied startup precedence, detail=effectiveHost=Auto (Default), effectiveRenderer=Auto (Default), effectiveValidation=False (Default)
+[HostPreferenceEvaluation] decision=Inspected requested host vs detected host, detail=requestedHost=WindowsTerminal, actualHost=WindowsTerminal, launchedByWtFlag=true, wtSessionHint=true
+[RelaunchDecision] decision=No relaunch was needed, detail=shouldAttemptTerminalHost=true, alreadyInsideRequestedTerminalHost=true
+[RendererPreferenceEvaluation] decision=Renderer preference resolved to Terminal, detail=requestedRenderer=TerminalRenderer, actualRenderer=TerminalRenderer, prefersTerminalRenderer=true
+[FinalSelection] decision=Launcher startup selection finalized, detail=host=WindowsTerminal, requestedRenderer=TerminalRenderer, relaunchPerformed=false
+
+Backend Activation State
+------------------------
+Renderer identity: TerminalRenderer
+Active render path: VirtualTerminalSequencePath
+Active render path kind: VT output path
+Active render path uses VT output: true
+VT enable attempted: true
+VT enable succeeded: true
+VT availability summary: Available (enable attempt succeeded)
+VT processing active in console mode: true
+Configured output mode: 0x7
+Configured input mode: 0x3BF
+Interpretation: The active renderer/output path matches the VT activation state reported above.
+
+Detected Backend Capabilities
+-----------------------------
+Virtual terminal processing: true
+Unicode output: true
+Preserve-style-safe fallback: true
+Optional backend flags: None
+Color tier: Rgb24
+Bright basic colors: Supported
+Bold: Supported
+Dim: Supported
+Underline: Supported
+Reverse: Supported
+Invisible: Supported
+Strike: Supported
+Slow blink: Emulated
+Fast blink: Emulated
+
+Resolved Renderer Adaptation Policy
+----------------------------------
+Basic colors: Direct
+Indexed256 colors: Direct
+RGB colors: Direct
+Bold: Direct
+Dim: Direct
+Underline: Direct
+Reverse: Direct
+Invisible: Direct
+Strike: Direct
+Slow blink: Emulate
+Fast blink: Emulate
+
+Per-Feature Capability/Policy Reference
+--------------------------------------
+ForegroundColor: capability=Rgb24, policy=Direct
+BackgroundColor: capability=Rgb24, policy=Direct
+Bold: capability=Supported, policy=Direct
+Dim: capability=Supported, policy=Direct
+Underline: capability=Supported, policy=Direct
+SlowBlink: capability=Emulated, policy=Emulate
+FastBlink: capability=Emulated, policy=Emulate
+Reverse: capability=Supported, policy=Direct
+Invisible: capability=Supported, policy=Direct
+Strike: capability=Supported, policy=Direct
+
+Adaptation Summary Counts
+-------------------------
+ForegroundColor / Direct: 314
+BackgroundColor / Direct: 473
+
+Observed Output Feature Outcomes
+--------------------------------
+ForegroundColor: emitted-direct=314, emitted-approximated=0, emitted-downgraded=0, emulated=0, omitted=0, logical-only=0
+BackgroundColor: emitted-direct=473, emitted-approximated=0, emitted-downgraded=0, emulated=0, omitted=0, logical-only=0
+Bold: emitted-direct=0, emitted-approximated=0, emitted-downgraded=0, emulated=0, omitted=0, logical-only=0
+Dim: emitted-direct=0, emitted-approximated=0, emitted-downgraded=0, emulated=0, omitted=0, logical-only=0
+Underline: emitted-direct=0, emitted-approximated=0, emitted-downgraded=0, emulated=0, omitted=0, logical-only=0
+SlowBlink: emitted-direct=0, emitted-approximated=0, emitted-downgraded=0, emulated=0, omitted=0, logical-only=0
+FastBlink: emitted-direct=0, emitted-approximated=0, emitted-downgraded=0, emulated=0, omitted=0, logical-only=0
+Reverse: emitted-direct=0, emitted-approximated=0, emitted-downgraded=0, emulated=0, omitted=0, logical-only=0
+Invisible: emitted-direct=0, emitted-approximated=0, emitted-downgraded=0, emulated=0, omitted=0, logical-only=0
+Strike: emitted-direct=0, emitted-approximated=0, emitted-downgraded=0, emulated=0, omitted=0, logical-only=0
+
+Totals By Outcome Kind
+----------------------
+Direct: 787
+Downgraded: 0
+Approximated: 0
+Emulated: 0
+Omitted: 0
+LogicalOnly: 0
+
+Color Adaptation Decisions
+--------------------------
+[BackgroundColor / Direct] authored=Concrete Basic16(Black), supported tier=Basic16, resolved=Basic16(Black), reason=Concrete basic color used directly
+[ForegroundColor / Direct] authored=Concrete Rgb24(255,255,255), supported tier=Rgb24, resolved=Rgb24(255,255,255), reason=Concrete RGB color used directly
+[BackgroundColor / Direct] authored=Concrete Rgb24(0,178,0), supported tier=Rgb24, resolved=Rgb24(0,178,0), reason=Concrete RGB color used directly
+[BackgroundColor / Direct] authored=Concrete Basic16(Black), supported tier=Basic16, resolved=Basic16(Black), reason=Concrete basic color used directly
+[ForegroundColor / Direct] authored=ThemeColor(basic=Basic16(BrightWhite), indexed=Indexed256(252), rgb=Rgb24(238,238,238)), supported tier=Rgb24, resolved=Rgb24(238,238,238), reason=ThemeColor RGB authored value used directly
+[ForegroundColor / Direct] authored=Concrete Rgb24(255,255,255), supported tier=Rgb24, resolved=Rgb24(255,255,255), reason=Concrete RGB color used directly
+
+Tri-State Logical Style Examples
+--------------------------------
+Legend: Unspecified = field absent in authored style, ExplicitlyEnabled = field authored true, ExplicitlyDisabled = field authored false.
+[Bold / logical=Unspecified] Logical field observed with state=Unspecified, presented=false
+[Dim / logical=Unspecified] Logical field observed with state=Unspecified, presented=false
+[Underline / logical=Unspecified] Logical field observed with state=Unspecified, presented=false
+[SlowBlink / logical=Unspecified] Logical field observed with state=Unspecified, presented=false
+[FastBlink / logical=Unspecified] Logical field observed with state=Unspecified, presented=false
+[Reverse / logical=Unspecified] Logical field observed with state=Unspecified, presented=false
+[Invisible / logical=Unspecified] Logical field observed with state=Unspecified, presented=false
+[Strike / logical=Unspecified] Logical field observed with state=Unspecified, presented=false
+
+Representative Examples
+-----------------------
+No examples recorded.
+
+Author-Facing Rendering Hints
+----------------------------
+- Diagnostics separate authored logical style, backend capability, renderer policy, and final backend realization so authors can see where a visual difference was introduced.
+- Tri-state logical fields now matter in diagnostics: unspecified means the field was absent, explicitly enabled means the author requested it on, and explicitly disabled means the author intentionally forced it off.
+- Runtime diagnostics recorded only direct realizations for the style features encountered during this session.
+
+Notes
+-----
+- Diagnostics describe renderer behavior only.
+- Logical Style data stored in ScreenBuffer is not mutated by diagnostics or adaptation.
+- Tri-state logical reporting exists to distinguish absent fields from explicit enable/disable intent.
+- Host selection and renderer selection are reported separately on purpose.
+- VT enablement/availability and active renderer path are reported separately on purpose.
+- Output differences between authored style and visible result may be caused by downgrade, omission, approximation, or deferred emulation.
+- Color adaptation reasons are reported from ColorResolver decisions rather than recreated in the renderer.
+- Bright basic color capability describes palette/intensity color presentation, not bold or dim text semantics.
+- Author-facing hints are advisory only and do not change rendering behavior.
+VT Present Performance
+----------------------
+Present calls: 238
+Skipped presents: 236
+Full redraw presents: 2
+Diff presents: 0
+Changed cells: 14468
+Dirty spans: 82
+Cursor moves: 80
+Runs: 475
+Text bytes: 19898
+SGR bytes: 9802
+Control bytes: 558
+Total bytes: 30258
+Last present strategy: DiffBased
+Last present reason: No changed cells were detected.
+

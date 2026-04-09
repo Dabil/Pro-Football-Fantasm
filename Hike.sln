@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.37012.4 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Pro Football Fantasm", "PFF\PFF.vcxproj", "{7B1913C2-8FBD-43BD-A252-CC65DE1CC789}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7B1913C2-8FBD-43BD-A252-CC65DE1CC789}.Debug|x64.ActiveCfg = Debug|x64
+		{7B1913C2-8FBD-43BD-A252-CC65DE1CC789}.Debug|x64.Build.0 = Debug|x64
+		{7B1913C2-8FBD-43BD-A252-CC65DE1CC789}.Debug|x86.ActiveCfg = Debug|Win32
+		{7B1913C2-8FBD-43BD-A252-CC65DE1CC789}.Debug|x86.Build.0 = Debug|Win32
+		{7B1913C2-8FBD-43BD-A252-CC65DE1CC789}.Release|x64.ActiveCfg = Release|x64
+		{7B1913C2-8FBD-43BD-A252-CC65DE1CC789}.Release|x64.Build.0 = Release|x64
+		{7B1913C2-8FBD-43BD-A252-CC65DE1CC789}.Release|x86.ActiveCfg = Release|Win32
+		{7B1913C2-8FBD-43BD-A252-CC65DE1CC789}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {EC135F1E-A0E9-4474-8018-E44D01ACADB8}
+	EndGlobalSection
+EndGlobal
