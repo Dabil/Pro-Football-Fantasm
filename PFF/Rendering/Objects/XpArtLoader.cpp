@@ -35,6 +35,19 @@
 #   define PFF_XP_ART_LOADER_HAS_ZLIB 0
 #endif
 
+/*
+    These are the zlib files that must be included in the project
+    in order for .xp files to load and save properly:
+    - adler32.c
+    - crc32.c
+    - inflate.c
+    - inffast.c
+    - inftrees.c
+    - zutil.c
+    - zutil.h
+    - zconf.h
+*/
+
 namespace
 {
     constexpr std::size_t kVersionBytes = 4;
