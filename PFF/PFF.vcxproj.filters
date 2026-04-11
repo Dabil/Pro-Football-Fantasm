@@ -273,6 +273,12 @@
     <ClInclude Include="Screens\Developer\XpSequenceDiagnosticsScreen.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Assets\AssetLibrary.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\AssetPaths.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Rendering\ScreenBuffer.cpp">
@@ -495,6 +501,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Screens\Developer\XpSequenceDiagnosticsScreen.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Assets\AssetLibrary.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities\AssetPaths.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

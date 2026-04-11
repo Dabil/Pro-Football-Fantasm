@@ -137,6 +137,7 @@
     <ClInclude Include="App\StartupConfig.h" />
     <ClInclude Include="App\StartupOptions.h" />
     <ClInclude Include="App\TerminalLauncher.h" />
+    <ClInclude Include="Assets\AssetLibrary.h" />
     <ClInclude Include="Core\Enums.h" />
     <ClInclude Include="Core\Point.h" />
     <ClInclude Include="Core\Rect.h" />
@@ -228,6 +229,7 @@
     <ClInclude Include="Screens\WaterEffectScreen.h" />
     <ClInclude Include="ThirdParty\zlib-1.3.1\zconf.h" />
     <ClInclude Include="ThirdParty\zlib-1.3.1\zutil.h" />
+    <ClInclude Include="Utilities\AssetPaths.h" />
     <ClInclude Include="Utilities\Text\TextWrap.h" />
     <ClInclude Include="Utilities\Unicode\GraphemeSegmentation.h" />
     <ClInclude Include="Utilities\Unicode\UnicodeConversion.h" />
@@ -240,6 +242,7 @@
     <ClCompile Include="App\StartupConfig.cpp" />
     <ClCompile Include="App\StartupOptions.cpp" />
     <ClCompile Include="App\TerminalLauncher.cpp" />
+    <ClCompile Include="Assets\AssetLibrary.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Rendering\Backends\ConsoleCapabilityDetector.cpp" />
     <ClCompile Include="Rendering\Backends\RendererCapabiltiyDetector.cpp" />
@@ -320,6 +323,7 @@
     <ClCompile Include="ThirdParty\zlib-1.3.1\inflate.c" />
     <ClCompile Include="ThirdParty\zlib-1.3.1\inftrees.c" />
     <ClCompile Include="ThirdParty\zlib-1.3.1\zutil.c" />
+    <ClCompile Include="Utilities\AssetPaths.cpp" />
     <ClCompile Include="Utilities\Unicode\GraphemeSegmentation.cpp" />
     <ClCompile Include="Utilities\Unicode\UnicodeConversion.cpp" />
     <ClCompile Include="Utilities\Unicode\UnicodeWidth.cpp" />
