@@ -247,6 +247,10 @@ namespace
         case TextObjectExporter::SaveWarningCode::TerminalArtReverseApproximated:
         case TextObjectExporter::SaveWarningCode::TerminalArtBoldApproximated:
         case TextObjectExporter::SaveWarningCode::TerminalArtIceColorExportUsed:
+        case TextObjectExporter::SaveWarningCode::XpSequenceSourcePathPortabilityRisk:
+        case TextObjectExporter::SaveWarningCode::XpSequenceMixedLinkedAndGeneratedFrames:
+        case TextObjectExporter::SaveWarningCode::XpSequenceSuspiciousFrameIndexing:
+        case TextObjectExporter::SaveWarningCode::XpSequenceConflictingMetadata:
         case TextObjectExporter::SaveWarningCode::HighFidelityXpRecommended:
             return true;
         default:
@@ -1706,6 +1710,16 @@ namespace TextObjectExporter
             return "XpGlyphFallbackSubstituted";
         case SaveWarningCode::XpGlyphReplacementUsed:
             return "XpGlyphReplacementUsed";
+        case SaveWarningCode::XpSequenceSourcePathPortabilityRisk:
+            return "XpSequenceSourcePathPortabilityRisk";
+        case SaveWarningCode::XpSequenceMixedLinkedAndGeneratedFrames:
+            return "XpSequenceMixedLinkedAndGeneratedFrames";
+        case SaveWarningCode::XpSequenceSuspiciousFrameIndexing:
+            return "XpSequenceSuspiciousFrameIndexing";
+        case SaveWarningCode::XpSequenceRedundantMetadata:
+            return "XpSequenceRedundantMetadata";
+        case SaveWarningCode::XpSequenceConflictingMetadata:
+            return "XpSequenceConflictingMetadata";
         case SaveWarningCode::HighFidelityXpRecommended:
             return "HighFidelityXpRecommended";
         default:

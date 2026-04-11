@@ -61,6 +61,12 @@ namespace TextObjectExporter
         XpGlyphFallbackSubstituted,
         XpGlyphReplacementUsed,
 
+        XpSequenceSourcePathPortabilityRisk,
+        XpSequenceMixedLinkedAndGeneratedFrames,
+        XpSequenceSuspiciousFrameIndexing,
+        XpSequenceRedundantMetadata,
+        XpSequenceConflictingMetadata,
+
         HighFidelityXpRecommended
     };
 

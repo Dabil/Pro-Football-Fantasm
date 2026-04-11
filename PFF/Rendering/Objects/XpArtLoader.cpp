@@ -15,6 +15,7 @@
 #include <fstream>
 #include <iterator>
 #include <limits>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -27,12 +28,12 @@
 #if defined(__has_include)
 #   if __has_include(<zlib.h>)
 #       include <zlib.h>
-#       define PFF_XP_ART_LOADER_HAS_ZLIB 1
+#       define TUI_XP_ART_LOADER_HAS_ZLIB 1
 #   else
-#       define PFF_XP_ART_LOADER_HAS_ZLIB 0
+#       define TUI_XP_ART_LOADER_HAS_ZLIB 0
 #   endif
 #else
-#   define PFF_XP_ART_LOADER_HAS_ZLIB 0
+#   define TUI_XP_ART_LOADER_HAS_ZLIB 0
 #endif
 
 /*
@@ -62,8 +63,6 @@ namespace
         kForegroundRgbBytes +
         kBackgroundRgbBytes;
 
-    const XpArtLoader::RgbColor kTransparentBackground{ 255, 0, 255 };
-    const XpArtLoader::RgbColor kOpaqueBlack{ 0, 0, 0 };
 
     struct CompositedCell
     {
@@ -87,6 +86,20 @@ namespace
         std::vector<CompositedCell> cells;
         FlattenStats stats;
     };
+
+    const XpArtLoader::XpRulesConfig& defaultXpRules()
+    {
+        static const XpArtLoader::XpRulesConfig rules =
+            XpArtLoader::XpRulesConfig::rexPaintDefaults();
+        return rules;
+    }
+
+    const XpArtLoader::XpTransparencyPolicy& defaultTransparencyPolicy()
+    {
+        static const XpArtLoader::XpTransparencyPolicy policy =
+            XpArtLoader::XpTransparencyPolicy::rexPaintDefaults();
+        return policy;
+    }
 
     std::string toLowerCopy(std::string value)
     {
@@ -220,8 +233,7 @@ namespace
 
     bool isTransparentBackground(const XpArtLoader::RgbColor& color, const XpArtLoader::LoadOptions& options)
     {
-        return options.treatMagentaBackgroundAsTransparent &&
-            color == kTransparentBackground;
+        return XpArtLoader::resolveTransparencyPolicy(options).treatsBackgroundAsTransparent(color);
     }
 
     int layerIndex(int x, int y, int height)
@@ -232,6 +244,66 @@ namespace
     int canvasIndex(int x, int y, int width)
     {
         return (y * width) + x;
+    }
+
+    void refreshLayerDerivedMetadata(XpArtLoader::XpLayer& layer)
+    {
+        layer.metadata.encounteredTransparentBackgroundCells = false;
+        layer.metadata.encounteredVisibleGlyphsOnTransparentBackground = false;
+        layer.metadata.visibilityUsedForFlattening = layer.visible;
+
+        for (const XpArtLoader::XpLayerCell& cell : layer.cells)
+        {
+            if (defaultTransparencyPolicy().treatsBackgroundAsTransparent(cell.background))
+            {
+                layer.metadata.encounteredTransparentBackgroundCells = true;
+
+                if (cell.glyph != 0u && cell.glyph != static_cast<std::uint32_t>(U' '))
+                {
+                    layer.metadata.encounteredVisibleGlyphsOnTransparentBackground = true;
+                }
+            }
+        }
+    }
+
+    void refreshDocumentDerivedMetadata(XpArtLoader::XpDocument& document)
+    {
+        document.metadata.canvasWidth = document.width;
+        document.metadata.canvasHeight = document.height;
+        document.metadata.layerCount = static_cast<int>(document.layers.size());
+        document.metadata.parsedFormatVersion = document.formatVersion;
+        document.metadata.retainedPathAvailable = document.isValid();
+
+        for (std::size_t index = 0; index < document.layers.size(); ++index)
+        {
+            XpArtLoader::XpLayer& layer = document.layers[index];
+            layer.metadata.sourceWidth = layer.width;
+            layer.metadata.sourceHeight = layer.height;
+            layer.metadata.matchedCanvasSize =
+                layer.width == document.width && layer.height == document.height;
+            refreshLayerDerivedMetadata(layer);
+        }
+    }
+
+    XpArtLoader::MutationResult makeMutationFailure(
+        XpArtLoader::MutationErrorCode code,
+        const std::string& message)
+    {
+        XpArtLoader::MutationResult result;
+        result.code = code;
+        result.success = false;
+        result.changed = false;
+        result.message = message;
+        return result;
+    }
+
+    XpArtLoader::MutationResult makeMutationSuccess(bool changed)
+    {
+        XpArtLoader::MutationResult result;
+        result.code = XpArtLoader::MutationErrorCode::None;
+        result.success = true;
+        result.changed = changed;
+        return result;
     }
 
     std::size_t checkedCellCount(int width, int height, bool& ok)
@@ -378,9 +450,99 @@ namespace
         XpArtLoader::XpFrame frame;
         frame.frameIndex = frameIndex;
         frame.label = label;
-        frame.document = document;
+        frame.document = std::make_shared<XpArtLoader::XpDocument>(document);
         sequence.frames.push_back(std::move(frame));
         return sequence;
+    }
+
+    XpArtLoader::XpDocument applyVisibleLayerOverride(
+        const XpArtLoader::XpDocument& sourceDocument,
+        XpArtLoader::XpVisibleLayerMode visibleLayerMode,
+        const std::vector<int>& explicitVisibleLayerIndices)
+    {
+        XpArtLoader::XpDocument resolved = sourceDocument;
+
+        if (visibleLayerMode == XpArtLoader::XpVisibleLayerMode::UseDocumentVisibility)
+        {
+            return resolved;
+        }
+
+        if (visibleLayerMode == XpArtLoader::XpVisibleLayerMode::ForceAllLayersVisible)
+        {
+            for (XpArtLoader::XpLayer& layer : resolved.layers)
+            {
+                layer.visible = true;
+                layer.metadata.visibilityUsedForFlattening = true;
+            }
+
+            return resolved;
+        }
+
+        std::vector<bool> visibleMask(resolved.layers.size(), false);
+        for (int index : explicitVisibleLayerIndices)
+        {
+            if (index >= 0 && index < static_cast<int>(visibleMask.size()))
+            {
+                visibleMask[static_cast<std::size_t>(index)] = true;
+            }
+        }
+
+        for (std::size_t i = 0; i < resolved.layers.size(); ++i)
+        {
+            resolved.layers[i].visible = visibleMask[i];
+            resolved.layers[i].metadata.visibilityUsedForFlattening = visibleMask[i];
+        }
+
+        return resolved;
+    }
+
+    XpArtLoader::XpDocument resolveFrameDocumentForFlattening(
+        const XpArtLoader::XpFrame& frame,
+        const XpArtLoader::ResolvedXpFrameConversion& conversion)
+    {
+        const XpArtLoader::XpDocument* document = frame.getDocument();
+        if (document == nullptr)
+        {
+            return {};
+        }
+
+        return applyVisibleLayerOverride(
+            *document,
+            conversion.visibleLayerMode,
+            conversion.explicitVisibleLayerIndices);
+    }
+
+    XpArtLoader::LoadOptions resolveFrameLoadOptions(
+        const XpArtLoader::LoadOptions& options,
+        const XpArtLoader::ResolvedXpFrameConversion& conversion)
+    {
+        XpArtLoader::LoadOptions resolved = options;
+        resolved.compositeMode = conversion.compositeMode;
+        return resolved;
+    }
+
+    XpArtLoader::ResolvedXpFrameConversion resolveFrameConversionInternal(
+        const XpArtLoader::XpFrame& frame,
+        const XpArtLoader::XpSequenceMetadata* sequenceMetadata,
+        const XpArtLoader::XpFrameConversionOptions& options)
+    {
+        XpArtLoader::XpSequenceMetadata emptyMetadata;
+        const XpArtLoader::XpSequenceMetadata& metadata =
+            sequenceMetadata != nullptr ? *sequenceMetadata : emptyMetadata;
+
+        XpArtLoader::ResolvedXpFrameConversion resolved;
+        resolved.durationMilliseconds = frame.resolveDurationMilliseconds(metadata);
+        resolved.compositeMode = options.compositeModeOverride.has_value()
+            ? *options.compositeModeOverride
+            : frame.resolveCompositeMode(metadata);
+        resolved.visibleLayerMode = options.visibleLayerModeOverride.has_value()
+            ? *options.visibleLayerModeOverride
+            : frame.resolveVisibleLayerMode(metadata);
+        resolved.explicitVisibleLayerIndices =
+            !options.explicitVisibleLayerIndicesOverride.empty()
+            ? options.explicitVisibleLayerIndicesOverride
+            : frame.resolveExplicitVisibleLayerIndices(metadata);
+        return resolved;
     }
 
     void applyTransparentGlyphOnlyCell(
@@ -395,9 +557,9 @@ namespace
         destination.hasForeground = true;
 
         if (!destination.hasBackground &&
-            options.visibleTransparentBaseCellsUseBlackBackground)
+            XpArtLoader::resolveTransparencyPolicy(options).visibleTransparentBaseCellsUseBlackBackground)
         {
-            destination.background = kOpaqueBlack;
+            destination.background = XpArtLoader::resolveXpRules(options).opaqueFallbackBackgroundColor;
             destination.hasBackground = true;
         }
     }
@@ -566,7 +728,7 @@ namespace
         return result;
     }
 
-#if PFF_XP_ART_LOADER_HAS_ZLIB
+#if TUI_XP_ART_LOADER_HAS_ZLIB
     bool tryInflateXpBytes(std::string_view bytes, std::string& outDecompressed)
     {
         outDecompressed.clear();
@@ -782,7 +944,7 @@ namespace XpArtLoader
                 retainedCell.background = parsedCell.background;
                 retainedLayer.cells.push_back(retainedCell);
 
-                if (parsedCell.background == kTransparentBackground)
+                if (defaultTransparencyPolicy().treatsBackgroundAsTransparent(parsedCell.background))
                 {
                     retainedLayer.metadata.encounteredTransparentBackgroundCells = true;
 
@@ -815,7 +977,7 @@ namespace XpArtLoader
         XpFrame frame;
         frame.frameIndex = frameIndex;
         frame.label = label;
-        frame.document = buildRetainedDocument(document);
+        frame.document = std::make_shared<XpDocument>(buildRetainedDocument(document));
         return frame;
     }
 
@@ -834,15 +996,26 @@ namespace XpArtLoader
         return makeSingleFrameSequence(document, frameIndex, label);
     }
 
-    LoadResult buildTextObject(const ParsedDocument& document, const LoadOptions& options)
+    XpSequence buildRetainedSequence(const XpFrame& frame)
+    {
+        XpSequence sequence;
+        sequence.frames.push_back(frame);
+        return sequence;
+    }
+
+    LoadResult buildTextObjectFromXpDocument(
+        const ParsedDocument& document,
+        const LoadOptions& options)
     {
         const XpDocument retained = buildRetainedDocument(document);
-        LoadResult result = buildTextObject(retained, options);
+        LoadResult result = buildTextObjectFromXpDocument(retained, options);
         result.parsedFormatVersion = document.formatVersion;
         return result;
     }
 
-    LoadResult buildTextObject(const XpDocument& document, const LoadOptions& options)
+    LoadResult buildTextObjectFromXpDocument(
+        const XpDocument& document,
+        const LoadOptions& options)
     {
         LoadResult result;
         result.detectedFileType = FileType::Xp;
@@ -977,16 +1150,64 @@ namespace XpArtLoader
         return result;
     }
 
-    LoadResult buildTextObject(const XpFrame& frame, const LoadOptions& options)
+    ResolvedXpFrameConversion resolveFrameConversion(
+        const XpFrame& frame,
+        const XpSequenceMetadata* sequenceMetadata,
+        const XpFrameConversionOptions& options)
     {
-        LoadResult result = buildTextObject(frame.document, options);
-        result.retainedSequence = buildRetainedSequence(frame.document, frame.frameIndex, frame.label);
+        return resolveFrameConversionInternal(frame, sequenceMetadata, options);
+    }
+
+    LoadResult buildTextObjectFromXpFrame(
+        const XpFrame& frame,
+        const XpFrameConversionOptions& options)
+    {
+        XpSequenceMetadata emptyMetadata;
+        return buildTextObjectFromXpFrame(frame, emptyMetadata, options);
+    }
+
+    LoadResult buildTextObjectFromXpFrame(
+        const XpFrame& frame,
+        const XpSequenceMetadata& sequenceMetadata,
+        const XpFrameConversionOptions& options)
+    {
+        if (!frame.isValid())
+        {
+            LoadResult result;
+            result.success = false;
+            result.detectedFileType = FileType::Xp;
+            result.errorMessage = "Invalid retained XP frame.";
+            return result;
+        }
+
+        const ResolvedXpFrameConversion conversion =
+            resolveFrameConversion(frame, &sequenceMetadata, options);
+
+        if (!conversion.isValidForDocument(frame.getDocument()))
+        {
+            LoadResult result;
+            result.success = false;
+            result.detectedFileType = FileType::Xp;
+            result.errorMessage = "Resolved XP frame conversion policy is invalid for the retained XP document.";
+            return result;
+        }
+
+        const XpDocument resolvedDocument =
+            resolveFrameDocumentForFlattening(frame, conversion);
+        const LoadOptions resolvedOptions =
+            resolveFrameLoadOptions(options.loadOptions, conversion);
+
+        LoadResult result = buildTextObjectFromXpDocument(resolvedDocument, resolvedOptions);
+        result.retainedSequence = buildRetainedSequence(frame);
         result.hasRetainedSequence = result.retainedSequence.isValid();
         result.resolvedFrameCount = result.retainedSequence.getFrameCount();
+        result.compositeModeUsed = conversion.compositeMode;
         return result;
     }
 
-    LoadResult buildTextObject(const XpSequence& sequence, const LoadOptions& options)
+    LoadResult buildTextObjectFromXpSequence(
+        const XpSequence& sequence,
+        const XpFrameConversionOptions& options)
     {
         if (!sequence.isValid())
         {
@@ -1007,11 +1228,38 @@ namespace XpArtLoader
             return result;
         }
 
-        LoadResult result = buildTextObject(frame->document, options);
+        LoadResult result = buildTextObjectFromXpFrame(
+            *frame,
+            sequence.metadata,
+            options);
         result.retainedSequence = sequence;
-        result.hasRetainedSequence = true;
-        result.resolvedFrameCount = sequence.getFrameCount();
+        result.hasRetainedSequence = result.retainedSequence.isValid();
+        result.resolvedFrameCount = result.retainedSequence.getFrameCount();
         return result;
+    }
+
+    LoadResult buildTextObject(const ParsedDocument& document, const LoadOptions& options)
+    {
+        return buildTextObjectFromXpDocument(document, options);
+    }
+
+    LoadResult buildTextObject(const XpDocument& document, const LoadOptions& options)
+    {
+        return buildTextObjectFromXpDocument(document, options);
+    }
+
+    LoadResult buildTextObject(const XpFrame& frame, const LoadOptions& options)
+    {
+        XpFrameConversionOptions conversionOptions;
+        conversionOptions.loadOptions = options;
+        return buildTextObjectFromXpFrame(frame, conversionOptions);
+    }
+
+    LoadResult buildTextObject(const XpSequence& sequence, const LoadOptions& options)
+    {
+        XpFrameConversionOptions conversionOptions;
+        conversionOptions.loadOptions = options;
+        return buildTextObjectFromXpSequence(sequence, conversionOptions);
     }
 
     LoadResult loadFromBytes(std::string_view bytes, const LoadOptions& options)
@@ -1023,7 +1271,7 @@ namespace XpArtLoader
         const bool compressedInput = looksLikeGzip(bytes);
         std::string decompressedBytes;
 
-#if PFF_XP_ART_LOADER_HAS_ZLIB
+#if TUI_XP_ART_LOADER_HAS_ZLIB
         if (compressedInput)
         {
             if (!options.allowCompressedInput)
@@ -1255,9 +1503,124 @@ namespace XpArtLoader
         return FileType::Unknown;
     }
 
+    XpRulesConfig XpRulesConfig::rexPaintDefaults()
+    {
+        XpRulesConfig rules;
+        rules.defaultFormatVersion = 1;
+        rules.transparentBackgroundColor = { 255, 0, 255 };
+        rules.opaqueFallbackBackgroundColor = { 0, 0, 0 };
+        rules.defaultCompositeMode = XpCompositeMode::Phase45BCompatible;
+        return rules;
+    }
+
+    bool XpTransparencyPolicy::treatsBackgroundAsTransparent(const RgbColor& color) const
+    {
+        switch (mode)
+        {
+        case XpTransparencyMode::Disabled:
+            return false;
+
+        case XpTransparencyMode::RexPaintMagentaBackground:
+        case XpTransparencyMode::ExplicitColorKey:
+            return color == transparentBackgroundColor;
+        }
+
+        return false;
+    }
+
+    XpTransparencyPolicy XpTransparencyPolicy::rexPaintDefaults()
+    {
+        XpTransparencyPolicy policy;
+        policy.mode = XpTransparencyMode::RexPaintMagentaBackground;
+        policy.transparentBackgroundColor = XpRulesConfig::rexPaintDefaults().transparentBackgroundColor;
+        policy.visibleTransparentBaseCellsUseBlackBackground = true;
+        return policy;
+    }
+
+    bool XpExtensionFields::empty() const
+    {
+        return fields.empty();
+    }
+
+    bool XpExtensionFields::exceedsBounds() const
+    {
+        return fields.size() > maxFieldCount;
+    }
+
+    const XpExtensionField* XpExtensionFields::find(std::string_view key) const
+    {
+        for (const XpExtensionField& field : fields)
+        {
+            if (field.key == key)
+            {
+                return &field;
+            }
+        }
+
+        return nullptr;
+    }
+
+    bool XpExtensionFields::trySet(std::string key, std::string value)
+    {
+        if (key.empty())
+        {
+            return false;
+        }
+
+        for (XpExtensionField& field : fields)
+        {
+            if (field.key == key)
+            {
+                field.value = std::move(value);
+                return true;
+            }
+        }
+
+        if (fields.size() >= maxFieldCount)
+        {
+            return false;
+        }
+
+        XpExtensionField field;
+        field.key = std::move(key);
+        field.value = std::move(value);
+        fields.push_back(std::move(field));
+        return true;
+    }
+
+    XpRulesConfig resolveXpRules(const LoadOptions& options)
+    {
+        if (options.xpRulesOverride.has_value())
+        {
+            return *options.xpRulesOverride;
+        }
+
+        return XpRulesConfig::rexPaintDefaults();
+    }
+
+    XpTransparencyPolicy resolveTransparencyPolicy(const LoadOptions& options)
+    {
+        XpTransparencyPolicy policy =
+            options.transparencyPolicyOverride.has_value()
+            ? *options.transparencyPolicyOverride
+            : XpTransparencyPolicy::rexPaintDefaults();
+
+        if (!options.transparencyPolicyOverride.has_value())
+        {
+            policy.visibleTransparentBaseCellsUseBlackBackground =
+                options.visibleTransparentBaseCellsUseBlackBackground;
+
+            policy.mode = options.treatMagentaBackgroundAsTransparent
+                ? XpTransparencyMode::RexPaintMagentaBackground
+                : XpTransparencyMode::Disabled;
+        }
+
+        return policy;
+    }
+
     bool CellData::hasTransparentBackground() const
     {
-        return background == kTransparentBackground;
+        return defaultTransparencyPolicy().treatsBackgroundAsTransparent(background);
     }
 
     bool LayerData::isValid() const
@@ -1318,7 +1681,7 @@ namespace XpArtLoader
 
     bool XpLayerCell::hasTransparentBackground() const
     {
-        return background == kTransparentBackground;
+        return defaultTransparencyPolicy().treatsBackgroundAsTransparent(background);
     }
 
     bool XpLayer::isValid() const
@@ -1359,6 +1722,22 @@ namespace XpArtLoader
         return &cells[index];
     }
 
+    XpLayerCell* XpLayer::tryGetCell(int x, int y)
+    {
+        if (!inBounds(x, y))
+        {
+            return nullptr;
+        }
+
+        const std::size_t index = static_cast<std::size_t>(layerIndex(x, y, height));
+        if (index >= cells.size())
+        {
+            return nullptr;
+        }
+
+        return &cells[index];
+    }
+
     bool XpDocument::isValid() const
     {
         if (layers.empty() || width <= 0 || height <= 0)
@@ -1382,6 +1761,123 @@ namespace XpArtLoader
         return static_cast<int>(layers.size());
     }
 
+    bool XpDocument::isDirty() const
+    {
+        return dirty;
+    }
+
+    std::uint64_t XpDocument::getMutationRevision() const
+    {
+        return mutationRevision;
+    }
+
+    void XpDocument::clearDirty()
+    {
+        dirty = false;
+    }
+
+    MutationResult XpDocument::setCell(int layerIndexValue, int x, int y, const XpLayerCell& cell)
+    {
+        if (!isValid())
+        {
+            return makeMutationFailure(
+                MutationErrorCode::InvalidDocument,
+                "Cannot mutate an invalid XP document.");
+        }
+
+        if (layerIndexValue < 0 || layerIndexValue >= static_cast<int>(layers.size()))
+        {
+            return makeMutationFailure(
+                MutationErrorCode::LayerIndexOutOfRange,
+                "Layer index was out of range for setCell().");
+        }
+
+        XpLayer& layer = layers[static_cast<std::size_t>(layerIndexValue)];
+        XpLayerCell* existingCell = layer.tryGetCell(x, y);
+        if (existingCell == nullptr)
+        {
+            return makeMutationFailure(
+                MutationErrorCode::CellOutOfBounds,
+                "Cell coordinates were out of bounds for setCell().");
+        }
+
+        const bool changed =
+            existingCell->glyph != cell.glyph ||
+            existingCell->foreground != cell.foreground ||
+            existingCell->background != cell.background;
+
+        if (!changed)
+        {
+            return makeMutationSuccess(false);
+        }
+
+        *existingCell = cell;
+        refreshLayerDerivedMetadata(layer);
+        dirty = true;
+        ++mutationRevision;
+        return makeMutationSuccess(true);
+    }
+
+    MutationResult XpDocument::setLayerVisibility(int layerIndexValue, bool visibleValue)
+    {
+        if (!isValid())
+        {
+            return makeMutationFailure(
+                MutationErrorCode::InvalidDocument,
+                "Cannot mutate an invalid XP document.");
+        }
+
+        if (layerIndexValue < 0 || layerIndexValue >= static_cast<int>(layers.size()))
+        {
+            return makeMutationFailure(
+                MutationErrorCode::LayerIndexOutOfRange,
+                "Layer index was out of range for setLayerVisibility().");
+        }
+
+        XpLayer& layer = layers[static_cast<std::size_t>(layerIndexValue)];
+        if (layer.visible == visibleValue)
+        {
+            return makeMutationSuccess(false);
+        }
+
+        layer.visible = visibleValue;
+        layer.metadata.visibilityUsedForFlattening = visibleValue;
+        dirty = true;
+        ++mutationRevision;
+        return makeMutationSuccess(true);
+    }
+
+    MutationResult XpDocument::reorderLayer(int fromIndex, int toIndex)
+    {
+        if (!isValid())
+        {
+            return makeMutationFailure(
+                MutationErrorCode::InvalidDocument,
+                "Cannot mutate an invalid XP document.");
+        }
+
+        if (fromIndex < 0 || fromIndex >= static_cast<int>(layers.size()) ||
+            toIndex < 0 || toIndex >= static_cast<int>(layers.size()))
+        {
+            return makeMutationFailure(
+                MutationErrorCode::ReorderIndexOutOfRange,
+                "Layer indices were out of range for reorderLayer().");
+        }
+
+        if (fromIndex == toIndex)
+        {
+            return makeMutationSuccess(false);
+        }
+
+        XpLayer movedLayer = layers[static_cast<std::size_t>(fromIndex)];
+        layers.erase(layers.begin() + fromIndex);
+        layers.insert(layers.begin() + toIndex, std::move(movedLayer));
+        refreshDocumentDerivedMetadata(*this);
+        dirty = true;
+        ++mutationRevision;
+        return makeMutationSuccess(true);
+    }
+
     bool hasWarning(const LoadResult& result, LoadWarningCode code)
     {
         for (const LoadWarning& warning : result.warnings)
@@ -1395,9 +1891,254 @@ namespace XpArtLoader
         return false;
     }
 
+    namespace
+    {
+        bool areVisibleLayerIndicesValid(
+            const std::vector<int>& visibleLayerIndices,
+            const XpDocument* document)
+        {
+            if (document == nullptr || !document->isValid())
+            {
+                return false;
+            }
+
+            std::vector<bool> seen(document->layers.size(), false);
+            for (int index : visibleLayerIndices)
+            {
+                if (index < 0 || index >= static_cast<int>(document->layers.size()))
+                {
+                    return false;
+                }
+
+                if (seen[static_cast<std::size_t>(index)])
+                {
+                    return false;
+                }
+
+                seen[static_cast<std::size_t>(index)] = true;
+            }
+
+            return true;
+        }
+    }
+
+    bool XpFrameConversionOptions::isEmpty() const
+    {
+        return !compositeModeOverride.has_value() &&
+            !visibleLayerModeOverride.has_value() &&
+            explicitVisibleLayerIndicesOverride.empty();
+    }
+
+    bool XpFrameConversionOptions::usesExplicitVisibleLayerListOverride() const
+    {
+        return visibleLayerModeOverride.has_value() &&
+            *visibleLayerModeOverride == XpVisibleLayerMode::UseExplicitVisibleLayerList;
+    }
+
+    bool ResolvedXpFrameConversion::usesExplicitVisibleLayerList() const
+    {
+        return visibleLayerMode == XpVisibleLayerMode::UseExplicitVisibleLayerList;
+    }
+
+    bool ResolvedXpFrameConversion::isValidForDocument(const XpDocument* document) const
+    {
+        if (durationMilliseconds.has_value() && *durationMilliseconds < 0)
+        {
+            return false;
+        }
+
+        if (!explicitVisibleLayerIndices.empty() &&
+            !areVisibleLayerIndicesValid(explicitVisibleLayerIndices, document))
+        {
+            return false;
+        }
+
+        if (usesExplicitVisibleLayerList() &&
+            !areVisibleLayerIndicesValid(explicitVisibleLayerIndices, document))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool XpFrameOverrides::isEmpty() const
+    {
+        return !durationMilliseconds.has_value() &&
+            !compositeMode.has_value() &&
+            !visibleLayerMode.has_value() &&
+            explicitVisibleLayerIndices.empty();
+    }
+
+    bool XpFrameOverrides::usesExplicitVisibleLayerList() const
+    {
+        return visibleLayerMode.has_value() &&
+            *visibleLayerMode == XpVisibleLayerMode::UseExplicitVisibleLayerList;
+    }
+
+    bool XpFrameOverrides::isValidForDocument(const XpDocument* document) const
+    {
+        if (durationMilliseconds.has_value() && *durationMilliseconds < 0)
+        {
+            return false;
+        }
+
+        if (!explicitVisibleLayerIndices.empty() &&
+            !areVisibleLayerIndicesValid(explicitVisibleLayerIndices, document))
+        {
+            return false;
+        }
+
+        if (usesExplicitVisibleLayerList() &&
+            !areVisibleLayerIndicesValid(explicitVisibleLayerIndices, document))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool XpSequenceMetadata::isEmpty() const
+    {
+        return !defaultFrameDurationMilliseconds.has_value() &&
+            !defaultFramesPerSecond.has_value() &&
+            !loop.has_value() &&
+            !defaultCompositeMode.has_value() &&
+            !defaultVisibleLayerMode.has_value() &&
+            defaultExplicitVisibleLayerIndices.empty() &&
+            sourceManifestPath.empty() &&
+            name.empty() &&
+            sequenceLabel.empty() &&
+            extensionFields.empty();
+    }
+
+    bool XpSequenceMetadata::usesExplicitVisibleLayerList() const
+    {
+        return defaultVisibleLayerMode.has_value() &&
+            *defaultVisibleLayerMode == XpVisibleLayerMode::UseExplicitVisibleLayerList;
+    }
+
+    bool XpSequenceMetadata::isValidForDocument(const XpDocument* document) const
+    {
+        if (defaultFrameDurationMilliseconds.has_value() &&
+            *defaultFrameDurationMilliseconds < 0)
+        {
+            return false;
+        }
+
+        if (!defaultExplicitVisibleLayerIndices.empty() &&
+            !areVisibleLayerIndicesValid(defaultExplicitVisibleLayerIndices, document))
+        {
+            return false;
+        }
+
+        if (usesExplicitVisibleLayerList() &&
+            !areVisibleLayerIndicesValid(defaultExplicitVisibleLayerIndices, document))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
     bool XpFrame::isValid() const
     {
-        return frameIndex >= 0 && document.isValid();
+        return frameIndex >= 0 &&
+            hasDocument() &&
+            document->isValid() &&
+            overrides.isValidForDocument(document.get());
+    }
+
+    bool XpFrame::hasDocument() const
+    {
+        return document != nullptr;
+    }
+
+    bool XpFrame::hasLabel() const
+    {
+        return !label.empty();
+    }
+
+    bool XpFrame::hasSourcePath() const
+    {
+        return !sourcePath.empty();
+    }
+
+    bool XpFrame::isDirty() const
+    {
+        return document != nullptr && document->isDirty();
+    }
+
+    void XpFrame::clearDirty()
+    {
+        if (document != nullptr)
+        {
+            document->clearDirty();
+        }
+    }
+
+    const XpDocument* XpFrame::getDocument() const
+    {
+        return document.get();
+    }
+
+    XpDocument* XpFrame::getDocument()
+    {
+        return document.get();
+    }
+
+    std::optional<int> XpFrame::resolveDurationMilliseconds(
+        const XpSequenceMetadata& sequenceMetadata) const
+    {
+        if (overrides.durationMilliseconds.has_value())
+        {
+            return overrides.durationMilliseconds;
+        }
+
+        return sequenceMetadata.defaultFrameDurationMilliseconds;
+    }
+
+    XpCompositeMode XpFrame::resolveCompositeMode(
+        const XpSequenceMetadata& sequenceMetadata) const
+    {
+        if (overrides.compositeMode.has_value())
+        {
+            return *overrides.compositeMode;
+        }
+
+        if (sequenceMetadata.defaultCompositeMode.has_value())
+        {
+            return *sequenceMetadata.defaultCompositeMode;
+        }
+
+        return XpCompositeMode::Phase45BCompatible;
+    }
+
+    XpVisibleLayerMode XpFrame::resolveVisibleLayerMode(
+        const XpSequenceMetadata& sequenceMetadata) const
+    {
+        if (overrides.visibleLayerMode.has_value())
+        {
+            return *overrides.visibleLayerMode;
+        }
+
+        if (sequenceMetadata.defaultVisibleLayerMode.has_value())
+        {
+            return *sequenceMetadata.defaultVisibleLayerMode;
+        }
+
+        return XpVisibleLayerMode::UseDocumentVisibility;
+    }
+
+    std::vector<int> XpFrame::resolveExplicitVisibleLayerIndices(
+        const XpSequenceMetadata& sequenceMetadata) const
+    {
+        if (!overrides.explicitVisibleLayerIndices.empty())
+        {
+            return overrides.explicitVisibleLayerIndices;
+        }
+
+        return sequenceMetadata.defaultExplicitVisibleLayerIndices;
     }
 
     bool XpSequence::isValid() const
@@ -1407,11 +2148,27 @@ namespace XpArtLoader
             return false;
         }
 
+        if (!hasUniqueFrameIndices() || !areFramesStoredInFrameIndexOrder())
+        {
+            return false;
+        }
+
         for (const XpFrame& frame : frames)
         {
-            if (!frame.isValid())
+            if (!frame.isValid() || !metadata.isValidForDocument(frame.getDocument()))
             {
                 return false;
+            }
+
+            if (frame.resolveVisibleLayerMode(metadata) ==
+                XpVisibleLayerMode::UseExplicitVisibleLayerList)
+            {
+                const std::vector<int> visibleLayerIndices =
+                    frame.resolveExplicitVisibleLayerIndices(metadata);
+                if (!areVisibleLayerIndicesValid(visibleLayerIndices, frame.getDocument()))
+                {
+                    return false;
+                }
             }
         }
 
@@ -1423,17 +2180,129 @@ namespace XpArtLoader
         return static_cast<int>(frames.size());
     }
 
-    const XpFrame* XpSequence::tryGetFrame(int frameIndexValue) const
+    bool XpSequence::isDirty() const
     {
-        if (frameIndexValue < 0 || frameIndexValue >= static_cast<int>(frames.size()))
+        for (const XpFrame& frame : frames)
+        {
+            if (frame.isDirty())
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    void XpSequence::clearDirty()
+    {
+        for (XpFrame& frame : frames)
+        {
+            frame.clearDirty();
+        }
+    }
+
+    bool XpSequence::hasUniqueFrameIndices() const
+    {
+        for (std::size_t index = 1; index < frames.size(); ++index)
+        {
+            if (frames[index - 1].frameIndex == frames[index].frameIndex)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    bool XpSequence::hasContiguousFrameIndicesStartingAtZero() const
+    {
+        for (std::size_t index = 0; index < frames.size(); ++index)
+        {
+            if (frames[index].frameIndex != static_cast<int>(index))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    bool XpSequence::areFramesStoredInFrameIndexOrder() const
+    {
+        for (std::size_t index = 1; index < frames.size(); ++index)
+        {
+            if (frames[index - 1].frameIndex >= frames[index].frameIndex)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    void XpSequence::sortFramesByFrameIndex()
+    {
+        std::sort(
+            frames.begin(),
+            frames.end(),
+            [](const XpFrame& left, const XpFrame& right)
+            {
+                return left.frameIndex < right.frameIndex;
+            });
+    }
+
+    const XpFrame* XpSequence::tryGetFrame(int frameOrdinal) const
+    {
+        if (frameOrdinal < 0 || frameOrdinal >= static_cast<int>(frames.size()))
         {
             return nullptr;
         }
 
-        return &frames[static_cast<std::size_t>(frameIndexValue)];
+        return &frames[static_cast<std::size_t>(frameOrdinal)];
+    }
+
+    XpFrame* XpSequence::tryGetFrame(int frameOrdinal)
+    {
+        if (frameOrdinal < 0 || frameOrdinal >= static_cast<int>(frames.size()))
+        {
+            return nullptr;
+        }
+
+        return &frames[static_cast<std::size_t>(frameOrdinal)];
+    }
+
+    const XpFrame* XpSequence::findFrameByIndex(int frameIndex) const
+    {
+        for (const XpFrame& frame : frames)
+        {
+            if (frame.frameIndex == frameIndex)
+            {
+                return &frame;
+            }
+        }
+
+        return nullptr;
+    }
+
+    XpFrame* XpSequence::findFrameByIndex(int frameIndex)
+    {
+        for (XpFrame& frame : frames)
+        {
+            if (frame.frameIndex == frameIndex)
+            {
+                return &frame;
+            }
+        }
+
+        return nullptr;
     }
 
     const XpFrame* XpSequence::getDefaultFrame() const
+    {
+        return tryGetFrame(0);
+    }
+
+    XpFrame* XpSequence::getDefaultFrame()
     {
         return tryGetFrame(0);
     }
@@ -1583,6 +2452,34 @@ namespace XpArtLoader
         stream << "XP retained sequence: "
             << "frames=" << result.retainedSequence.getFrameCount();
 
+        if (!result.retainedSequence.metadata.sequenceLabel.empty())
+        {
+            stream << ", label=" << result.retainedSequence.metadata.sequenceLabel;
+        }
+
+        if (!result.retainedSequence.metadata.sourceManifestPath.empty())
+        {
+            stream << ", manifest=" << result.retainedSequence.metadata.sourceManifestPath;
+        }
+
+        if (result.retainedSequence.metadata.defaultFrameDurationMilliseconds.has_value())
+        {
+            stream << ", defaultDurationMs="
+                << *result.retainedSequence.metadata.defaultFrameDurationMilliseconds;
+        }
+
+        if (result.retainedSequence.metadata.defaultCompositeMode.has_value())
+        {
+            stream << ", defaultCompositeMode="
+                << toString(*result.retainedSequence.metadata.defaultCompositeMode);
+        }
+
+        if (result.retainedSequence.metadata.defaultVisibleLayerMode.has_value())
+        {
+            stream << ", defaultVisibleLayerMode="
+                << toString(*result.retainedSequence.metadata.defaultVisibleLayerMode);
+        }
+
         if (firstFrame != nullptr)
         {
             stream << ", defaultFrameIndex=" << firstFrame->frameIndex;
@@ -1592,8 +2489,24 @@ namespace XpArtLoader
                 stream << ", defaultFrameLabel=" << firstFrame->label;
             }
 
-            stream << ", defaultFrameCanvas="
-                << firstFrame->document.width << 'x' << firstFrame->document.height;
+            if (const XpDocument* document = firstFrame->getDocument())
+            {
+                stream << ", defaultFrameCanvas="
+                    << document->width << 'x' << document->height;
+            }
+
+            if (const std::optional<int> durationMs =
+                firstFrame->resolveDurationMilliseconds(result.retainedSequence.metadata);
+                durationMs.has_value())
+            {
+                stream << ", defaultFrameDurationMs=" << *durationMs;
+            }
+
+            stream << ", defaultFrameCompositeMode="
+                << toString(firstFrame->resolveCompositeMode(result.retainedSequence.metadata));
+
+            stream << ", defaultFrameVisibleLayerMode="
+                << toString(firstFrame->resolveVisibleLayerMode(result.retainedSequence.metadata));
         }
 
         return stream.str();
@@ -1649,6 +2562,21 @@ namespace XpArtLoader
             return "Phase45BCompatible";
         case XpCompositeMode::StrictOpaqueOverwrite:
             return "StrictOpaqueOverwrite";
+        default:
+            return "Unknown";
+        }
+    }
+
+    const char* toString(XpVisibleLayerMode visibleLayerMode)
+    {
+        switch (visibleLayerMode)
+        {
+        case XpVisibleLayerMode::UseDocumentVisibility:
+            return "UseDocumentVisibility";
+        case XpVisibleLayerMode::ForceAllLayersVisible:
+            return "ForceAllLayersVisible";
+        case XpVisibleLayerMode::UseExplicitVisibleLayerList:
+            return "UseExplicitVisibleLayerList";
         default:
             return "Unknown";
         }

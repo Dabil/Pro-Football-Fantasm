@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -34,16 +35,24 @@ namespace XpArtLoader
 
     enum class XpCompositeMode
     {
-        // Default Phase 4.5B-compatible compositing behavior:
-        // - transparent background + visible glyph overlays glyph/foreground only
-        // - transparent background + blank glyph contributes nothing
-        // - opaque cells overwrite background and optionally glyph
         Phase45BCompatible,
-
-        // Alternate policy:
-        // - transparent-background cells contribute nothing at all
-        // - only opaque cells affect the flattened result
         StrictOpaqueOverwrite
+    };
+
+    enum class XpVisibleLayerMode
+    {
+        UseDocumentVisibility,
+        ForceAllLayersVisible,
+        UseExplicitVisibleLayerList
+    };
+
+    enum class MutationErrorCode
+    {
+        None,
+        InvalidDocument,
+        LayerIndexOutOfRange,
+        CellOutOfBounds,
+        ReorderIndexOutOfRange
     };
 
     struct SourcePosition
@@ -89,6 +98,56 @@ namespace XpArtLoader
         }
     };
 
+    enum class XpTransparencyMode
+    {
+        RexPaintMagentaBackground,
+        Disabled,
+        ExplicitColorKey
+    };
+
+    struct XpRulesConfig
+    {
+        int defaultFormatVersion = 1;
+        RgbColor transparentBackgroundColor{ 255, 0, 255 };
+        RgbColor opaqueFallbackBackgroundColor{ 0, 0, 0 };
+        XpCompositeMode defaultCompositeMode = XpCompositeMode::Phase45BCompatible;
+
+        static XpRulesConfig rexPaintDefaults();
+    };
+
+    struct XpTransparencyPolicy
+    {
+        XpTransparencyMode mode = XpTransparencyMode::RexPaintMagentaBackground;
+        RgbColor transparentBackgroundColor{ 255, 0, 255 };
+        bool visibleTransparentBaseCellsUseBlackBackground = true;
+
+        bool treatsBackgroundAsTransparent(const RgbColor& color) const;
+
+        static XpTransparencyPolicy rexPaintDefaults();
+    };
+
+    struct XpExtensionField
+    {
+        std::string key;
+        std::string value;
+
+        bool isValid() const
+        {
+            return !key.empty();
+        }
+    };
+
+    struct XpExtensionFields
+    {
+        std::vector<XpExtensionField> fields;
+        std::size_t maxFieldCount = 16;
+
+        bool empty() const;
+        bool exceedsBounds() const;
+        const XpExtensionField* find(std::string_view key) const;
+        bool trySet(std::string key, std::string value);
+    };
+
     struct CellData
     {
         std::uint32_t glyph = 0;
@@ -109,8 +168,6 @@ namespace XpArtLoader
         const CellData* tryGetCell(int x, int y) const;
     };
 
-    // ParsedDocument is the raw file-structure-oriented parse result.
-    // It should remain separate from retained runtime-ready layer content.
     struct ParsedDocument
     {
         int formatVersion = 0;
@@ -137,9 +194,6 @@ namespace XpArtLoader
         SourcePosition firstFailingPosition;
     };
 
-    // Per-layer retained metadata intended for diagnostics/inspection.
-    // This stores facts learned during parse/build and later updated facts
-    // about how flattening actually used the layer.
     struct XpLayerMetadata
     {
         int sourceLayerIndex = -1;
@@ -154,11 +208,9 @@ namespace XpArtLoader
 
         bool visibilityUsedForFlattening = true;
         XpCompositeMode compositeModeUsed = XpCompositeMode::Phase45BCompatible;
+        XpExtensionFields extensionFields;
     };
 
-    // Document-level retained metadata intended for diagnostics/inspection.
-    // This keeps the retained document self-describing enough for validation
-    // screens and import inspectors without forcing a re-parse.
     struct XpDocumentMetadata
     {
         int canvasWidth = 0;
@@ -173,9 +225,9 @@ namespace XpArtLoader
         bool inputWasAlreadyDecompressed = false;
 
         XpCompositeMode compositeModeUsed = XpCompositeMode::Phase45BCompatible;
+        XpExtensionFields extensionFields;
     };
 
-    // Retained runtime-ready XP content.
     struct XpLayerCell
     {
         std::uint32_t glyph = 0;
@@ -196,11 +248,22 @@ namespace XpArtLoader
         bool isValid() const;
         bool inBounds(int x, int y) const;
         const XpLayerCell* tryGetCell(int x, int y) const;
+        XpLayerCell* tryGetCell(int x, int y);
     };
 
-    // XpDocument is the retained post-parse XP representation.
-    // It preserves layer order, dimensions, cell content, visibility state,
-    // and inspection metadata for future validation/debug workflows.
+    struct MutationResult
+    {
+        MutationErrorCode code = MutationErrorCode::None;
+        bool success = false;
+        bool changed = false;
+        std::string message;
+
+        bool isValid() const
+        {
+            return success && code == MutationErrorCode::None;
+        }
+    };
+
     struct XpDocument
     {
         int width = 0;
@@ -209,35 +272,99 @@ namespace XpArtLoader
         bool usesLegacyLayerCountHeader = false;
         std::vector<XpLayer> layers;
         XpDocumentMetadata metadata;
+        bool dirty = false;
+        std::uint64_t mutationRevision = 0;
 
         bool isValid() const;
         int getLayerCount() const;
+        bool isDirty() const;
+        std::uint64_t getMutationRevision() const;
+        void clearDirty();
+        MutationResult setCell(int layerIndex, int x, int y, const XpLayerCell& cell);
+        MutationResult setLayerVisibility(int layerIndex, bool visible);
+        MutationResult reorderLayer(int fromIndex, int toIndex);
     };
 
-    // A retained frame wraps one retained XP document so the importer can grow
-    // from today's single-document path into future animation/state-variant or
-    // frame-sequence workflows without redesigning the retained XP model.
+    struct XpFrameOverrides
+    {
+        std::optional<int> durationMilliseconds;
+        std::optional<XpCompositeMode> compositeMode;
+        std::optional<XpVisibleLayerMode> visibleLayerMode;
+        std::vector<int> explicitVisibleLayerIndices;
+
+        bool isEmpty() const;
+        bool usesExplicitVisibleLayerList() const;
+        bool isValidForDocument(const XpDocument* document) const;
+    };
+
+    struct XpSequenceMetadata
+    {
+        std::optional<int> defaultFrameDurationMilliseconds;
+        std::optional<int> defaultFramesPerSecond;
+        std::optional<bool> loop;
+        std::optional<XpCompositeMode> defaultCompositeMode;
+        std::optional<XpVisibleLayerMode> defaultVisibleLayerMode;
+        std::vector<int> defaultExplicitVisibleLayerIndices;
+
+        std::string sourceManifestPath;
+        std::string name;
+        std::string sequenceLabel;
+        XpExtensionFields extensionFields;
+
+        bool isEmpty() const;
+        bool usesExplicitVisibleLayerList() const;
+        bool isValidForDocument(const XpDocument* document) const;
+    };
+
     struct XpFrame
     {
         int frameIndex = 0;
         std::string label;
-        XpDocument document;
+        std::string sourcePath;
+        std::shared_ptr<XpDocument> document;
+        XpFrameOverrides overrides;
 
         bool isValid() const;
+        bool hasDocument() const;
+        bool hasLabel() const;
+        bool hasSourcePath() const;
+        bool isDirty() const;
+        void clearDirty();
+        const XpDocument* getDocument() const;
+        XpDocument* getDocument();
+
+        std::optional<int> resolveDurationMilliseconds(
+            const XpSequenceMetadata& sequenceMetadata) const;
+
+        XpCompositeMode resolveCompositeMode(
+            const XpSequenceMetadata& sequenceMetadata) const;
+
+        XpVisibleLayerMode resolveVisibleLayerMode(
+            const XpSequenceMetadata& sequenceMetadata) const;
+
+        std::vector<int> resolveExplicitVisibleLayerIndices(
+            const XpSequenceMetadata& sequenceMetadata) const;
     };
 
-    // Minimal retained frame container.
-    // Current single XP imports populate this as a trivial one-frame sequence.
-    // Future multi-frame importers can append additional frames without changing
-    // the current XpDocument or flattened TextObject conversion model.
     struct XpSequence
     {
         std::vector<XpFrame> frames;
+        XpSequenceMetadata metadata;
 
         bool isValid() const;
         int getFrameCount() const;
-        const XpFrame* tryGetFrame(int frameIndex) const;
+        bool isDirty() const;
+        void clearDirty();
+        bool hasUniqueFrameIndices() const;
+        bool hasContiguousFrameIndicesStartingAtZero() const;
+        bool areFramesStoredInFrameIndexOrder() const;
+        void sortFramesByFrameIndex();
+        const XpFrame* tryGetFrame(int frameOrdinal) const;
+        XpFrame* tryGetFrame(int frameOrdinal);
+        const XpFrame* findFrameByIndex(int frameIndex) const;
+        XpFrame* findFrameByIndex(int frameIndex);
         const XpFrame* getDefaultFrame() const;
+        XpFrame* getDefaultFrame();
     };
 
     struct LoadOptions
@@ -246,18 +373,40 @@ namespace XpArtLoader
 
         bool allowCompressedInput = true;
         bool allowAlreadyDecompressedInput = true;
-
-        // Current runtime path still flattens into TextObject by default.
         bool flattenLayers = true;
 
         bool treatMagentaBackgroundAsTransparent = true;
         bool visibleTransparentBaseCellsUseBlackBackground = true;
         bool strictLayerSizeValidation = true;
 
-        // Phase 4.5D compositing policy selection.
+        std::optional<XpRulesConfig> xpRulesOverride;
+        std::optional<XpTransparencyPolicy> transparencyPolicyOverride;
+
         XpCompositeMode compositeMode = XpCompositeMode::Phase45BCompatible;
 
         std::optional<Style> baseStyle;
+    };
+
+    struct XpFrameConversionOptions
+    {
+        LoadOptions loadOptions;
+        std::optional<XpCompositeMode> compositeModeOverride;
+        std::optional<XpVisibleLayerMode> visibleLayerModeOverride;
+        std::vector<int> explicitVisibleLayerIndicesOverride;
+
+        bool isEmpty() const;
+        bool usesExplicitVisibleLayerListOverride() const;
+    };
+
+    struct ResolvedXpFrameConversion
+    {
+        std::optional<int> durationMilliseconds;
+        XpCompositeMode compositeMode = XpCompositeMode::Phase45BCompatible;
+        XpVisibleLayerMode visibleLayerMode = XpVisibleLayerMode::UseDocumentVisibility;
+        std::vector<int> explicitVisibleLayerIndices;
+
+        bool usesExplicitVisibleLayerList() const;
+        bool isValidForDocument(const XpDocument* document) const;
     };
 
     struct LoadResult
@@ -298,11 +447,8 @@ namespace XpArtLoader
 
     ParseResult parseDecompressedPayload(std::string_view bytes);
 
-    // Conversion boundary:
-    // ParsedDocument -> retained XpDocument
     XpDocument buildRetainedDocument(const ParsedDocument& document);
 
-    // Future-ready frame/container conversion seams.
     XpFrame buildRetainedFrame(
         const ParsedDocument& document,
         int frameIndex = 0,
@@ -315,6 +461,8 @@ namespace XpArtLoader
         int frameIndex = 0,
         const std::string& label = std::string());
 
+    XpSequence buildRetainedSequence(const XpFrame& frame);
+
     LoadResult loadFromFile(const std::string& filePath);
     LoadResult loadFromFile(const std::string& filePath, const LoadOptions& options);
     LoadResult loadFromFile(const std::string& filePath, const Style& style);
@@ -325,12 +473,33 @@ namespace XpArtLoader
 
     LoadResult loadFromBytes(std::string_view bytes, const LoadOptions& options = {});
 
-    // Compatibility wrapper:
-    // ParsedDocument -> retained XpDocument -> flattened TextObject
-    LoadResult buildTextObject(const ParsedDocument& document, const LoadOptions& options = {});
+    ResolvedXpFrameConversion resolveFrameConversion(
+        const XpFrame& frame,
+        const XpSequenceMetadata* sequenceMetadata = nullptr,
+        const XpFrameConversionOptions& options = {});
 
-    // Retained-model flattening entry point:
-    // XpDocument -> flattened TextObject
+    LoadResult buildTextObjectFromXpDocument(
+        const ParsedDocument& document,
+        const LoadOptions& options = {});
+
+    LoadResult buildTextObjectFromXpDocument(
+        const XpDocument& document,
+        const LoadOptions& options = {});
+
+    LoadResult buildTextObjectFromXpFrame(
+        const XpFrame& frame,
+        const XpFrameConversionOptions& options = {});
+
+    LoadResult buildTextObjectFromXpFrame(
+        const XpFrame& frame,
+        const XpSequenceMetadata& sequenceMetadata,
+        const XpFrameConversionOptions& options = {});
+
+    LoadResult buildTextObjectFromXpSequence(
+        const XpSequence& sequence,
+        const XpFrameConversionOptions& options = {});
+
+    LoadResult buildTextObject(const ParsedDocument& document, const LoadOptions& options = {});
     LoadResult buildTextObject(const XpDocument& document, const LoadOptions& options = {});
     LoadResult buildTextObject(const XpFrame& frame, const LoadOptions& options = {});
     LoadResult buildTextObject(const XpSequence& sequence, const LoadOptions& options = {});
@@ -338,7 +507,6 @@ namespace XpArtLoader
     bool hasWarning(const LoadResult& result, LoadWarningCode code);
     const LoadWarning* getWarningByCode(const LoadResult& result, LoadWarningCode code);
 
-    // Small inspection helpers for diagnostics code.
     const XpLayer* tryGetLayer(const XpDocument& document, int layerIndex);
     const XpLayerMetadata* tryGetLayerMetadata(const XpDocument& document, int layerIndex);
     const XpFrame* tryGetFrame(const XpSequence& sequence, int frameIndex);
@@ -349,7 +517,12 @@ namespace XpArtLoader
     std::string formatRetainedLayerSummary(const LoadResult& result, int layerIndex);
     std::string formatRetainedSequenceSummary(const LoadResult& result);
 
+    XpRulesConfig resolveXpRules(const LoadOptions& options);
+    XpTransparencyPolicy resolveTransparencyPolicy(const LoadOptions& options);
+
     const char* toString(FileType fileType);
     const char* toString(LoadWarningCode warningCode);
     const char* toString(XpCompositeMode compositeMode);
+    const char* toString(XpVisibleLayerMode visibleLayerMode);
+    const char* toString(XpTransparencyMode transparencyMode);
 }
