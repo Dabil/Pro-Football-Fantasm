@@ -4,32 +4,32 @@
 
 namespace
 {
-    std::shared_ptr<TextObject> makeSharedTextObject(TextObject object)
+    std::shared_ptr<TextObject> makeSharedTextObject(const TextObject& object)
     {
-        return std::make_shared<TextObject>(std::move(object));
+        return std::make_shared<TextObject>(object);
     }
 
-    Data::Assets::LoadTextAssetResult makeFailure(
+    Assets::LoadTextAssetResult makeTextFailure(
         const std::string& requestedPath,
         const AssetPaths::ResolutionResult& resolution,
         const std::string& errorMessage)
     {
-        Data::Assets::LoadTextAssetResult result;
+        Assets::LoadTextAssetResult result;
         result.success = false;
-        result.asset.requestedPath = requestedPath;
+        result.errorMessage = errorMessage;
         result.asset.assetType = resolution.assetType;
+        result.asset.requestedPath = requestedPath;
         result.asset.resolvedPath = resolution.resolvedPath;
         result.asset.normalizedPath = resolution.normalizedPath;
-        result.errorMessage = errorMessage;
         return result;
     }
 
-    Data::Assets::LoadTextAssetResult makeSuccess(
+    Assets::LoadTextAssetResult makeTextSuccess(
         const std::string& requestedPath,
         const AssetPaths::ResolutionResult& resolution,
         std::shared_ptr<TextObject> object)
     {
-        Data::Assets::LoadTextAssetResult result;
+        Assets::LoadTextAssetResult result;
         result.success = true;
         result.asset.object = std::move(object);
         result.asset.assetType = resolution.assetType;
@@ -38,9 +38,39 @@ namespace
         result.asset.normalizedPath = resolution.normalizedPath;
         return result;
     }
+
+    Assets::LoadBannerFontResult makeBannerFailure(
+        const std::string& requestedPath,
+        const AssetPaths::ResolutionResult& resolution,
+        const std::string& errorMessage)
+    {
+        Assets::LoadBannerFontResult result;
+        result.success = false;
+        result.errorMessage = errorMessage;
+        result.asset.assetType = AssetPaths::AssetType::BannerSource;
+        result.asset.requestedPath = requestedPath;
+        result.asset.resolvedPath = resolution.resolvedPath;
+        result.asset.normalizedPath = resolution.normalizedPath;
+        return result;
+    }
+
+    Assets::LoadBannerFontResult makeBannerSuccess(
+        const std::string& requestedPath,
+        const AssetPaths::ResolutionResult& resolution,
+        std::shared_ptr<const AsciiBannerFont> font)
+    {
+        Assets::LoadBannerFontResult result;
+        result.success = true;
+        result.asset.font = std::move(font);
+        result.asset.assetType = AssetPaths::AssetType::BannerSource;
+        result.asset.requestedPath = requestedPath;
+        result.asset.resolvedPath = resolution.resolvedPath;
+        result.asset.normalizedPath = resolution.normalizedPath;
+        return result;
+    }
 }
 
-namespace Data::Assets
+namespace Assets
 {
     AssetLibrary::AssetLibrary(AssetLibraryOptions options)
         : m_options(std::move(options))
@@ -67,9 +97,7 @@ namespace Data::Assets
 
     void AssetLibrary::setAssetsRoot(const std::string& assetsRoot)
     {
-        m_options.assetsRoot = assetsRoot.empty()
-            ? AssetPaths::resolveAssetsRoot()
-            : AssetPaths::normalizePath(assetsRoot);
+        m_options.assetsRoot = assetsRoot;
     }
 
     const std::string& AssetLibrary::getAssetsRoot() const
@@ -112,6 +140,16 @@ namespace Data::Assets
         return loadTextAssetInternal(assetNameOrPath, true);
     }
 
+    LoadBannerFontResult AssetLibrary::loadBannerFont(const std::string& assetNameOrPath)
+    {
+        return loadBannerFontInternal(assetNameOrPath, false);
+    }
+
+    LoadBannerFontResult AssetLibrary::reloadBannerFont(const std::string& assetNameOrPath)
+    {
+        return loadBannerFontInternal(assetNameOrPath, true);
+    }
+
     const std::shared_ptr<TextObject>* AssetLibrary::findCachedTextAsset(const std::string& assetNameOrPath) const
     {
         const std::string cacheKey = makeCacheKey(assetNameOrPath);
@@ -129,6 +167,24 @@ namespace Data::Assets
         return &it->second.object;
     }
 
+    const std::shared_ptr<const AsciiBannerFont>* AssetLibrary::findCachedBannerFont(
+        const std::string& assetNameOrPath) const
+    {
+        const std::string cacheKey = makeCacheKey(assetNameOrPath);
+        if (cacheKey.empty())
+        {
+            return nullptr;
+        }
+
+        const auto it = m_bannerFontCache.find(cacheKey);
+        if (it == m_bannerFontCache.end() || !it->second.loadSucceeded)
+        {
+            return nullptr;
+        }
+
+        return &it->second.font;
+    }
+
     bool AssetLibrary::evictCachedTextAsset(const std::string& assetNameOrPath)
     {
         const std::string cacheKey = makeCacheKey(assetNameOrPath);
@@ -140,14 +196,31 @@ namespace Data::Assets
         return m_textAssetCache.erase(cacheKey) > 0;
     }
 
+    bool AssetLibrary::evictCachedBannerFont(const std::string& assetNameOrPath)
+    {
+        const std::string cacheKey = makeCacheKey(assetNameOrPath);
+        if (cacheKey.empty())
+        {
+            return false;
+        }
+
+        return m_bannerFontCache.erase(cacheKey) > 0;
+    }
+
     void AssetLibrary::clear()
     {
         m_textAssetCache.clear();
+        m_bannerFontCache.clear();
     }
 
     std::size_t AssetLibrary::getCachedTextAssetCount() const
     {
         return m_textAssetCache.size();
+    }
+
+    std::size_t AssetLibrary::getCachedBannerFontCount() const
+    {
+        return m_bannerFontCache.size();
     }
 
     std::size_t AssetLibrary::getAliasCount() const
@@ -162,7 +235,7 @@ namespace Data::Assets
         const std::string requestedPath = resolveAssetReference(assetNameOrPath);
         if (requestedPath.empty())
         {
-            return makeFailure(assetNameOrPath, {}, "Asset name/path is empty.");
+            return makeTextFailure(assetNameOrPath, {}, "Asset name/path is empty.");
         }
 
         AssetPaths::ResolutionOptions resolutionOptions;
@@ -174,7 +247,7 @@ namespace Data::Assets
 
         if (!resolution.success)
         {
-            return makeFailure(requestedPath, resolution, resolution.errorMessage);
+            return makeTextFailure(requestedPath, resolution, resolution.errorMessage);
         }
 
         const std::string cacheKey = resolution.normalizedPath;
@@ -201,8 +274,75 @@ namespace Data::Assets
 
         if (result.success || m_options.cacheFailures)
         {
-            CacheEntry& entry = m_textAssetCache[cacheKey];
+            TextCacheEntry& entry = m_textAssetCache[cacheKey];
             entry.object = result.asset.object;
+            entry.assetType = result.asset.assetType;
+            entry.requestedPath = result.asset.requestedPath;
+            entry.resolvedPath = result.asset.resolvedPath;
+            entry.normalizedPath = result.asset.normalizedPath;
+            entry.loadSucceeded = result.success;
+            entry.errorMessage = result.errorMessage;
+        }
+
+        return result;
+    }
+
+    LoadBannerFontResult AssetLibrary::loadBannerFontInternal(
+        const std::string& assetNameOrPath,
+        const bool forceReload)
+    {
+        const std::string requestedPath = resolveAssetReference(assetNameOrPath);
+        if (requestedPath.empty())
+        {
+            return makeBannerFailure(assetNameOrPath, {}, "Asset name/path is empty.");
+        }
+
+        AssetPaths::ResolutionOptions resolutionOptions;
+        resolutionOptions.assetsRoot = m_options.assetsRoot;
+        resolutionOptions.searchRoots.push_back(m_options.assetsRoot);
+
+        const AssetPaths::ResolutionResult resolution =
+            AssetPaths::resolveAssetPath(requestedPath, resolutionOptions);
+
+        if (!resolution.success)
+        {
+            return makeBannerFailure(requestedPath, resolution, resolution.errorMessage);
+        }
+
+        if (resolution.assetType != AssetPaths::AssetType::BannerSource)
+        {
+            return makeBannerFailure(
+                requestedPath,
+                resolution,
+                "Requested asset does not resolve to a banner font source.");
+        }
+
+        const std::string cacheKey = resolution.normalizedPath;
+        if (!forceReload)
+        {
+            const auto cacheIt = m_bannerFontCache.find(cacheKey);
+            if (cacheIt != m_bannerFontCache.end() && cacheIt->second.loadSucceeded)
+            {
+                LoadBannerFontResult result;
+                result.success = true;
+                result.fromCache = true;
+                result.asset.font = cacheIt->second.font;
+                result.asset.assetType = cacheIt->second.assetType;
+                result.asset.requestedPath = cacheIt->second.requestedPath;
+                result.asset.resolvedPath = cacheIt->second.resolvedPath;
+                result.asset.normalizedPath = cacheIt->second.normalizedPath;
+                result.asset.cacheKey = cacheKey;
+                return result;
+            }
+        }
+
+        LoadBannerFontResult result = dispatchLoadBannerFont(requestedPath, resolution);
+        result.asset.cacheKey = cacheKey;
+
+        if (result.success || m_options.cacheFailures)
+        {
+            BannerFontCacheEntry& entry = m_bannerFontCache[cacheKey];
+            entry.font = result.asset.font;
             entry.assetType = result.asset.assetType;
             entry.requestedPath = result.asset.requestedPath;
             entry.resolvedPath = result.asset.resolvedPath;
@@ -227,10 +367,10 @@ namespace Data::Assets
 
             if (!loadResult.success || !loadResult.object.isLoaded())
             {
-                return makeFailure(requestedPath, resolution, "Plain text asset load failed.");
+                return makeTextFailure(requestedPath, resolution, "Plain text asset load failed.");
             }
 
-            return makeSuccess(requestedPath, resolution, makeSharedTextObject(loadResult.object));
+            return makeTextSuccess(requestedPath, resolution, makeSharedTextObject(loadResult.object));
         }
 
         case AssetPaths::AssetType::AnsiArt:
@@ -240,10 +380,10 @@ namespace Data::Assets
 
             if (!loadResult.success || !loadResult.object.isLoaded())
             {
-                return makeFailure(requestedPath, resolution, AnsiLoader::formatLoadError(loadResult));
+                return makeTextFailure(requestedPath, resolution, AnsiLoader::formatLoadError(loadResult));
             }
 
-            return makeSuccess(requestedPath, resolution, makeSharedTextObject(loadResult.object));
+            return makeTextSuccess(requestedPath, resolution, makeSharedTextObject(loadResult.object));
         }
 
         case AssetPaths::AssetType::BinaryArt:
@@ -253,10 +393,10 @@ namespace Data::Assets
 
             if (!loadResult.success || !loadResult.object.isLoaded())
             {
-                return makeFailure(requestedPath, resolution, BinaryArtLoader::formatLoadError(loadResult));
+                return makeTextFailure(requestedPath, resolution, BinaryArtLoader::formatLoadError(loadResult));
             }
 
-            return makeSuccess(requestedPath, resolution, makeSharedTextObject(loadResult.object));
+            return makeTextSuccess(requestedPath, resolution, makeSharedTextObject(loadResult.object));
         }
 
         case AssetPaths::AssetType::XpDocument:
@@ -266,10 +406,10 @@ namespace Data::Assets
 
             if (!loadResult.success || !loadResult.object.isLoaded())
             {
-                return makeFailure(requestedPath, resolution, XpArtLoader::formatLoadError(loadResult));
+                return makeTextFailure(requestedPath, resolution, XpArtLoader::formatLoadError(loadResult));
             }
 
-            return makeSuccess(requestedPath, resolution, makeSharedTextObject(loadResult.object));
+            return makeTextSuccess(requestedPath, resolution, makeSharedTextObject(loadResult.object));
         }
 
         case AssetPaths::AssetType::XpSequence:
@@ -283,7 +423,7 @@ namespace Data::Assets
 
             if (!sequenceLoad.success || !sequenceLoad.hasSequence())
             {
-                return makeFailure(requestedPath, resolution, sequenceLoad.errorMessage);
+                return makeTextFailure(requestedPath, resolution, sequenceLoad.errorMessage);
             }
 
             const XpArtLoader::LoadResult buildResult =
@@ -293,33 +433,58 @@ namespace Data::Assets
 
             if (!buildResult.success || !buildResult.object.isLoaded())
             {
-                return makeFailure(
+                return makeTextFailure(
                     requestedPath,
                     resolution,
                     buildResult.errorMessage.empty()
-                        ? "XP sequence default frame conversion failed."
-                        : buildResult.errorMessage);
+                    ? "XP sequence default frame conversion failed."
+                    : buildResult.errorMessage);
             }
 
-            return makeSuccess(requestedPath, resolution, makeSharedTextObject(buildResult.object));
+            return makeTextSuccess(requestedPath, resolution, makeSharedTextObject(buildResult.object));
         }
 
         case AssetPaths::AssetType::FontSource:
-            return makeFailure(
+            return makeTextFailure(
                 requestedPath,
                 resolution,
-                "Font source was recognized by extension, but Phase 3.7 does not yet have a central font loader implementation.");
+                "Font source was recognized by extension, but this AssetLibrary path only loads TextObject-compatible assets.");
 
         case AssetPaths::AssetType::BannerSource:
-            return makeFailure(
+            return makeTextFailure(
                 requestedPath,
                 resolution,
-                "Banner source was recognized by extension, but Phase 3.7 does not yet have a central banner loader implementation.");
+                "Banner font assets must be loaded through loadBannerFont(...).");
 
         case AssetPaths::AssetType::Unknown:
         default:
-            return makeFailure(requestedPath, resolution, "Unsupported asset type.");
+            return makeTextFailure(requestedPath, resolution, "Unsupported asset type.");
         }
+    }
+
+    LoadBannerFontResult AssetLibrary::dispatchLoadBannerFont(
+        const std::string& requestedPath,
+        const AssetPaths::ResolutionResult& resolution)
+    {
+        const AsciiBannerFontLoader::LoadResult loadResult =
+            AsciiBannerFontLoader::loadFromFile(
+                resolution.normalizedPath,
+                m_options.bannerFontOptions);
+
+        if (!loadResult.success || !loadResult.hasFont())
+        {
+            return makeBannerFailure(
+                requestedPath,
+                resolution,
+                loadResult.errorMessage.empty()
+                ? "Banner font load failed."
+                : loadResult.errorMessage);
+        }
+
+        return makeBannerSuccess(
+            requestedPath,
+            resolution,
+            std::make_shared<const AsciiBannerFont>(loadResult.font));
     }
 
     std::string AssetLibrary::resolveAssetReference(const std::string& assetNameOrPath) const

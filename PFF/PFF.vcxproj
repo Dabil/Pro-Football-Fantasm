@@ -138,6 +138,7 @@
     <ClInclude Include="App\StartupOptions.h" />
     <ClInclude Include="App\TerminalLauncher.h" />
     <ClInclude Include="Assets\AssetLibrary.h" />
+    <ClInclude Include="Assets\Loaders\AsciiBannerFontLoader.h" />
     <ClInclude Include="Core\Enums.h" />
     <ClInclude Include="Core\Point.h" />
     <ClInclude Include="Core\Rect.h" />
@@ -165,6 +166,8 @@
     <ClInclude Include="Rendering\FrameDiff.h" />
     <ClInclude Include="Rendering\IRenderer.h" />
     <ClInclude Include="Rendering\Objects\AnsiLoader.h" />
+    <ClInclude Include="Rendering\Objects\AsciiBanner.h" />
+    <ClInclude Include="Rendering\Objects\BannerFactory.h" />
     <ClInclude Include="Rendering\Objects\BinaryArtLoader.h" />
     <ClInclude Include="Rendering\Objects\Cp437Encoding.h" />
     <ClInclude Include="Rendering\Objects\ObjectFactory.h" />
@@ -221,7 +224,7 @@
     <ClInclude Include="Screens\DigitalRainScreen.h" />
     <ClInclude Include="Screens\Donut3DScreen.h" />
     <ClInclude Include="Screens\FireScreen.h" />
-    <ClInclude Include="Screens\PffFieldScreen.h" />
+    <ClInclude Include="Screens\PffGameScreen.h" />
     <ClInclude Include="Screens\RendererDiagnosticsScreen.h" />
     <ClInclude Include="Screens\Screen.h" />
     <ClInclude Include="Screens\ShowcaseScreen.h" />
@@ -243,6 +246,7 @@
     <ClCompile Include="App\StartupOptions.cpp" />
     <ClCompile Include="App\TerminalLauncher.cpp" />
     <ClCompile Include="Assets\AssetLibrary.cpp" />
+    <ClCompile Include="Assets\Loaders\AsciiBannerFontLoader.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Rendering\Backends\ConsoleCapabilityDetector.cpp" />
     <ClCompile Include="Rendering\Backends\RendererCapabiltiyDetector.cpp" />
@@ -261,6 +265,8 @@
     <ClCompile Include="Rendering\Diagnostics\RendererSelectionTrace.cpp" />
     <ClCompile Include="Rendering\FrameDiff.cpp" />
     <ClCompile Include="Rendering\Objects\AnsiLoader.cpp" />
+    <ClCompile Include="Rendering\Objects\AsciiBanner.cpp" />
+    <ClCompile Include="Rendering\Objects\BannerFactory.cpp" />
     <ClCompile Include="Rendering\Objects\BinaryArtLoader.cpp" />
     <ClCompile Include="Rendering\Objects\Cp437Encoding.cpp" />
     <ClCompile Include="Rendering\Objects\ObjectFactory.cpp" />
@@ -312,16 +318,25 @@
     </ClCompile>
     <ClCompile Include="Screens\Donut3DScreen.cpp" />
     <ClCompile Include="Screens\FireScreen.cpp" />
-    <ClCompile Include="Screens\PffFieldScreen.cpp" />
+    <ClCompile Include="Screens\PffGameScreen.cpp" />
     <ClCompile Include="Screens\RendererDiagnosticsScreen.cpp" />
     <ClCompile Include="Screens\ShowcaseScreen.cpp" />
     <ClCompile Include="Screens\TerminalCapabilitiesScreen.cpp" />
     <ClCompile Include="Screens\WaterEffectScreen.cpp" />
     <ClCompile Include="ThirdParty\zlib-1.3.1\adler32.c" />
+    <ClCompile Include="ThirdParty\zlib-1.3.1\compress.c" />
     <ClCompile Include="ThirdParty\zlib-1.3.1\crc32.c" />
+    <ClCompile Include="ThirdParty\zlib-1.3.1\deflate.c" />
+    <ClCompile Include="ThirdParty\zlib-1.3.1\gzclose.c" />
+    <ClCompile Include="ThirdParty\zlib-1.3.1\gzlib.c" />
+    <ClCompile Include="ThirdParty\zlib-1.3.1\gzread.c" />
+    <ClCompile Include="ThirdParty\zlib-1.3.1\gzwrite.c" />
+    <ClCompile Include="ThirdParty\zlib-1.3.1\infback.c" />
     <ClCompile Include="ThirdParty\zlib-1.3.1\inffast.c" />
     <ClCompile Include="ThirdParty\zlib-1.3.1\inflate.c" />
     <ClCompile Include="ThirdParty\zlib-1.3.1\inftrees.c" />
+    <ClCompile Include="ThirdParty\zlib-1.3.1\trees.c" />
+    <ClCompile Include="ThirdParty\zlib-1.3.1\uncompr.c" />
     <ClCompile Include="ThirdParty\zlib-1.3.1\zutil.c" />
     <ClCompile Include="Utilities\AssetPaths.cpp" />
     <ClCompile Include="Utilities\Unicode\GraphemeSegmentation.cpp" />

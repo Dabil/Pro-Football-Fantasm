@@ -243,7 +243,7 @@
     <ClInclude Include="ThirdParty\zlib-1.3.1\zutil.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Screens\PffFieldScreen.h">
+    <ClInclude Include="Screens\PffGameScreen.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Utilities\Text\TextWrap.h">
@@ -277,6 +277,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Utilities\AssetPaths.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\Objects\AsciiBanner.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\Objects\BannerFactory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Assets\Loaders\AsciiBannerFontLoader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -476,7 +485,7 @@
     <ClCompile Include="ThirdParty\zlib-1.3.1\zutil.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Screens\PffFieldScreen.cpp">
+    <ClCompile Include="Screens\PffGameScreen.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Rendering\Objects\XpDiagnosticsFormatting.cpp">
@@ -507,6 +516,42 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Utilities\AssetPaths.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ThirdParty\zlib-1.3.1\deflate.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ThirdParty\zlib-1.3.1\compress.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ThirdParty\zlib-1.3.1\gzclose.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ThirdParty\zlib-1.3.1\gzlib.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ThirdParty\zlib-1.3.1\gzread.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ThirdParty\zlib-1.3.1\gzwrite.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ThirdParty\zlib-1.3.1\infback.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ThirdParty\zlib-1.3.1\trees.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ThirdParty\zlib-1.3.1\uncompr.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\Objects\AsciiBanner.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\Objects\BannerFactory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Assets\Loaders\AsciiBannerFontLoader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
