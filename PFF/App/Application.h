@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "App/TerminalLauncher.h"
+#include "Assets/AssetLibrary.h"
 #include "Rendering/Diagnostics/StartupDiagnosticsContext.h"
 
 class ScreenManager;
@@ -27,7 +28,7 @@ private:
     {
         TerminalCapabilities,
         RendererDiagnostics,
-        PffField,
+        PffGame,
         DigitalRain,
         WaterEffect,
         Donut3D,
@@ -43,6 +44,8 @@ private:
     void advanceScreen();
     void updateScreenCycle(double deltaTime);
 
+    void configureAssetLibrary();
+
 private:
     StartupRendererSelection m_rendererSelection = StartupRendererSelection::Console;
     StartupValidationScreenPreference m_validationScreenStart = StartupValidationScreenPreference::ValidationStartFalse;
@@ -52,12 +55,14 @@ private:
     std::unique_ptr<IRenderer> m_renderer;
     std::unique_ptr<Surface> m_surface;
 
+    Assets::AssetLibrary m_assetLibrary;
+
     bool m_running = false;
 
     int m_width = 0;
     int m_height = 0;
 
-    ScreenType m_currentScreenType = ScreenType::PffField;
+    ScreenType m_currentScreenType = ScreenType::PffGame;
     double m_screenCycleElapsedSeconds = 0.0;
     double m_screenCycleIntervalSeconds = 60.0;
 };

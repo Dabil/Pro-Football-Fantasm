@@ -1,3 +1,4 @@
+﻿// App/Application.cpp
 #include "App/Application.h"
 #include "App/ScreenManager.h"
 
@@ -13,7 +14,7 @@
 #include "Screens/DigitalRainScreen.h"
 #include "Screens/Donut3DScreen.h"
 #include "Screens/FireScreen.h"
-#include "Screens/PffFieldScreen.h"
+#include "Screens/PffGameScreen.h"
 #include "Screens/RendererDiagnosticsScreen.h"
 #include "Screens/TerminalCapabilitiesScreen.h"
 #include "Screens/WaterEffectScreen.h"
@@ -124,14 +125,17 @@ bool Application::initialize()
     m_surface = std::make_unique<Surface>(m_width, m_height);
     m_screenManager = std::make_unique<ScreenManager>();
 
+    configureAssetLibrary();
+
     if (m_validationScreenStart == StartupValidationScreenPreference::ValidationStartTrue)
     {
         m_currentScreenType = ScreenType::TerminalCapabilities;
     }
     else
     {
-        m_currentScreenType = ScreenType::PffField;
+        m_currentScreenType = ScreenType::PffGame;
     }
+
     m_screenCycleElapsedSeconds = 0.0;
 
     switchToScreen(m_currentScreenType);
@@ -218,8 +222,8 @@ void Application::switchToScreen(ScreenType screenType)
         m_screenManager->pushScreen(std::make_unique<RendererDiagnosticsScreen>(m_renderer.get()));
         break;
 
-    case ScreenType::PffField:
-        m_screenManager->pushScreen(std::make_unique<PffFieldScreen>());
+    case ScreenType::PffGame:
+        m_screenManager->pushScreen(std::make_unique<PffGameScreen>(m_assetLibrary));
         break;
 
     case ScreenType::DigitalRain:
@@ -247,7 +251,7 @@ void Application::advanceScreen()
 {
     switch (m_currentScreenType)
     {
-    case ScreenType::PffField:
+    case ScreenType::PffGame:
         break;
 
     case ScreenType::DigitalRain:
@@ -285,4 +289,13 @@ void Application::updateScreenCycle(double deltaTime)
         m_screenCycleElapsedSeconds -= m_screenCycleIntervalSeconds;
         advanceScreen();
     }
+}
+
+void Application::configureAssetLibrary()
+{
+    m_assetLibrary.setAssetsRoot("Assets");
+
+    m_assetLibrary.registerAlias("pff.field", "XP/Field.xp");
+    m_assetLibrary.registerAlias("pff.scoreboard", "XP/ScoreBoard.xp");
+    m_assetLibrary.registerAlias("pff.scoreboard_font", "XP/ScoreBoardFont.xp");
 }

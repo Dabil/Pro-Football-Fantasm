@@ -1,13 +1,11 @@
-﻿#include "Screens/PffFieldScreen.h"
+﻿#include "Screens/PffGameScreen.h"
 
 #include <algorithm>
-#include <filesystem>
 #include <sstream>
 #include <utility>
 
 #include "Core/Rect.h"
 #include "Rendering/Objects/TextObjectBuilder.h"
-#include "Rendering/Objects/XpArtLoader.h"
 #include "Rendering/ScreenBuffer.h"
 #include "Rendering/Styles/Color.h"
 #include "Rendering/Styles/StyleBuilder.h"
@@ -38,31 +36,31 @@ namespace
     constexpr int ScoreOffsetY = 2;
 }
 
-PffFieldScreen::PffFieldScreen()
+PffGameScreen::PffGameScreen(Assets::AssetLibrary& assetLibrary)
+    : m_assetLibrary(assetLibrary)
 {
 }
 
-bool PffFieldScreen::loadXpObject(
-    const std::string& path,
+bool PffGameScreen::loadAssetObject(
+    const std::string& assetKey,
     TextObject& outObject,
     bool& outLoaded,
     const std::string& assetLabel)
 {
-    XpArtLoader::LoadOptions options;
-    options.fileType = XpArtLoader::FileType::Xp;
-    options.flattenLayers = true;
-    options.treatMagentaBackgroundAsTransparent = true;
-    options.visibleTransparentBaseCellsUseBlackBackground = true;
-    options.strictLayerSizeValidation = true;
+    m_lastRequestedAssetKey = assetKey;
+    m_lastResolvedAssetPath.clear();
 
-    const XpArtLoader::LoadResult loadResult = XpArtLoader::loadFromFile(path, options);
+    const Assets::LoadTextAssetResult loadResult = m_assetLibrary.loadTextAsset(assetKey);
 
-    if (!loadResult.success)
+    if (!loadResult.success || !loadResult.asset.object)
     {
         std::ostringstream debug;
-        debug << XpArtLoader::formatLoadError(loadResult)
-              << " | cwd=" << std::filesystem::current_path().string()
-              << " | path=" << path;
+        debug << assetLabel << " failed to load through AssetLibrary";
+
+        if (!loadResult.errorMessage.empty())
+        {
+            debug << ": " << loadResult.errorMessage;
+        }
 
         m_loadErrorMessage = debug.str();
         m_statusMessage = debug.str();
@@ -70,8 +68,9 @@ bool PffFieldScreen::loadXpObject(
         return false;
     }
 
-    outObject = loadResult.object;
+    outObject = *loadResult.asset.object;
     outLoaded = outObject.isLoaded() && !outObject.isEmpty();
+    m_lastResolvedAssetPath = loadResult.asset.resolvedPath;
 
     if (!outLoaded)
     {
@@ -80,11 +79,23 @@ bool PffFieldScreen::loadXpObject(
         return false;
     }
 
-    m_statusMessage = XpArtLoader::formatLoadSuccess(loadResult);
+    std::ostringstream success;
+    success << assetLabel << " loaded via AssetLibrary";
+    if (loadResult.fromCache)
+    {
+        success << " (from cache)";
+    }
+
+    if (!loadResult.asset.resolvedPath.empty())
+    {
+        success << ": " << loadResult.asset.resolvedPath;
+    }
+
+    m_statusMessage = success.str();
     return true;
 }
 
-bool PffFieldScreen::buildScoreBoardDigits()
+bool PffGameScreen::buildScoreBoardDigits()
 {
     m_scoreBoardDigits.clear();
 
@@ -95,15 +106,15 @@ bool PffFieldScreen::buildScoreBoardDigits()
         return false;
     }
 
-    if (m_scoreBoardFontObject.getWidth()  != ExpectedScoreBoardFontWidth ||
+    if (m_scoreBoardFontObject.getWidth() != ExpectedScoreBoardFontWidth ||
         m_scoreBoardFontObject.getHeight() != ExpectedScoreBoardFontHeight)
     {
         std::ostringstream error;
         error << "ScoreBoardFont.xp has unexpected dimensions. Expected "
-              << ExpectedScoreBoardFontWidth << "x" << ExpectedScoreBoardFontHeight
-              << ", but got "
-              << m_scoreBoardFontObject.getWidth() << "x" << m_scoreBoardFontObject.getHeight()
-              << ".";
+            << ExpectedScoreBoardFontWidth << "x" << ExpectedScoreBoardFontHeight
+            << ", but got "
+            << m_scoreBoardFontObject.getWidth() << "x" << m_scoreBoardFontObject.getHeight()
+            << ".";
 
         m_loadErrorMessage = error.str();
         m_statusMessage = error.str();
@@ -155,7 +166,7 @@ bool PffFieldScreen::buildScoreBoardDigits()
     return static_cast<int>(m_scoreBoardDigits.size()) == ScoreBoardFontDigitCount;
 }
 
-void PffFieldScreen::onEnter()
+void PffGameScreen::onEnter()
 {
     m_elapsedSeconds = 0.0;
 
@@ -166,23 +177,25 @@ void PffFieldScreen::onEnter()
 
     m_loadErrorMessage.clear();
     m_statusMessage.clear();
+    m_lastRequestedAssetKey.clear();
+    m_lastResolvedAssetPath.clear();
 
     m_fieldLoaded = false;
     m_scoreBoardLoaded = false;
     m_scoreBoardFontLoaded = false;
 
-    if (!loadXpObject(m_xpFieldPath, m_fieldObject, m_fieldLoaded, "Field.xp"))
+    if (!loadAssetObject(m_fieldAssetKey, m_fieldObject, m_fieldLoaded, "Field.xp"))
     {
         return;
     }
 
-    if (!loadXpObject(m_xpScoreBoardPath, m_scoreBoardObject, m_scoreBoardLoaded, "ScoreBoard.xp"))
+    if (!loadAssetObject(m_scoreBoardAssetKey, m_scoreBoardObject, m_scoreBoardLoaded, "ScoreBoard.xp"))
     {
         return;
     }
 
-    if (!loadXpObject(
-        m_xpScoreBoardFontPath,
+    if (!loadAssetObject(
+        m_scoreBoardFontAssetKey,
         m_scoreBoardFontObject,
         m_scoreBoardFontLoaded,
         "ScoreBoardFont.xp"))
@@ -196,10 +209,10 @@ void PffFieldScreen::onEnter()
         return;
     }
 
-    m_statusMessage = "PFF field, scoreboard, and scoreboard font loaded successfully.";
+    m_statusMessage = "PFF field, scoreboard, and scoreboard font loaded successfully via AssetLibrary.";
 }
 
-void PffFieldScreen::onExit()
+void PffGameScreen::onExit()
 {
     m_fieldObject.clear();
     m_scoreBoardObject.clear();
@@ -208,6 +221,8 @@ void PffFieldScreen::onExit()
 
     m_loadErrorMessage.clear();
     m_statusMessage.clear();
+    m_lastRequestedAssetKey.clear();
+    m_lastResolvedAssetPath.clear();
 
     m_fieldLoaded = false;
     m_scoreBoardLoaded = false;
@@ -216,12 +231,12 @@ void PffFieldScreen::onExit()
     m_elapsedSeconds = 0.0;
 }
 
-void PffFieldScreen::update(double deltaTime)
+void PffGameScreen::update(double deltaTime)
 {
     m_elapsedSeconds += deltaTime;
 }
 
-std::string PffFieldScreen::formatScoreValue(int score) const
+std::string PffGameScreen::formatScoreValue(int score) const
 {
     score = std::clamp(score, 0, 99);
 
@@ -233,7 +248,7 @@ std::string PffFieldScreen::formatScoreValue(int score) const
     return std::to_string(score);
 }
 
-void PffFieldScreen::drawNumber(ScreenBuffer& buffer, int x, int y, const std::string& value) const
+void PffGameScreen::drawNumber(ScreenBuffer& buffer, int x, int y, const std::string& value) const
 {
     if (m_scoreBoardDigits.size() != ScoreBoardFontDigitCount)
     {
@@ -257,12 +272,12 @@ void PffFieldScreen::drawNumber(ScreenBuffer& buffer, int x, int y, const std::s
     }
 }
 
-void PffFieldScreen::drawScore(ScreenBuffer& buffer, int x, int y, int score) const
+void PffGameScreen::drawScore(ScreenBuffer& buffer, int x, int y, int score) const
 {
     drawNumber(buffer, x, y, formatScoreValue(score));
 }
 
-void PffFieldScreen::draw(Surface& surface)
+void PffGameScreen::draw(Surface& surface)
 {
     ScreenBuffer& buffer = surface.buffer();
 
@@ -312,7 +327,7 @@ void PffFieldScreen::draw(Surface& surface)
     buffer.writeString(1, 1, resolutionText, Themes::Text);
 }
 
-void PffFieldScreen::drawLoadError(Surface& surface) const
+void PffGameScreen::drawLoadError(Surface& surface) const
 {
     ScreenBuffer& buffer = surface.buffer();
 
@@ -320,7 +335,7 @@ void PffFieldScreen::drawLoadError(Surface& surface) const
     const int screenHeight = buffer.getHeight();
 
     const int panelWidth = std::min(screenWidth - 4, 100);
-    const int panelHeight = std::min(screenHeight - 4, 8);
+    const int panelHeight = std::min(screenHeight - 4, 10);
     const int panelX = std::max(0, (screenWidth - panelWidth) / 2);
     const int panelY = std::max(0, (screenHeight - panelHeight) / 2);
 
@@ -329,27 +344,35 @@ void PffFieldScreen::drawLoadError(Surface& surface) const
         Themes::Frame,
         U'┌', U'┐', U'└', U'┘', U'─', U'│');
 
-    buffer.writeString(panelX + 2, panelY, " PFF Field XP Load Error ", Themes::PanelTitle);
+    buffer.writeString(panelX + 2, panelY, " PFF Field Asset Load Error ", Themes::PanelTitle);
 
     const int textWidth = panelWidth - 4;
     int currentY = panelY + 2;
 
-    const std::vector<std::string> pathLines =
-        wrapText("Path: " + m_xpFieldPath, textWidth);
-
-    for (const std::string& line : pathLines)
+    const std::string assetLine = "Asset key: " + m_lastRequestedAssetKey;
+    const std::vector<std::string> assetLines = wrapText(assetLine, textWidth);
+    for (const std::string& line : assetLines)
     {
         buffer.writeString(panelX + 2, currentY++, line, Themes::Text);
+    }
+
+    if (!m_lastResolvedAssetPath.empty())
+    {
+        const std::string resolvedLine = "Resolved path: " + m_lastResolvedAssetPath;
+        const std::vector<std::string> resolvedLines = wrapText(resolvedLine, textWidth);
+        for (const std::string& line : resolvedLines)
+        {
+            buffer.writeString(panelX + 2, currentY++, line, Themes::Text);
+        }
     }
 
     ++currentY;
 
     const std::string message = m_loadErrorMessage.empty()
-        ? std::string("Unknown XP load error.")
+        ? std::string("Unknown asset load error.")
         : m_loadErrorMessage;
 
-    const std::vector<std::string> messageLines =
-        wrapText(message, textWidth);
+    const std::vector<std::string> messageLines = wrapText(message, textWidth);
 
     for (const std::string& line : messageLines)
     {

@@ -3,17 +3,18 @@
 #include <string>
 #include <vector>
 
-#include "Screens/Screen.h"
+#include "Assets/AssetLibrary.h"
 #include "Rendering/Objects/TextObject.h"
+#include "Screens/Screen.h"
 
 class ScreenBuffer;
 class Surface;
 
-class PffFieldScreen : public Screen
+class PffGameScreen : public Screen
 {
 public:
-    PffFieldScreen();
-    ~PffFieldScreen() override = default;
+    explicit PffGameScreen(Assets::AssetLibrary& assetLibrary);
+    ~PffGameScreen() override = default;
 
     void onEnter() override;
     void onExit() override;
@@ -21,8 +22,8 @@ public:
     void draw(Surface& surface) override;
 
 private:
-    bool loadXpObject(
-        const std::string& path,
+    bool loadAssetObject(
+        const std::string& assetKey,
         TextObject& outObject,
         bool& outLoaded,
         const std::string& assetLabel);
@@ -34,9 +35,14 @@ private:
     void drawLoadError(Surface& surface) const;
 
 private:
-    std::string m_xpFieldPath = "Assets/xp/Field.xp";
-    std::string m_xpScoreBoardPath = "Assets/xp/ScoreBoard.xp";
-    std::string m_xpScoreBoardFontPath = "Assets/xp/ScoreBoardFont.xp";
+    Assets::AssetLibrary& m_assetLibrary;
+
+    std::string m_fieldAssetKey = "pff.field";
+    std::string m_scoreBoardAssetKey = "pff.scoreboard";
+    std::string m_scoreBoardFontAssetKey = "pff.scoreboard_font";
+
+    std::string m_lastRequestedAssetKey;
+    std::string m_lastResolvedAssetPath;
 
     TextObject m_fieldObject;
     TextObject m_scoreBoardObject;
