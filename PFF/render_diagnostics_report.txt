@@ -92,13 +92,13 @@ Strike: capability=Supported, policy=Direct
 
 Adaptation Summary Counts
 -------------------------
-ForegroundColor / Direct: 167
-BackgroundColor / Direct: 267
+ForegroundColor / Direct: 258
+BackgroundColor / Direct: 417
 
 Observed Output Feature Outcomes
 --------------------------------
-ForegroundColor: emitted-direct=167, emitted-approximated=0, emitted-downgraded=0, emulated=0, omitted=0, logical-only=0
-BackgroundColor: emitted-direct=267, emitted-approximated=0, emitted-downgraded=0, emulated=0, omitted=0, logical-only=0
+ForegroundColor: emitted-direct=258, emitted-approximated=0, emitted-downgraded=0, emulated=0, omitted=0, logical-only=0
+BackgroundColor: emitted-direct=417, emitted-approximated=0, emitted-downgraded=0, emulated=0, omitted=0, logical-only=0
 Bold: emitted-direct=0, emitted-approximated=0, emitted-downgraded=0, emulated=0, omitted=0, logical-only=0
 Dim: emitted-direct=0, emitted-approximated=0, emitted-downgraded=0, emulated=0, omitted=0, logical-only=0
 Underline: emitted-direct=0, emitted-approximated=0, emitted-downgraded=0, emulated=0, omitted=0, logical-only=0
@@ -110,7 +110,7 @@ Strike: emitted-direct=0, emitted-approximated=0, emitted-downgraded=0, emulated
 
 Totals By Outcome Kind
 ----------------------
-Direct: 434
+Direct: 675
 Downgraded: 0
 Approximated: 0
 Emulated: 0
@@ -192,18 +192,18 @@ Notes
 - Author-facing hints are advisory only and do not change rendering behavior.
 VT Present Performance
 ----------------------
-Present calls: 156
-Skipped presents: 155
-Full redraw presents: 1
+Present calls: 81
+Skipped presents: 79
+Full redraw presents: 2
 Diff presents: 0
-Changed cells: 10868
-Dirty spans: 52
-Cursor moves: 51
-Runs: 268
-Text bytes: 13742
-SGR bytes: 5270
-Control bytes: 356
-Total bytes: 19368
+Changed cells: 14468
+Dirty spans: 82
+Cursor moves: 80
+Runs: 419
+Text bytes: 19970
+SGR bytes: 8102
+Control bytes: 558
+Total bytes: 28630
 Last present strategy: DiffBased
 Last present reason: No changed cells were detected.
 

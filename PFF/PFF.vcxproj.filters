@@ -42,6 +42,12 @@
     <ClCompile Include="Screens\Developer\XpSequenceDiagnosticsScreen.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Database\PFFDatabase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\vendor\sqlite\sqlite3.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Screens\PffGameScreen.h">
@@ -60,6 +66,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Screens\Developer\XpSequenceDiagnosticsScreen.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Database\PFFDatabase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

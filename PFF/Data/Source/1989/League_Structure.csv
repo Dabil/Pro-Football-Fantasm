@@ -1,0 +1,413 @@
+// 1989 Historical Leagues
+
+[SEASON]1989
+[DATA_VERSION]1
+[FORMAT_VERSION]1
+
+[LEAGUE_BEGIN]
+[LEAGUE]NFL
+
+	[CONFERENCE_BEGIN]
+	[CONFERENCE]AFC
+
+		[DIVISION_BEGIN]
+		[DIVISION]East
+
+			[TEAM_BEGIN]
+				[CITY]Buffalo
+				[TEAM]Bills
+				[OWNER]Ralph,Wilson
+				[GM]Bill,Polian
+				[HEADCOACH]Marv,Levy
+				[OFFENSIVE_COORDINATOR]Ted,Marchibroda
+				[DEFENSIVE_COORDINATOR]Walt,Corey
+				[STADIUM]Rich Stadium
+				[STADIUM_TYPE]Outdoor
+				[TURF_TYPE]AstroTurf
+			[TEAM_END]
+
+			[TEAM_BEGIN]
+				[CITY]Indianapolis
+				[TEAM]Colts
+				[OWNER]Robert,Irsay
+				[GM]Jim,Irsay
+				[HEADCOACH]Ron,Meyer
+				[OFFENSIVE_COORDINATOR]Larry,Kennan
+				[DEFENSIVE_COORDINATOR]Bill,Muir
+				[STADIUM]Hoosier Dome
+				[STADIUM_TYPE]Indoor
+				[TURF_TYPE]ArtificialTurf
+			[TEAM_END]
+
+			[TEAM_BEGIN]
+				[CITY]Miami
+				[TEAM]Dolphins
+				[OWNER]Joe,Robbie
+				[GM]Mike,Robbie
+				[HEADCOACH]Don,Shula
+				[OFFENSIVE_COORDINATOR]Gery,Stevens
+				[DEFENSIVE_COORDINATOR]Tom,Olivadotti
+				[STADIUM]Joe Robbie Stadium
+				[STADIUM_TYPE]Outdoor
+				[TURF_TYPE]NaturalGrass
+			[TEAM_END]
+
+			[TEAM_BEGIN]
+				[CITY]New England
+				[TEAM]Patriots
+				[OWNER]Victor,Kiam
+				[GM]Patrick,Sullivan
+				[HEADCOACH]Raymond,Berry
+				[OFFENSIVE_COORDINATOR]Raymond,Berry
+				[DEFENSIVE_COORDINATOR]Raymond,Berry
+				[STADIUM]Sullivan Stadium
+				[STADIUM_TYPE]Outdoor
+				[TURF_TYPE]ArtificialTurf
+			[TEAM_END]
+
+			[TEAM_BEGIN]
+				[CITY]New York
+				[TEAM]Jets
+				[OWNER]Leon,Hess
+				[GM]Dick,Steinberg
+				[HEADCOACH]Joe,Walton
+				[OFFENSIVE_COORDINATOR]Rich,Kotite
+				[DEFENSIVE_COORDINATOR]Ralph,Hawkins
+				[STADIUM]The Meadowlands
+				[STADIUM_TYPE]Outdoor
+				[TURF_TYPE]ArtificialTurf
+			[TEAM_END]
+		[DIVISION_END]
+
+		[DIVISION_BEGIN]
+		[DIVISION]Central
+
+			[TEAM_BEGIN]
+				[CITY]Cleveland
+				[TEAM]Browns
+				[OWNER]Art,Modell
+				[GM]Ernie,Accorsi
+				[HEADCOACH]Bud,Carson
+				[OFFENSIVE_COORDINATOR]Marc,Trestman
+				[DEFENSIVE_COORDINATOR]Dan,Radakovich
+				[STADIUM]Cleveland Municipal Stadium
+				[STADIUM_TYPE]Outdoor
+				[TURF_TYPE]NaturalGrass
+			[TEAM_END]
+
+			[TEAM_BEGIN]
+				[CITY]Houston
+				[TEAM]Oilers
+				[OWNER]Bud,Adams
+				[GM]Mike,Holovak
+				[HEADCOACH]Jerry,Glanville
+				[OFFENSIVE_COORDINATOR]Kevin,Gilbride
+				[DEFENSIVE_COORDINATOR]Jerry,Glanville
+				[STADIUM]Houston Astrodome
+				[STADIUM_TYPE]Indoor
+				[TURF_TYPE]ArtificialTurf
+			[TEAM_END]
+
+			[TEAM_BEGIN]
+				[CITY]Pittsburgh
+				[TEAM]Steelers
+				[OWNER]The Rooney family
+				[GM]Dick,Haley
+				[HEADCOACH]Chuck,Noll
+				[OFFENSIVE_COORDINATOR]Tom,Moore
+				[DEFENSIVE_COORDINATOR]Rod,Rust
+				[STADIUM]Three Rivers Stadium
+				[STADIUM_TYPE]Outdoor
+				[TURF_TYPE]ArtificialTurf
+			[TEAM_END]
+
+			[TEAM_BEGIN]
+				[CITY]Cincinnati
+				[TEAM]Bengals
+				[OWNER]Paul,Brown
+				[GM]Paul,Brown
+				[HEADCOACH]Sam,Wyche
+				[OFFENSIVE_COORDINATOR]Bruce,Coslet
+				[DEFENSIVE_COORDINATOR]Dick,LeBeau
+				[STADIUM]Riverfront Stadium
+				[STADIUM_TYPE]Outdoor
+				[TURF_TYPE]ArtificialTurf
+			[TEAM_END]
+		[DIVISION_END]
+
+		[DIVISION_BEGIN]
+		[DIVISION]West
+
+			[TEAM_BEGIN]
+				[CITY]Denver
+				[TEAM]Broncos
+				[OWNER]Pat,Bowlen
+				[GM]John,Beake
+				[HEADCOACH]Dan,Reeves
+				[OFFENSIVE_COORDINATOR]Chan,Gailey
+				[DEFENSIVE_COORDINATOR]Wade,Phillips
+				[STADIUM]Mile High Stadium
+				[STADIUM_TYPE]Outdoor
+				[TURF_TYPE]NaturalGrass
+			[TEAM_END]
+
+			[TEAM_BEGIN]
+				[CITY]Kansas City
+				[TEAM]Chiefs
+				[OWNER]Lamar,Hunt
+				[GM]Carl,Peterson
+				[HEADCOACH]Marty,Schottenheimer
+				[OFFENSIVE_COORDINATOR]Joe,Pendry
+				[DEFENSIVE_COORDINATOR]Bill,Cowher
+				[STADIUM]Arrowhead Stadium
+				[STADIUM_TYPE]Outdoor
+				[TURF_TYPE]ArtificialTurf
+			[TEAM_END]
+
+			[TEAM_BEGIN]
+				[CITY]Los Angeles
+				[TEAM]Raiders
+				[OWNER]Al Davis
+				[GM]Al Davis
+				[HEADCOACH][WEEKS,1-4]Mike,Shanahan
+				[HEADCOACH][WEEKS,4-END]Art,Shell
+				[OFFENSIVE_COORDINATOR]Terry,Robsikie
+				[DEFENSIVE_COORDINATOR]Dave,Adolph
+				[STADIUM]L.A. Memorial Coliseum
+				[STADIUM_TYPE]Outdoor
+				[TURF_TYPE]NaturalGrass
+			[TEAM_END]
+
+			[TEAM_BEGIN]
+				[CITY]Seattle
+				[TEAM]Seahawks
+				[OWNER]Ken,Behring
+				[GM]Tom,Flores
+				[HEADCOACH]Chuck,Knox
+				[OFFENSIVE_COORDINATOR]John,Becker
+				[DEFENSIVE_COORDINATOR]Tom,Catlin
+				[STADIUM]Kingdome
+				[STADIUM_TYPE]Indoor
+				[TURF_TYPE]ArtificialTurf
+			[TEAM_END]
+
+			[TEAM_BEGIN]
+				[CITY]San Diego
+				[TEAM]Chargers
+				[OWNER]Alex,Spanos
+				[GM]Steve,Ortmayer
+				[HEADCOACH]Dan,Henning
+				[OFFENSIVE_COORDINATOR]Larry,Beightol
+				[DEFENSIVE_COORDINATOR]Ron,Lynn
+				[STADIUM]Jack Murphy Stadium
+				[STADIUM_TYPE]Outdoor
+				[TURF_TYPE]NaturalGrass
+			[TEAM_END]
+
+		[DIVISION_END]
+
+	[CONFERENCE_END]
+	
+	[CONFERENCE_BEGIN]
+	[CONFERENCE]NFC
+
+		[DIVISION_BEGIN]
+		[DIVISION]East
+
+			[TEAM_BEGIN]
+				[CITY]New York
+				[TEAM]Giants
+				[OWNER]Wellington,Mara
+				[GM]George,Young
+				[HEADCOACH]Bill,Parcells
+				[OFFENSIVE_COORDINATOR]Ron,Erhardt
+				[DEFENSIVE_COORDINATOR]Bill,Belichick
+				[STADIUM]Giants Stadium
+				[STADIUM_TYPE]Outdoor
+				[TURF_TYPE]ArtificialTurf
+			[TEAM_END]
+
+			[TEAM_BEGIN]
+				[CITY]Philadelphia
+				[TEAM]Eagles
+				[OWNER]Norman,Braman
+				[GM]Harry,Gamble
+				[HEADCOACH]Buddy,Ryan
+				[OFFENSIVE_COORDINATOR]Ted,Plumb
+				[DEFENSIVE_COORDINATOR]Jeff,Fisher
+				[STADIUM]Veterans Stadium
+				[STADIUM_TYPE]Outdoor
+				[TURF_TYPE]ArtificialTurf
+			[TEAM_END]
+
+			[TEAM_BEGIN]
+				[CITY]Washington
+				[TEAM]Redskins
+				[OWNER]Jack,Cooke
+				[GM]Charley,Casserly
+				[HEADCOACH]Joe,Gibbs
+				[OFFENSIVE_COORDINATOR]Joe,Bugel
+				[DEFENSIVE_COORDINATOR]Richie,Petitbon
+				[STADIUM]RFK Stadium
+				[STADIUM_TYPE]Outdoor
+				[TURF_TYPE]NaturalGrass
+			[TEAM_END]
+
+			[TEAM_BEGIN]
+				[CITY]Phoenix
+				[TEAM]Cardinals
+				[OWNER]Bill,Bidwill
+				[GM]Larry,Wilson
+				[HEADCOACH][WEEKS,1-11]Gene,Stallings
+				[HEADCOACH][WEEKS,11-END]Hank Kuhlmann
+				[OFFENSIVE_COORDINATOR]Jim,Shofner
+				[DEFENSIVE_COORDINATOR]Jim,Johnson
+				[STADIUM]Sun Devil Stadium
+				[STADIUM_TYPE]Outdoor
+				[TURF_TYPE]NaturalGrass
+			[TEAM_END]
+
+			[TEAM_BEGIN]
+				[CITY]Dallas
+				[TEAM]Cowboys
+				[OWNER]Jerry,Jones
+				[GM]Jerry,Jones
+				[HEADCOACH]Jimmy,Johnson
+				[OFFENSIVE_COORDINATOR]David,Shula
+				[DEFENSIVE_COORDINATOR]Dave,Wannstedt
+				[STADIUM]Texas Stadium
+				[STADIUM_TYPE]OpenRoofDome
+				[TURF_TYPE]ArtificialTurf
+			[TEAM_END]
+		[DIVISION_END]
+
+		[DIVISION_BEGIN]
+		[DIVISION]Central
+
+			[TEAM_BEGIN]
+				[CITY]Minnesota
+				[TEAM]Vikings
+				[OWNER]Mike,Lynn
+				[GM]Mike,Lynn
+				[HEADCOACH]Jerry,Burns
+				[OFFENSIVE_COORDINATOR]Bob,Schnelker
+				[DEFENSIVE_COORDINATOR]Floyd,Peters
+				[STADIUM]Metrodome
+				[STADIUM_TYPE]Indoor
+				[TURF_TYPE]ArtificialTurf
+			[TEAM_END]
+
+			[TEAM_BEGIN]
+				[CITY]Green Bay
+				[TEAM]Packers
+				[OWNER]Publicly Owned
+				[GM]Tom,Braatz
+				[HEADCOACH]Lindy,Infante
+				[OFFENSIVE_COORDINATOR]Lindy,Infante
+				[DEFENSIVE_COORDINATOR]Hank,Bullough
+				[STADIUM]Lambeau Field
+				[STADIUM_TYPE]Outdoor
+				[TURF_TYPE]NaturalGrass
+			[TEAM_END]
+
+			[TEAM_BEGIN]
+				[CITY]Detroit
+				[TEAM]Lions
+				[OWNER]William,Ford
+				[GM]Russ,Thomas
+				[HEADCOACH]Wayne,Fontes
+				[OFFENSIVE_COORDINATOR]Mouse,Davis
+				[DEFENSIVE_COORDINATOR]Woody,Widenhofer
+				[STADIUM]Pontiac Silverdome
+				[STADIUM_TYPE]Indoor
+				[TURF_TYPE]ArtificialTurf
+			[TEAM_END]
+
+			[TEAM_BEGIN]
+				[CITY]Chicago
+				[TEAM]Bears
+				[OWNER]Virginaia,McCaskey
+				[GM]Bill,Tobin
+				[HEADCOACH]Mike,Ditka
+				[OFFENSIVE_COORDINATOR]Greg,Landry
+				[DEFENSIVE_COORDINATOR]Vince,Tobin
+				[STADIUM]Soldier Field
+				[STADIUM_TYPE]Outdoor
+				[TURF_TYPE]NaturalGrass
+			[TEAM_END]
+
+			[TEAM_BEGIN]
+				[CITY]Tampa Bay
+				[TEAM]Buccaneers
+				[OWNER]Hugh,Culverhouse
+				[GM]Ray,Perkins
+				[HEADCOACH]Ray,Perkins
+				[OFFENSIVE_COORDINATOR]Ray,Perkins
+				[DEFENSIVE_COORDINATOR]Doug,Graber
+				[STADIUM]Tampa Stadium
+				[STADIUM_TYPE]Outdoor
+				[TURF_TYPE]NaturalGrass
+			[TEAM_END]
+		[DIVISION_END]
+
+		[DIVISION_BEGIN]
+		[DIVISION]West
+
+			[TEAM_BEGIN]
+				[CITY]San Francisco
+				[TEAM]49ers
+				[OWNER]Eddie,DeBartolo
+				[GM]John,McVay
+				[HEADCOACH]George,Seifert
+				[OFFENSIVE_COORDINATOR]Mike,Holmgren
+				[DEFENSIVE_COORDINATOR]Bill,McPherson
+				[STADIUM]Candlestick Park
+				[STADIUM_TYPE]Outdoor
+				[TURF_TYPE]NaturalGrass
+			[TEAM_END]
+
+			[TEAM_BEGIN]
+				[CITY]Los Angeles
+				[TEAM]Rams
+				[OWNER]Georgia,Frontiere
+				[GM]John,Shaw
+				[HEADCOACH]John,Robinson
+				[OFFENSIVE_COORDINATOR]Ernie,Zampese
+				[DEFENSIVE_COORDINATOR]Fritz,Shurmur
+				[STADIUM]Anaheim Stadium
+				[STADIUM_TYPE]Outdoor
+				[TURF_TYPE]ArtificialTurf
+			[TEAM_END]
+
+			[TEAM_BEGIN]
+				[CITY]New Orleans
+				[TEAM]Saints
+				[OWNER]Tome,Benson
+				[GM]Jim,Finks
+				[HEADCOACH]Jim,Mora
+				[OFFENSIVE_COORDINATOR]Carl,Smith
+				[DEFENSIVE_COORDINATOR]Steve,Sidwell
+				[STADIUM]Louisiana Superdome
+				[STADIUM_TYPE]Indoor
+				[TURF_TYPE]ArtificialTurf
+			[TEAM_END]
+
+			[TEAM_BEGIN]
+				[CITY]Atlanta
+				[TEAM]Falcons
+				[OWNER]Rankin,Smith
+				[GM]Ken,Herock
+				[HEADCOACH][WEEKS,1-12]Marion,Campbell
+				[HEADCOACH][WEEKS,12-END]Jim,Hanifan
+				[OFFENSIVE_COORDINATOR]Rod,Dowhower
+				[DEFENSIVE_COORDINATOR]Fred,Bruney
+				[STADIUM]Fulton County Stadium
+				[STADIUM_TYPE]Outdoor
+				[TURF_TYPE]NaturalGrass
+			[TEAM_END]
+			
+		[DIVISION_END]
+
+	[CONFERENCE_END]
+
+[LEAGUE_END]

@@ -57,6 +57,6 @@ private:
     double m_elapsedSeconds = 0.0;
     std::string m_statusMessage;
 
-    int m_awayScore = 0;
-    int m_homeScore = 0;
+    int m_awayScore = 21;
+    int m_homeScore = 10;
 };
