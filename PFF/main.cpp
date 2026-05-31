@@ -1,4 +1,4 @@
-#include "App/Application.h"
+#include "App/PFFApplication.h"
 #include "App/CommandLineOptions.h"
 #include "App/StartupConfig.h"
 #include "App/StartupOptions.h"
@@ -41,7 +41,7 @@ int main()
         return 0;
     }
 
-    Application app(
+    PFFApplication app(
         launchDecision.rendererSelection,
         startupOptions.validationScreenPreference,
         launchDecision.diagnosticsContext);

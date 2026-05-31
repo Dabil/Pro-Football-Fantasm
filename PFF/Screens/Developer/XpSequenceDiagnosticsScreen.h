@@ -15,7 +15,7 @@ public:
     ~XpSequenceDiagnosticsScreen() override = default;
 
     void onEnter() override;
-    void update(double deltaTime) override;
+    void update(const Animation::TickEvent& event) override;
     void draw(Surface& surface) override;
 
 private:

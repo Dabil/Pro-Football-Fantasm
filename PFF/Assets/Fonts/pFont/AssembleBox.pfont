@@ -1,0 +1,2028 @@
+pfont2
+
+name=Assemble Box
+glyph_width=5
+glyph_height=5
+letter_spacing=1
+word_spacing=3
+line_spacing=1
+fallback=?
+transparent=.
+default_style.bold=true
+default_style.background=blue
+
+[glyph A]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=.┌─┐.
+row=┌....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=.┌─┐.
+row=┌...┐
+row=├─...
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=.┌─┐.
+row=┌...┐
+row=├───┤
+row=│....
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=.┌─┐.
+row=┌...┐
+row=├───┤
+row=│...│
+row=┴...┴
+[endlayer]
+
+[endglyph]
+
+[glyph B]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=├──┐.
+row=│....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=├──┐.
+row=│..├┐
+row=├──..
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=├──┐.
+row=│..├┐
+row=├──┤│
+row=│..├┘
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=├──┐.
+row=│..├┐
+row=├──┤│
+row=│..├┘
+row=└──┘.
+[endlayer]
+
+[endglyph]
+
+[glyph C]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=.┌──.
+row=.....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=.┌──┐
+row=┌....
+row=│....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=.┌──┐
+row=┌....
+row=│....
+row=└....
+row=.└─..
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=.┌──┐
+row=┌....
+row=│....
+row=└....
+row=.└──┘
+[endlayer]
+
+[endglyph]
+
+[glyph D]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=├──┐.
+row=.....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=├──┐.
+row=│...│
+row=│....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=├──┐.
+row=│...│
+row=│...│
+row=│...│
+row=└....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=├──┐.
+row=│...│
+row=│...│
+row=│...│
+row=└──┘.
+[endlayer]
+
+[endglyph]
+
+[glyph E]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=┌───┐
+row=.....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=┌───┐
+row=│....
+row=├──..
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=┌───┐
+row=│....
+row=├──..
+row=│....
+row=└....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=┌───┐
+row=│....
+row=├──..
+row=│....
+row=└───┘
+[endlayer]
+
+[endglyph]
+
+[glyph F]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=┌──..
+row=.....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=┌───┐
+row=├....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=┌───┐
+row=├──..
+row=│....
+row=.....
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=┌───┐
+row=├──..
+row=│....
+row=│....
+row=┴....
+[endlayer]
+
+[endglyph]
+
+[glyph G]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=.┌──┐
+row=.....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=.┌──┐
+row=┌....
+row=│.──.
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=.┌──┐
+row=┌....
+row=│.──┐
+row=│...│
+row=.└...
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=.┌──┐
+row=┌....
+row=│.──┐
+row=│...│
+row=.└──┘
+[endlayer]
+
+[endglyph]
+
+[glyph H]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=┬...┬
+row=│...│
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=┬...┬
+row=│...│
+row=├──..
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=┬...┬
+row=│...│
+row=├───┤
+row=│....
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=┬...┬
+row=│...│
+row=├───┤
+row=│...│
+row=┴...┴
+[endlayer]
+
+[endglyph]
+
+[glyph I]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=┌───.
+row=.....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=┌───┐
+row=..│..
+row=..│..
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=┌───┐
+row=..│..
+row=..│..
+row=..│..
+row=└─...
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=┌───┐
+row=..│..
+row=..│..
+row=..│..
+row=└───┘
+[endlayer]
+
+[endglyph]
+
+[glyph J]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=..┌─┐
+row=...│.
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=..┌─┐
+row=...││
+row=...││
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=..┌─┐
+row=...││
+row=...││
+row=│..││
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=..┌─┐
+row=...││
+row=...││
+row=│..││
+row=.└─┘.
+[endlayer]
+
+[endglyph]
+
+[glyph K]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=┬..┌┐
+row=│....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=┬..┌┐
+row=│.┌┘.
+row=├─...
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=┬..┌┐
+row=│.┌┘.
+row=├─┘..
+row=│.└┐.
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=┬..┌┐
+row=│.┌┘.
+row=├─┘..
+row=│.└┐.
+row=┴..└┘
+[endlayer]
+
+[endglyph]
+
+[glyph L]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=┬....
+row=│....
+row=│....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=┬....
+row=│....
+row=│....
+row=│....
+row=└....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=┬....
+row=│....
+row=│....
+row=│....
+row=└──..
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=┬....
+row=│....
+row=│....
+row=│....
+row=└───┘
+[endlayer]
+
+[endglyph]
+
+[glyph M]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=┬┐.┌┬
+row=│....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=┬┐.┌┬
+row=│└┐┌│
+row=│....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=┬┐.┌┬
+row=│└┐┌│
+row=│.├┤│
+row=│..│.
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=┬┐.┌┬
+row=│└┐┌│
+row=│.├┤│
+row=│..││
+row=┴..┴┴
+[endlayer]
+
+[endglyph]
+
+[glyph N]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=┬...┬
+row=├┐...
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=┬...┬
+row=├┐..│
+row=│└┐..
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=┬...┬
+row=├┐..│
+row=│└┐.│
+row=│.└┐.
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=┬...┬
+row=├┐..│
+row=│└┐.│
+row=│.└┐│
+row=┴...┴
+[endlayer]
+
+[endglyph]
+
+[glyph O]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=.┌─┐.
+row=.....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=.┌─┐.
+row=┌...┐
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=.┌─┐.
+row=┌...┐
+row=│...│
+row=└....
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=.┌─┐.
+row=┌...┐
+row=│...│
+row=└...┘
+row=..┴..
+[endlayer]
+
+[endglyph]
+
+[glyph P]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=├──┐.
+row=.....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=├──┐.
+row=│..└┐
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=├──┐.
+row=│..└┐
+row=├──..
+row=.....
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=├──┐.
+row=│..└┐
+row=├──┘.
+row=│....
+row=┴....
+[endlayer]
+
+[endglyph]
+
+[glyph Q]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=.┌─┐.
+row=┌....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=.┌─┐.
+row=┌...┐
+row=│.┌┐.
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=.┌─┐.
+row=┌...┐
+row=│.┌┐│
+row=└..└┤
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=.┌─┐.
+row=┌...┐
+row=│.┌┐│
+row=└..└┤
+row=..└─┘
+[endlayer]
+
+[endglyph]
+
+[glyph R]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=├──┐.
+row=.....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=├──┐.
+row=│..└┐
+row=├....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=├──┐.
+row=│..└┐
+row=├──┘.
+row=│....
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=├──┐.
+row=│..└┐
+row=├──┘.
+row=│..└┐
+row=┴...┴
+[endlayer]
+
+[endglyph]
+
+[glyph S]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=.┌──┐
+row=└....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=.┌──┐
+row=└──┐.
+row=..┌..
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=.┌──┐
+row=└──┐.
+row=..┌┘.
+row=┌──..
+row=└....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=.┌──┐
+row=└──┐.
+row=..┌┘.
+row=┌──..
+row=└───┘
+[endlayer]
+
+[endglyph]
+
+[glyph T]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=┌──..
+row=.....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=┌───┐
+row=.....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=┌───┐
+row=..│..
+row=..│..
+row=.....
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=┌───┐
+row=..│..
+row=..│..
+row=..│..
+row=..┴..
+[endlayer]
+
+[endglyph]
+
+[glyph U]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=┬...┬
+row=│...│
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=┬...┬
+row=│...│
+row=│...│
+row=│....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=┬...┬
+row=│...│
+row=│...│
+row=│...│
+row=└─...
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=┬...┬
+row=│...│
+row=│...│
+row=│...│
+row=└───┘
+[endlayer]
+
+[endglyph]
+
+[glyph V]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=┬...┬
+row=│....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=┬...┬
+row=│...│
+row=│....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=┬...┬
+row=│...│
+row=│...│
+row=.└─..
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=┬...┬
+row=│...│
+row=│...│
+row=.└─┘.
+row=..┴..
+[endlayer]
+
+[endglyph]
+
+[glyph W]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=┬...┬
+row=│...│
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=┬...┬
+row=│...│
+row=│.┬.│
+row=│....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=┬...┬
+row=│...│
+row=│.┬.│
+row=│┌┴┐│
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=┬...┬
+row=│...│
+row=│.┬.│
+row=│┌┴┐│
+row=└┘.└┘
+[endlayer]
+
+[endglyph]
+
+[glyph X]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=┬...┬
+row=.└┐..
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=┬...┬
+row=.└┐┌┘
+row=..┼..
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=┬...┬
+row=.└┐┌┘
+row=..┼..
+row=.┌┘└.
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=┬...┬
+row=.└┐┌┘
+row=..┼..
+row=.┌┘└┐
+row=┴...┴
+[endlayer]
+
+[endglyph]
+
+[glyph Y]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=┬...┬
+row=.....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=┬...┬
+row=.└─..
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=┬...┬
+row=.└─┘.
+row=..│..
+row=.....
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=┬...┬
+row=.└─┘.
+row=..│..
+row=..│..
+row=..┴..
+[endlayer]
+
+[endglyph]
+
+[glyph Z]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=┌───.
+row=.....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=┌───┐
+row=...┌┘
+row=..┌..
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=┌───┐
+row=...┌┘
+row=..┌┘.
+row=.┌┘..
+row=└....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=┌───┐
+row=...┌┘
+row=..┌┘.
+row=.┌┘..
+row=└───┘
+[endlayer]
+
+[endglyph]
+
+[glyph 0]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=.┌─┐.
+row=┌┐...
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=.┌─┐.
+row=┌┐.││
+row=││...
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=.┌─┐.
+row=┌┐.││
+row=││.││
+row=││.┌.
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=.┌─┐.
+row=┌┐.││
+row=││.││
+row=││.┌┘
+row=.└─┘.
+[endlayer]
+
+[endglyph]
+
+[glyph 1]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=..┌..
+row=.┌...
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=..┌..
+row=.┌┤..
+row=..│..
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=..┌..
+row=.┌┤..
+row=..│..
+row=..│..
+row=.└...
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=..┌..
+row=.┌┤..
+row=..│..
+row=..│..
+row=.└┴┘.
+[endlayer]
+
+[endglyph]
+
+[glyph 2]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=.┌─┐.
+row=...┌.
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=.┌─┐.
+row=...┌┘
+row=..┌┘.
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=.┌─┐.
+row=...┌┘
+row=..┌┘.
+row=.┌┘..
+row=└─...
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=.┌─┐.
+row=...┌┘
+row=..┌┘.
+row=.┌┘..
+row=└───┘
+[endlayer]
+
+[endglyph]
+
+[glyph 3]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=┌──┐.
+row=.....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=┌──┐.
+row=...└┐
+row=..─┐.
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=┌──┐.
+row=...└┐
+row=..─┐│
+row=...┌┘
+row=└....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=┌──┐.
+row=...└┐
+row=..─┐│
+row=...┌┘
+row=└──┘.
+[endlayer]
+
+[endglyph]
+
+[glyph 4]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=┬..┬.
+row=│....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=┬..┬.
+row=│..│.
+row=└....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=┬..┬.
+row=│..│.
+row=└──┤.
+row=.....
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=┬..┬.
+row=│..│.
+row=└──┤.
+row=...│.
+row=...┴.
+[endlayer]
+
+[endglyph]
+
+[glyph 5]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=┌───.
+row=.....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=┌───┐
+row=├──..
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=┌───┐
+row=├──..
+row=...└┐
+row=...┌┘
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=┌───┐
+row=├──..
+row=...└┐
+row=...┌┘
+row=└──┘.
+[endlayer]
+
+[endglyph]
+
+[glyph 6]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=.┌──.
+row=┌....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=.┌──.
+row=┌┘...
+row=├──..
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=.┌──.
+row=┌┘...
+row=├──┐.
+row=│..└┐
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=.┌──.
+row=┌┘...
+row=├──┐.
+row=│..└┐
+row=└──┘.
+[endlayer]
+
+[endglyph]
+
+[glyph 7]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=┌──..
+row=.....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=┌───┐
+row=...┌.
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=┌───┐
+row=...┌┘
+row=..┌┘.
+row=.....
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=┌───┐
+row=...┌┘
+row=..┌┘.
+row=.┌┘..
+row=.┴...
+[endlayer]
+
+[endglyph]
+
+[glyph 8]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=.┌─┐.
+row=└┐...
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=.┌─┐.
+row=└┐.┌┘
+row=.├─┤.
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=.┌─┐.
+row=└┐.┌┘
+row=.├─┤.
+row=┌┘.└┐
+row=└....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=.┌─┐.
+row=└┐.┌┘
+row=.├─┤.
+row=┌┘.└┐
+row=└───┘
+[endlayer]
+
+[endglyph]
+
+[glyph 9]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=.┌─┐.
+row=┌....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=.┌─┐.
+row=┌┘.└┐
+row=└....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=.┌─┐.
+row=┌┘.└┐
+row=└──┤.
+row=...┌.
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=.┌─┐.
+row=┌┘.└┐
+row=└──┤.
+row=...┌┘
+row=.──┘.
+[endlayer]
+
+[endglyph]
+
+[glyph space]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=.....
+row=.....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=.....
+row=.....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=.....
+row=.....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=.....
+row=.....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[endglyph]
+
+[glyph ?]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=.┌─..
+row=.....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=.┌─┐.
+row=...┌.
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=.┌─┐.
+row=...┌┘
+row=..┌..
+row=.....
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=.┌─┐.
+row=...┌┘
+row=..┌┘.
+row=.....
+row=..┴..
+[endlayer]
+
+[endglyph]
+
+[glyph !]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=..│..
+row=.....
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=..│..
+row=..│..
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=..│..
+row=..│..
+row=..│..
+row=.....
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=..│..
+row=..│..
+row=..│..
+row=.....
+row=..┴..
+[endlayer]
+
+[endglyph]
+
+[glyph .]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=.....
+row=.....
+row=.....
+row=.....
+row=..┴..
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=.....
+row=.....
+row=.....
+row=.....
+row=..┴..
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=.....
+row=.....
+row=.....
+row=.....
+row=..┴..
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=.....
+row=.....
+row=.....
+row=.....
+row=..┴..
+[endlayer]
+
+[endglyph]
+
+[glyph :]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=.....
+row=..┬..
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=.....
+row=..┬..
+row=.....
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=.....
+row=..┬..
+row=.....
+row=..┴..
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=.....
+row=..┬..
+row=.....
+row=..┴..
+row=.....
+[endlayer]
+
+[endglyph]
+
+[glyph -]
+[layer stage_1]
+z=0
+visible=false
+style.foreground=bright_black
+row=.....
+row=.....
+row=.─...
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_2]
+z=1
+visible=false
+style.foreground=white
+row=.....
+row=.....
+row=.──..
+row=.....
+row=.....
+[endlayer]
+
+[layer stage_3]
+z=2
+visible=false
+style.foreground=bright_white
+style.bold=true
+row=.....
+row=.....
+row=.───.
+row=.....
+row=.....
+[endlayer]
+
+[layer final]
+z=10
+visible=true
+style.foreground=bright_white
+row=.....
+row=.....
+row=.───.
+row=.....
+row=.....
+[endlayer]
+
+[endglyph]

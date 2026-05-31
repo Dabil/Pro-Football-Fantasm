@@ -1,0 +1,20 @@
+[page]
+id=menu_demo
+title=Interactive Authored Page
+default=start
+wrapNavigation=true
+
+[status]
+instructions=Menu focused
+hint=Up/Down: select
+hint=Enter/Space: confirm
+hint=Esc: cancel
+hint=F1: help
+
+[menu]
+item=Start authored page flow | start | true | Runs a fake authored-page action and updates the details panel.
+item=Settings | settings | true | Opens a lightweight settings popup.
+item=Toggle sound hints | toggle_sound | true | Toggles a checked menu item without persistence. | true
+item=Toggle compact layout | toggle_compact | true | Toggles another checked menu item. | false
+item=Continue saved session | continue | false | Disabled sample item to prove disabled skipping.
+item=Help / About | help | true | Shows a modal popup using PopupWindow and WindowManager.

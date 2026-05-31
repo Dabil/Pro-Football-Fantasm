@@ -5,6 +5,7 @@
 #include <string>
 
 #include "Core/Rect.h"
+#include "Utilities/Text/TextClip.h"
 #include "Rendering/ScreenBuffer.h"
 #include "Rendering/Styles/Color.h"
 #include "Rendering/Styles/Style.h"
@@ -45,26 +46,6 @@ namespace
         style::Fg(Color::FromBasic(Color::Basic::White))
         + style::Bg(Color::FromBasic(Color::Basic::Black));
 
-    std::string clipText(const std::string& text, int width)
-    {
-        if (width <= 0)
-        {
-            return {};
-        }
-
-        if (static_cast<int>(text.size()) <= width)
-        {
-            return text;
-        }
-
-        if (width <= 3)
-        {
-            return text.substr(0, static_cast<std::size_t>(width));
-        }
-
-        return text.substr(0, static_cast<std::size_t>(width - 3)) + "...";
-    }
-
     void writeClipped(
         ScreenBuffer& buffer,
         int x,
@@ -78,7 +59,7 @@ namespace
             return;
         }
 
-        buffer.writeString(x, y, clipText(text, width), style);
+        buffer.writeString(x, y, TextClip::clipUtf8Text(text, width), style);
     }
 
     void drawPanel(
@@ -156,9 +137,9 @@ void TextObjectExportValidationScreen::onEnter()
     revalidate();
 }
 
-void TextObjectExportValidationScreen::update(double deltaTime)
+void TextObjectExportValidationScreen::update(const Animation::TickEvent& event)
 {
-    m_elapsedSeconds += deltaTime;
+    m_elapsedSeconds += event.deltaSeconds;
 }
 
 void TextObjectExportValidationScreen::draw(Surface& surface)

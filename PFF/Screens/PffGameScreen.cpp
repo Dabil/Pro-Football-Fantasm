@@ -231,9 +231,9 @@ void PffGameScreen::onExit()
     m_elapsedSeconds = 0.0;
 }
 
-void PffGameScreen::update(double deltaTime)
+void PffGameScreen::update(const Animation::TickEvent& event)
 {
-    m_elapsedSeconds += deltaTime;
+    m_elapsedSeconds += event.deltaSeconds;
 }
 
 std::string PffGameScreen::formatScoreValue(int score) const

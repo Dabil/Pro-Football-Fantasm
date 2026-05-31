@@ -1,0 +1,7 @@
+Format notes
+- . is the transparent marker here.
+- Everything else is literal authored output.
+- Rows are decoded as UTF-8, so block characters and line-art characters work cleanly.
+- Optional style hints can be applied at:
+     - font default level: default_style.*
+     - glyph level: style.* inside a glyph block
