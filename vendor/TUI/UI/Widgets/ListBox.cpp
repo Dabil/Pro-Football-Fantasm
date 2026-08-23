@@ -7,12 +7,17 @@
 #include "Input/Event.h"
 #include "Rendering/ScreenBuffer.h"
 #include "Rendering/Surface.h"
+#include "Rendering/Styles/UIThemes.h"
 #include "Utilities/Text/TextClip.h"
+#include "UI/Scrolling/ScrollBehavior.h"
+#include "UI/Scrolling/Scrollbar.h"
 
 ListBox::ListBox()
     : Widget()
     , m_styleSet(WidgetStyles::defaultStyleSet(WidgetStyles::Role::ListBoxItem))
 {
+    m_verticalScrollbarStyle.trackStyle = m_styleSet.normal;
+    m_verticalScrollbarStyle.thumbStyle = UIThemes::Selection;
     setFocusable(true);
     updateViewport();
 }
@@ -22,6 +27,8 @@ ListBox::ListBox(std::vector<ListBoxItem> items)
     , m_items(std::move(items))
     , m_styleSet(WidgetStyles::defaultStyleSet(WidgetStyles::Role::ListBoxItem))
 {
+    m_verticalScrollbarStyle.trackStyle = m_styleSet.normal;
+    m_verticalScrollbarStyle.thumbStyle = UIThemes::Selection;
     setFocusable(true);
     normalizeSelection();
     updateViewport();
@@ -32,9 +39,44 @@ ListBox::ListBox(const Rect& bounds, std::vector<ListBoxItem> items)
     , m_items(std::move(items))
     , m_styleSet(WidgetStyles::defaultStyleSet(WidgetStyles::Role::ListBoxItem))
 {
+    m_verticalScrollbarStyle.trackStyle = m_styleSet.normal;
+    m_verticalScrollbarStyle.thumbStyle = UIThemes::Selection;
     setFocusable(true);
     normalizeSelection();
     updateViewport();
+}
+
+bool ListBox::isVerticalScrollbarVisible() const
+{
+    return m_verticalScrollbarVisible;
+}
+
+void ListBox::setVerticalScrollbarVisible(bool visible)
+{
+    m_verticalScrollbarVisible = visible;
+    updateViewport();
+}
+
+bool ListBox::reservesVerticalScrollbarColumn() const
+{
+    return m_reserveVerticalScrollbarColumn;
+}
+
+void ListBox::setReserveVerticalScrollbarColumn(bool reserveColumn)
+{
+    m_reserveVerticalScrollbarColumn = reserveColumn;
+    updateViewport();
+}
+
+const UI::Scrolling::VerticalScrollbarStyle& ListBox::verticalScrollbarStyle() const
+{
+    return m_verticalScrollbarStyle;
+}
+
+void ListBox::setVerticalScrollbarStyle(
+    const UI::Scrolling::VerticalScrollbarStyle& style)
+{
+    m_verticalScrollbarStyle = style;
 }
 
 std::size_t ListBox::itemCount() const
@@ -362,11 +404,14 @@ void ListBox::draw(Surface& surface)
     }
 
     updateViewport();
+
     surface.buffer().fillRect(listBounds, U' ', m_styleSet.normal);
+
+    const Rect viewBounds = itemViewportBounds();
 
     const int firstVisibleItem = m_viewport.scrollY();
     const int visibleRows = std::min(
-        listBounds.size.height,
+        viewBounds.size.height,
         static_cast<int>(m_items.size()) - firstVisibleItem);
 
     for (int row = 0; row < visibleRows; ++row)
@@ -375,25 +420,27 @@ void ListBox::draw(Surface& surface)
         const Style& itemStyle = resolveItemStyle(itemIndex);
 
         const Rect rowRect{
-            Point{ listBounds.position.x, listBounds.position.y + row },
-            Size{ listBounds.size.width, 1 }
+            Point{ viewBounds.position.x, viewBounds.position.y + row },
+            Size{ viewBounds.size.width, 1 }
         };
 
         surface.buffer().fillRect(rowRect, U' ', itemStyle);
 
         const std::string clippedText = TextClip::clipUtf8Text(
             m_items[itemIndex].text,
-            listBounds.size.width);
+            viewBounds.size.width);
 
         if (!clippedText.empty())
         {
             surface.buffer().writeString(
-                listBounds.position.x,
-                listBounds.position.y + row,
+                viewBounds.position.x,
+                viewBounds.position.y + row,
                 clippedText,
                 itemStyle);
         }
     }
+
+    drawScrollbarIfNeeded(surface);
 }
 
 bool ListBox::handleEvent(const Input::Event& event)
@@ -405,6 +452,23 @@ bool ListBox::handleEvent(const Input::Event& event)
 
     if (const Input::MouseEvent* mouseEvent = event.asMouse())
     {
+        if (mouseEvent->isWheel())
+        {
+            updateViewport();
+
+            return UI::Scrolling::handleMouseWheelScrollEvent(
+                event,
+                m_viewport,
+                bounds(),
+                isFocused(),
+                UI::Scrolling::ScrollInputOptions{
+                    false,
+                    true,
+                    1,
+                    1
+                });
+        }
+
         if (mouseEvent->button != Input::MouseButton::Left)
         {
             return false;
@@ -469,9 +533,10 @@ void ListBox::normalizeSelection()
 
 void ListBox::updateViewport()
 {
-    const Rect listBounds = bounds();
+    const Rect viewBounds = itemViewportBounds();
+
     m_viewport.setContentSize(1, static_cast<int>(m_items.size()));
-    m_viewport.setViewSize(1, std::max(0, listBounds.size.height));
+    m_viewport.setViewSize(1, std::max(0, viewBounds.size.height));
 }
 
 void ListBox::ensureSelectedVisible()
@@ -497,16 +562,61 @@ void ListBox::ensureSelectedVisible()
     }
 }
 
+Rect ListBox::itemViewportBounds() const
+{
+    return UI::Scrolling::viewportBoundsForContentBounds(
+        bounds(),
+        shouldDrawVerticalScrollbar(),
+        m_reserveVerticalScrollbarColumn);
+}
+
+Rect ListBox::scrollbarBounds() const
+{
+    return UI::Scrolling::verticalScrollbarBoundsForContentBounds(
+        bounds(),
+        shouldDrawVerticalScrollbar() && m_reserveVerticalScrollbarColumn);
+}
+
+bool ListBox::shouldDrawVerticalScrollbar() const
+{
+    return m_verticalScrollbarVisible
+        && UI::Scrolling::shouldShowVerticalScrollbar(m_viewport);
+}
+
+void ListBox::drawScrollbarIfNeeded(Surface& surface)
+{
+    if (!shouldDrawVerticalScrollbar())
+    {
+        return;
+    }
+
+    UI::Scrolling::drawVerticalScrollbar(
+        surface,
+        scrollbarBounds(),
+        m_viewport,
+        m_verticalScrollbarStyle);
+}
+
+bool ListBox::scrollByLines(int lines)
+{
+    updateViewport();
+
+    return UI::Scrolling::scrollViewportBy(
+        m_viewport,
+        0,
+        lines);
+}
+
 std::optional<std::size_t> ListBox::itemIndexFromMousePosition(Point position) const
 {
-    const Rect listBounds = bounds();
+    const Rect viewBounds = itemViewportBounds();
 
-    if (!listBounds.contains(position.x, position.y))
+    if (!viewBounds.contains(position.x, position.y))
     {
         return std::nullopt;
     }
 
-    const int localRow = position.y - listBounds.position.y;
+    const int localRow = position.y - viewBounds.position.y;
     const int itemIndex = m_viewport.scrollY() + localRow;
 
     if (itemIndex < 0 || itemIndex >= static_cast<int>(m_items.size()))

@@ -2,6 +2,9 @@
 
 #include <cstdint>
 #include <memory>
+#include <functional>
+#include <string>
+#include <string_view>
 
 #include "App/TerminalLauncher.h"
 #include "Assets/AssetLibrary.h"
@@ -13,6 +16,7 @@
 class IRenderer;
 class ScreenManager;
 class Surface;
+class Screen;
 
 namespace Input
 {
@@ -62,6 +66,17 @@ protected:
 
     void requestShutdown();
     void requestRender();
+
+    using ScreenFactory = std::function<std::unique_ptr<Screen>()>;
+
+    bool registerScreenRoute(std::string routeId, ScreenFactory factory);
+    bool hasScreenRoute(const std::string& routeId) const;
+
+    bool navigateTo(const std::string& routeId);
+    bool replaceWith(const std::string& routeId);
+    bool goBack();
+
+    bool handleCommandId(std::string_view commandId);
 
 protected:
     virtual void configureAssetLibrary();

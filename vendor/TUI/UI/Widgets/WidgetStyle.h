@@ -16,6 +16,8 @@ namespace WidgetStyles
     {
         Normal,
         Focused,
+        Hovered,
+        Pressed,
         Disabled,
         Selected,
         SelectedFocused
@@ -25,6 +27,8 @@ namespace WidgetStyles
     {
         Style normal;
         Style focused;
+        Style hovered;
+        Style pressed;
         Style disabled;
         Style selected;
         Style selectedFocused;

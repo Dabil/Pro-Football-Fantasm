@@ -145,6 +145,7 @@
     <ClInclude Include="App\ApplicationHost.h" />
     <ClInclude Include="App\CommandLineOptions.h" />
     <ClInclude Include="App\ScreenManager.h" />
+    <ClInclude Include="App\ScreenRouteRegistry.h" />
     <ClInclude Include="App\StartupConfig.h" />
     <ClInclude Include="App\StartupOptions.h" />
     <ClInclude Include="App\TerminalLauncher.h" />
@@ -311,10 +312,13 @@
     <ClInclude Include="UI\Panels\TabbedWindowPage.h" />
     <ClInclude Include="UI\Panels\TabbedWindowModel.h" />
     <ClInclude Include="UI\Panels\Window.h" />
+    <ClInclude Include="UI\Scrolling\Scrollbar.h" />
+    <ClInclude Include="UI\Scrolling\ScrollBehavior.h" />
     <ClInclude Include="UI\Widgets\Button.h" />
     <ClInclude Include="UI\Widgets\ContainerWidget.h" />
     <ClInclude Include="UI\Widgets\Label.h" />
     <ClInclude Include="UI\Widgets\ListBox.h" />
+    <ClInclude Include="UI\Widgets\ScrollBox.h" />
     <ClInclude Include="UI\Widgets\TextView.h" />
     <ClInclude Include="UI\Widgets\TileGridView.h" />
     <ClInclude Include="UI\Widgets\Widget.h" />
@@ -341,6 +345,7 @@
     <ClCompile Include="App\ApplicationHost.cpp" />
     <ClCompile Include="App\CommandLineOptions.cpp" />
     <ClCompile Include="App\ScreenManager.cpp" />
+    <ClCompile Include="App\ScreenRouteRegistry.cpp" />
     <ClCompile Include="App\StartupConfig.cpp" />
     <ClCompile Include="App\StartupOptions.cpp" />
     <ClCompile Include="App\TerminalLauncher.cpp" />
@@ -484,10 +489,13 @@
     <ClCompile Include="UI\Panels\TabbedWindowModel.cpp" />
     <ClCompile Include="UI\Panels\TabbedWindowPage.cpp" />
     <ClCompile Include="UI\Panels\Window.cpp" />
+    <ClCompile Include="UI\Scrolling\ScrollBehavior.cpp" />
+    <ClCompile Include="UI\Scrolling\Scrollbar.cpp" />
     <ClCompile Include="UI\Widgets\Button.cpp" />
     <ClCompile Include="UI\Widgets\ContainerWidget.cpp" />
     <ClCompile Include="UI\Widgets\Label.cpp" />
     <ClCompile Include="UI\Widgets\ListBox.cpp" />
+    <ClCompile Include="UI\Widgets\ScrollBox.cpp" />
     <ClCompile Include="UI\Widgets\TextView.cpp" />
     <ClCompile Include="UI\Widgets\TileGridView.cpp" />
     <ClCompile Include="UI\Widgets\Widget.cpp" />

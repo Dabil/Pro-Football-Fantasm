@@ -99,6 +99,26 @@ void Button::setFocusedStyle(const Style& style)
     m_styleSet.focused = style;
 }
 
+const Style& Button::hoverStyle() const
+{
+    return m_styleSet.hovered;
+}
+
+void Button::setHoverStyle(const Style& style)
+{
+    m_styleSet.hovered = style;
+}
+
+const Style& Button::pressedStyle() const
+{
+    return m_styleSet.pressed;
+}
+
+void Button::setPressedStyle(const Style& style)
+{
+    m_styleSet.pressed = style;
+}
+
 const Style& Button::disabledStyle() const
 {
     return m_styleSet.disabled;
@@ -209,23 +229,37 @@ bool Button::handleEvent(const Input::Event& event)
 {
     if (!isVisible() || !isEnabled())
     {
+        m_mouseHovered = false;
         m_leftMousePressedInside = false;
         return false;
     }
 
     if (const Input::MouseEvent* mouseEvent = event.asMouse())
     {
+        const bool inside = bounds().contains(
+            mouseEvent->position.x,
+            mouseEvent->position.y);
+
+        if (mouseEvent->isMove())
+        {
+            m_mouseHovered = inside;
+            return inside;
+        }
+
+        if (mouseEvent->isDrag())
+        {
+            m_mouseHovered = inside;
+            return m_leftMousePressedInside || inside;
+        }
+
         if (mouseEvent->button != Input::MouseButton::Left)
         {
             return false;
         }
 
-        const bool inside = bounds().contains(
-            mouseEvent->position.x,
-            mouseEvent->position.y);
-
         if (mouseEvent->isPress())
         {
+            m_mouseHovered = inside;
             m_leftMousePressedInside = inside;
             return inside;
         }
@@ -233,6 +267,8 @@ bool Button::handleEvent(const Input::Event& event)
         if (mouseEvent->isRelease())
         {
             const bool shouldActivate = m_leftMousePressedInside && inside;
+
+            m_mouseHovered = inside;
             m_leftMousePressedInside = false;
 
             if (!shouldActivate)
@@ -242,6 +278,12 @@ bool Button::handleEvent(const Input::Event& event)
 
             const ButtonActivationResult result = activate();
             return result.activated;
+        }
+
+        if (mouseEvent->isClick())
+        {
+            m_mouseHovered = inside;
+            return inside;
         }
 
         return false;
@@ -264,9 +306,27 @@ bool Button::handleEvent(const Input::Event& event)
 
 const Style& Button::resolveRenderStyle() const
 {
-    return WidgetStyles::resolve(
-        m_styleSet,
-        WidgetStyles::stateFor(isEnabled(), isFocused()));
+    if (!isEnabled())
+    {
+        return WidgetStyles::resolve(m_styleSet, WidgetStyles::State::Disabled);
+    }
+
+    if (m_leftMousePressedInside)
+    {
+        return WidgetStyles::resolve(m_styleSet, WidgetStyles::State::Pressed);
+    }
+
+    if (m_mouseHovered)
+    {
+        return WidgetStyles::resolve(m_styleSet, WidgetStyles::State::Hovered);
+    }
+
+    if (isFocused())
+    {
+        return WidgetStyles::resolve(m_styleSet, WidgetStyles::State::Focused);
+    }
+
+    return WidgetStyles::resolve(m_styleSet, WidgetStyles::State::Normal);
 }
 
 std::string Button::buildDisplayText(int availableWidth) const

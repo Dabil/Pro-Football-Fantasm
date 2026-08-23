@@ -72,6 +72,11 @@ ContainerWidget::ChildPtr ContainerWidget::removeChildAt(std::size_t index)
         m_mouseCaptureChild = nullptr;
     }
 
+    if (m_mouseHoverChild == removedChild.get())
+    {
+        m_mouseHoverChild = nullptr;
+    }
+
     m_children.erase(m_children.begin() + static_cast<std::ptrdiff_t>(index));
 
     if (!m_focusedChild)
@@ -85,6 +90,7 @@ ContainerWidget::ChildPtr ContainerWidget::removeChildAt(std::size_t index)
 void ContainerWidget::clearChildren()
 {
     m_mouseCaptureChild = nullptr;
+    m_mouseHoverChild = nullptr;
     clearChildFocus();
     m_children.clear();
 }
@@ -356,6 +362,7 @@ bool ContainerWidget::handleEvent(const Input::Event& event)
 void ContainerWidget::onFocusLost()
 {
     m_mouseCaptureChild = nullptr;
+    m_mouseHoverChild = nullptr;
     clearChildFocus();
 }
 
@@ -419,9 +426,34 @@ bool ContainerWidget::dispatchMouseEvent(const Input::Event& event)
 
     Widget* target = hitTest(mouseEvent->position);
 
+    if (mouseEvent->isMove() || mouseEvent->isDrag())
+    {
+        if (m_mouseHoverChild
+            && m_mouseHoverChild != target
+            && containsChild(*m_mouseHoverChild)
+            && m_mouseHoverChild->isVisible()
+            && m_mouseHoverChild->isEnabled())
+        {
+            m_mouseHoverChild->handleEvent(event);
+        }
+
+        m_mouseHoverChild = target;
+
+        if (m_mouseCaptureChild
+            && containsChild(*m_mouseCaptureChild)
+            && m_mouseCaptureChild->isVisible()
+            && m_mouseCaptureChild->isEnabled())
+        {
+            return m_mouseCaptureChild->handleEvent(event);
+        }
+
+        return target ? target->handleEvent(event) : false;
+    }
+
     if (mouseEvent->isPress())
     {
         m_mouseCaptureChild = target;
+        m_mouseHoverChild = target;
 
         if (target && canFocusChild(*target))
         {
@@ -435,6 +467,7 @@ bool ContainerWidget::dispatchMouseEvent(const Input::Event& event)
     {
         Widget* captured = m_mouseCaptureChild;
         m_mouseCaptureChild = nullptr;
+        m_mouseHoverChild = target;
 
         if (captured && containsChild(*captured) && captured->isVisible() && captured->isEnabled())
         {

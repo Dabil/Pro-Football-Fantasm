@@ -4,6 +4,7 @@
 
 #include "Animation/TickEvent.h"
 #include "Core/Rect.h"
+#include "Core/Size.h"
 
 class Surface;
 
@@ -30,6 +31,11 @@ namespace UI
         virtual std::string_view contentTypeName() const
         {
             return "UI::IWindowContent";
+        }
+
+        virtual Size preferredContentSize(const Rect& availableBounds) const
+        {
+            return availableBounds.size;
         }
 
         virtual void update(const Animation::TickEvent& event) = 0;

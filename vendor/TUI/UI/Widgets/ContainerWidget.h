@@ -70,4 +70,5 @@ private:
     std::vector<ChildPtr> m_children;
     Widget* m_focusedChild = nullptr;
     Widget* m_mouseCaptureChild = nullptr;
+    Widget* m_mouseHoverChild = nullptr;
 };

@@ -12,6 +12,7 @@
 #include "Utilities/Text/TextClip.h"
 #include "Utilities/Unicode/GraphemeSegmentation.h"
 #include "Utilities/Unicode/UnicodeConversion.h"
+#include "UI/Scrolling/ScrollBehavior.h"
 
 TextView::TextView()
     : ScrollablePanel()
@@ -107,72 +108,9 @@ bool TextView::handleEvent(const Input::Event& event)
         return false;
     }
 
-    if (const Input::MouseEvent* mouseEvent = event.asMouse())
-    {
-        if (!mouseEvent->isWheel())
-        {
-            return false;
-        }
+    updateContentSizeFromLines();
 
-        const bool hovered = bounds().contains(
-            mouseEvent->position.x,
-            mouseEvent->position.y);
-
-        if (!hovered && !isFocused())
-        {
-            return false;
-        }
-
-        if (mouseEvent->button == Input::MouseButton::WheelUp
-            || mouseEvent->wheelDelta > 0)
-        {
-            return scrollUp();
-        }
-
-        if (mouseEvent->button == Input::MouseButton::WheelDown
-            || mouseEvent->wheelDelta < 0)
-        {
-            return scrollDown();
-        }
-
-        return false;
-    }
-
-    const Input::CommandEvent* commandEvent = event.asCommand();
-    if (!commandEvent)
-    {
-        return false;
-    }
-
-    switch (commandEvent->command.code)
-    {
-    case Input::CommandCode::MoveUp:
-        return scrollUp();
-
-    case Input::CommandCode::MoveDown:
-        return scrollDown();
-
-    case Input::CommandCode::MoveLeft:
-        return scrollLeft();
-
-    case Input::CommandCode::MoveRight:
-        return scrollRight();
-
-    case Input::CommandCode::PageUp:
-        return pageUp();
-
-    case Input::CommandCode::PageDown:
-        return pageDown();
-
-    case Input::CommandCode::MoveHome:
-        return home();
-
-    case Input::CommandCode::MoveEnd:
-        return end();
-
-    default:
-        return false;
-    }
+    return ScrollablePanel::handleEvent(event);
 }
 
 void TextView::drawScrollableContent(

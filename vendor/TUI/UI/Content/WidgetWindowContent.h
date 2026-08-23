@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include "Core/Size.h"
 #include "UI/Content/IWindowContent.h"
 
 class Widget;
@@ -21,7 +22,13 @@ namespace UI
 
         ~WidgetWindowContent() override;
 
-        std::string_view contentTypeName() const;
+        std::string_view contentTypeName() const override;
+
+        Size preferredContentSize(const Rect& availableBounds) const override;
+
+        void setPreferredContentSize(Size size);
+        void setPreferredContentSize(int width, int height);
+        void clearPreferredContentSize();
 
         bool hasWidget() const;
 
@@ -37,5 +44,7 @@ namespace UI
 
     private:
         std::unique_ptr<Widget> m_widget;
+        bool m_hasPreferredContentSize = false;
+        Size m_preferredContentSize{ 0, 0 };
     };
 }

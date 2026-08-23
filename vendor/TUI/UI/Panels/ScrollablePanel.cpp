@@ -3,23 +3,32 @@
 #include <algorithm>
 #include <utility>
 
+#include "Input/Event.h"
 #include "Rendering/ScreenBuffer.h"
+#include "Rendering/Styles/UIThemes.h"
+#include "UI/Scrolling/ScrollBehavior.h"
 
 ScrollablePanel::ScrollablePanel()
     : Panel()
 {
+    m_verticalScrollbarStyle.trackStyle = borderStyle();
+    m_verticalScrollbarStyle.thumbStyle = UIThemes::Selection;
     syncViewportToPanel();
 }
 
 ScrollablePanel::ScrollablePanel(const Rect& bounds)
     : Panel(bounds)
 {
+    m_verticalScrollbarStyle.trackStyle = borderStyle();
+    m_verticalScrollbarStyle.thumbStyle = UIThemes::Selection;
     syncViewportToPanel();
 }
 
 ScrollablePanel::ScrollablePanel(const Rect& bounds, std::string title)
     : Panel(bounds, std::move(title))
 {
+    m_verticalScrollbarStyle.trackStyle = borderStyle();
+    m_verticalScrollbarStyle.thumbStyle = UIThemes::Selection;
     syncViewportToPanel();
 }
 
@@ -53,9 +62,52 @@ void ScrollablePanel::setViewSize(int width, int height)
     m_viewport.setViewSize(width, height);
 }
 
+bool ScrollablePanel::isVerticalScrollbarVisible() const
+{
+    return m_verticalScrollbarVisible;
+}
+
+void ScrollablePanel::setVerticalScrollbarVisible(bool visible)
+{
+    m_verticalScrollbarVisible = visible;
+    syncViewportToPanel();
+}
+
+bool ScrollablePanel::reservesVerticalScrollbarColumn() const
+{
+    return m_reserveVerticalScrollbarColumn;
+}
+
+void ScrollablePanel::setReserveVerticalScrollbarColumn(bool reserveColumn)
+{
+    m_reserveVerticalScrollbarColumn = reserveColumn;
+    syncViewportToPanel();
+}
+
+const UI::Scrolling::VerticalScrollbarStyle& ScrollablePanel::verticalScrollbarStyle() const
+{
+    return m_verticalScrollbarStyle;
+}
+
+void ScrollablePanel::setVerticalScrollbarStyle(
+    const UI::Scrolling::VerticalScrollbarStyle& style)
+{
+    m_verticalScrollbarStyle = style;
+}
+
 Rect ScrollablePanel::viewportBounds() const
 {
-    return contentBounds();
+    return UI::Scrolling::viewportBoundsForContentBounds(
+        contentBounds(),
+        shouldDrawVerticalScrollbar(),
+        m_reserveVerticalScrollbarColumn);
+}
+
+Rect ScrollablePanel::scrollbarBounds() const
+{
+    return UI::Scrolling::verticalScrollbarBoundsForContentBounds(
+        contentBounds(),
+        shouldDrawVerticalScrollbar() && m_reserveVerticalScrollbarColumn);
 }
 
 Rect ScrollablePanel::visibleContentRect() const
@@ -115,6 +167,22 @@ bool ScrollablePanel::end()
         m_viewport.maxScrollY());
 }
 
+bool ScrollablePanel::handleEvent(const Input::Event& event)
+{
+    if (!isVisible() || !isEnabled())
+    {
+        return false;
+    }
+
+    syncViewportToPanel();
+
+    return UI::Scrolling::handleScrollEvent(
+        event,
+        m_viewport,
+        bounds(),
+        isFocused());
+}
+
 void ScrollablePanel::draw(Surface& surface)
 {
     if (!isVisible())
@@ -130,6 +198,7 @@ void ScrollablePanel::draw(Surface& surface)
 
     if (targetRect.size.width <= 0 || targetRect.size.height <= 0)
     {
+        drawScrollbarIfNeeded(surface);
         return;
     }
 
@@ -138,6 +207,8 @@ void ScrollablePanel::draw(Surface& surface)
 
     drawScrollableContent(viewportSurface, m_viewport.visibleContentRect());
     blitViewportSurface(surface, viewportSurface, targetRect);
+
+    drawScrollbarIfNeeded(surface);
 }
 
 void ScrollablePanel::drawScrollableContent(
@@ -173,6 +244,26 @@ bool ScrollablePanel::scrollToAndReportChange(int x, int y)
     const Point after = m_viewport.scrollOffset();
 
     return before.x != after.x || before.y != after.y;
+}
+
+bool ScrollablePanel::shouldDrawVerticalScrollbar() const
+{
+    return m_verticalScrollbarVisible
+        && UI::Scrolling::shouldShowVerticalScrollbar(m_viewport);
+}
+
+void ScrollablePanel::drawScrollbarIfNeeded(Surface& surface) const
+{
+    if (!shouldDrawVerticalScrollbar())
+    {
+        return;
+    }
+
+    UI::Scrolling::drawVerticalScrollbar(
+        surface,
+        scrollbarBounds(),
+        m_viewport,
+        m_verticalScrollbarStyle);
 }
 
 void ScrollablePanel::blitViewportSurface(

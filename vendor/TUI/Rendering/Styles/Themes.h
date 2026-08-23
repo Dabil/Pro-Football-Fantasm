@@ -5,7 +5,7 @@
 #include "Rendering/Styles/ThemeColor.h"
 
 /*
-    These themes preserve the ANSI / DOS / BBS feel of the project first.
+    These themes preserve the ANSI / DOS / BBS feel of the project.
 
     Richer ThemeColor definitions are used selectively so:
         - Basic16 still looks correct and intentional

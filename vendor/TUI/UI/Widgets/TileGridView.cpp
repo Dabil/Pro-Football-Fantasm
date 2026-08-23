@@ -8,12 +8,14 @@
 TileGridView::TileGridView()
     : ScrollablePanel()
 {
+    setFocusable(true);
     syncContentSize();
 }
 
 TileGridView::TileGridView(std::string title)
     : ScrollablePanel(Rect{}, std::move(title))
 {
+    setFocusable(true);
     syncContentSize();
 }
 

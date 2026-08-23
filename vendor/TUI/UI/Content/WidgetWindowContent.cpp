@@ -1,8 +1,20 @@
 #include "UI/Content/WidgetWindowContent.h"
 
+#include <algorithm>
 #include <utility>
 
 #include "UI/Widgets/Widget.h"
+
+namespace
+{
+    Size safeSize(Size size)
+    {
+        return Size{
+            std::max(0, size.width),
+            std::max(0, size.height)
+        };
+    }
+}
 
 namespace UI
 {
@@ -16,6 +28,33 @@ namespace UI
     std::string_view WidgetWindowContent::contentTypeName() const
     {
         return "UI::WidgetWindowContent";
+    }
+
+    Size WidgetWindowContent::preferredContentSize(const Rect& availableBounds) const
+    {
+        if (m_hasPreferredContentSize)
+        {
+            return safeSize(m_preferredContentSize);
+        }
+
+        return availableBounds.size;
+    }
+
+    void WidgetWindowContent::setPreferredContentSize(Size size)
+    {
+        m_preferredContentSize = safeSize(size);
+        m_hasPreferredContentSize = true;
+    }
+
+    void WidgetWindowContent::setPreferredContentSize(int width, int height)
+    {
+        setPreferredContentSize(Size{ width, height });
+    }
+
+    void WidgetWindowContent::clearPreferredContentSize()
+    {
+        m_hasPreferredContentSize = false;
+        m_preferredContentSize = Size{ 0, 0 };
     }
 
     bool WidgetWindowContent::hasWidget() const

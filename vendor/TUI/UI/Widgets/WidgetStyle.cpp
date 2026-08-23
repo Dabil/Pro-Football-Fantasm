@@ -12,6 +12,8 @@ namespace WidgetStyles
             return StyleSet{
                 UIThemes::WidgetLabelNormal,
                 UIThemes::WidgetLabelFocused,
+                UIThemes::WidgetLabelFocused,
+                UIThemes::WidgetLabelSelectedFocused,
                 UIThemes::WidgetLabelDisabled,
                 UIThemes::WidgetLabelSelected,
                 UIThemes::WidgetLabelSelectedFocused
@@ -21,6 +23,8 @@ namespace WidgetStyles
             return StyleSet{
                 UIThemes::WidgetButtonNormal,
                 UIThemes::WidgetButtonFocused,
+                UIThemes::WidgetButtonFocused,
+                UIThemes::WidgetButtonSelectedFocused,
                 UIThemes::WidgetButtonDisabled,
                 UIThemes::WidgetButtonSelected,
                 UIThemes::WidgetButtonSelectedFocused
@@ -30,6 +34,8 @@ namespace WidgetStyles
             return StyleSet{
                 UIThemes::WidgetListItemNormal,
                 UIThemes::WidgetListItemFocused,
+                UIThemes::WidgetListItemFocused,
+                UIThemes::WidgetListItemSelectedFocused,
                 UIThemes::WidgetListItemDisabled,
                 UIThemes::WidgetListItemSelected,
                 UIThemes::WidgetListItemSelectedFocused
@@ -39,6 +45,8 @@ namespace WidgetStyles
             return StyleSet{
                 UIThemes::WidgetTextNormal,
                 UIThemes::WidgetTextFocused,
+                UIThemes::WidgetTextFocused,
+                UIThemes::WidgetTextSelectedFocused,
                 UIThemes::WidgetTextDisabled,
                 UIThemes::WidgetTextSelected,
                 UIThemes::WidgetTextSelectedFocused
@@ -54,6 +62,12 @@ namespace WidgetStyles
         {
         case State::Disabled:
             return styleSet.disabled;
+
+        case State::Pressed:
+            return styleSet.pressed;
+
+        case State::Hovered:
+            return styleSet.hovered;
 
         case State::SelectedFocused:
             return styleSet.selectedFocused;

@@ -49,6 +49,15 @@ namespace
             return FALSE;
         }
     }
+
+    constexpr std::string_view RouteCommandPrefix = "route:";
+    constexpr std::string_view ReplaceRouteCommandPrefix = "replace-route:";
+
+    bool startsWith(std::string_view value, std::string_view prefix)
+    {
+        return value.size() >= prefix.size()
+            && value.substr(0, prefix.size()) == prefix;
+    }
 }
 
 ApplicationHost::ApplicationHost(
@@ -286,6 +295,105 @@ void ApplicationHost::requestRender()
     m_renderRequested = true;
 }
 
+bool ApplicationHost::registerScreenRoute(std::string routeId, ScreenFactory factory)
+{
+    if (!m_screenManager)
+    {
+        return false;
+    }
+
+    return m_screenManager->registerRoute(std::move(routeId), std::move(factory));
+}
+
+bool ApplicationHost::hasScreenRoute(const std::string& routeId) const
+{
+    if (!m_screenManager)
+    {
+        return false;
+    }
+
+    return m_screenManager->hasRoute(routeId);
+}
+
+bool ApplicationHost::navigateTo(const std::string& routeId)
+{
+    if (!m_screenManager)
+    {
+        return false;
+    }
+
+    const bool navigated = m_screenManager->pushRoute(routeId);
+
+    if (navigated)
+    {
+        requestRender();
+    }
+
+    return navigated;
+}
+
+bool ApplicationHost::replaceWith(const std::string& routeId)
+{
+    if (!m_screenManager)
+    {
+        return false;
+    }
+
+    const bool replaced = m_screenManager->replaceWithRoute(routeId);
+
+    if (replaced)
+    {
+        requestRender();
+    }
+
+    return replaced;
+}
+
+bool ApplicationHost::goBack()
+{
+    if (!m_screenManager || !m_screenManager->hasScreens())
+    {
+        return false;
+    }
+
+    m_screenManager->popScreen();
+    requestRender();
+
+    if (!m_screenManager->hasScreens())
+    {
+        shutdown();
+    }
+
+    return true;
+}
+
+bool ApplicationHost::handleCommandId(std::string_view commandId)
+{
+    if (commandId.empty())
+    {
+        return false;
+    }
+
+    if (startsWith(commandId, RouteCommandPrefix))
+    {
+        const std::string routeId(commandId.substr(RouteCommandPrefix.size()));
+        return navigateTo(routeId);
+    }
+
+    if (startsWith(commandId, ReplaceRouteCommandPrefix))
+    {
+        const std::string routeId(commandId.substr(ReplaceRouteCommandPrefix.size()));
+        return replaceWith(routeId);
+    }
+
+    if (commandId == "nav:back" || commandId == "route:back")
+    {
+        return goBack();
+    }
+
+    return false;
+}
+
 void ApplicationHost::configureAssetLibrary()
 {
 }
@@ -337,6 +445,9 @@ bool ApplicationHost::handleApplicationCommand(const Input::CommandEvent& comman
     case Input::CommandCode::Refresh:
         requestRender();
         return true;
+
+    case Input::CommandCode::Back:
+        return goBack();
 
     default:
         return false;

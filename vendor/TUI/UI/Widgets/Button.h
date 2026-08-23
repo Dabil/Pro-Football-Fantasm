@@ -48,6 +48,12 @@ public:
     const Style& focusedStyle() const;
     void setFocusedStyle(const Style& style);
 
+    const Style& hoverStyle() const;
+    void setHoverStyle(const Style& style);
+
+    const Style& pressedStyle() const;
+    void setPressedStyle(const Style& style);
+
     const Style& disabledStyle() const;
     void setDisabledStyle(const Style& style);
 
@@ -80,5 +86,6 @@ private:
     ActivationCallback m_activationCallback;
     std::optional<ButtonActivationResult> m_lastActivationResult;
 
+    bool m_mouseHovered = false;
     bool m_leftMousePressedInside = false;
 };

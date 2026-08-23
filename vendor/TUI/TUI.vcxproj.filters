@@ -540,6 +540,18 @@
     <ClInclude Include="App\ApplicationHost.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="App\ScreenRouteRegistry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Scrolling\ScrollBehavior.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Scrolling\Scrollbar.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Widgets\ScrollBox.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Rendering\ScreenBuffer.cpp">
@@ -996,6 +1008,18 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="App\ApplicationHost.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="App\ScreenRouteRegistry.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Scrolling\ScrollBehavior.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Scrolling\Scrollbar.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Widgets\ScrollBox.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

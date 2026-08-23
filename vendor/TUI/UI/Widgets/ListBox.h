@@ -9,6 +9,7 @@
 #include "Core/Rect.h"
 #include "Rendering/Styles/Style.h"
 #include "UI/Base/Viewport.h"
+#include "UI/Scrolling/Scrollbar.h"
 #include "UI/Widgets/Widget.h"
 #include "UI/Widgets/WidgetStyle.h"
 
@@ -63,6 +64,15 @@ public:
     const Viewport& viewport() const;
     Viewport& viewport();
 
+    bool isVerticalScrollbarVisible() const;
+    void setVerticalScrollbarVisible(bool visible);
+
+    bool reservesVerticalScrollbarColumn() const;
+    void setReserveVerticalScrollbarColumn(bool reserveColumn);
+
+    const UI::Scrolling::VerticalScrollbarStyle& verticalScrollbarStyle() const;
+    void setVerticalScrollbarStyle(const UI::Scrolling::VerticalScrollbarStyle& style);
+
     const Style& normalStyle() const;
     void setNormalStyle(const Style& style);
 
@@ -89,6 +99,13 @@ private:
     void updateViewport();
     void ensureSelectedVisible();
 
+    Rect itemViewportBounds() const;
+    Rect scrollbarBounds() const;
+    bool shouldDrawVerticalScrollbar() const;
+    void drawScrollbarIfNeeded(Surface& surface);
+
+    bool scrollByLines(int lines);
+
     std::optional<std::size_t> itemIndexFromMousePosition(Point position) const;
     std::optional<std::size_t> findNextEnabled(std::size_t startIndex) const;
     std::optional<std::size_t> findPreviousEnabled(std::size_t startIndex) const;
@@ -101,6 +118,10 @@ private:
     std::vector<ListBoxItem> m_items;
     std::optional<std::size_t> m_selectedIndex;
     Viewport m_viewport;
+
+    bool m_verticalScrollbarVisible = false;
+    bool m_reserveVerticalScrollbarColumn = true;
+    UI::Scrolling::VerticalScrollbarStyle m_verticalScrollbarStyle;
 
     WidgetStyles::StyleSet m_styleSet;
 };
