@@ -381,3 +381,4 @@ build/
 # OS junk
 .DS_Store
 Thumbs.db
+/PFF/render_diagnostics_report.txt

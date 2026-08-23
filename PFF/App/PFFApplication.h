@@ -17,7 +17,6 @@ protected:
     bool onInitialize() override;
 
 private:
-    StartupValidationScreenPreference m_validationScreenStart =
-        StartupValidationScreenPreference::ValidationStartFalse;
+    StartupValidationScreenPreference m_validationScreenStart = StartupValidationScreenPreference::ValidationStartFalse;
 };
 

@@ -10,11 +10,11 @@
 class ScreenBuffer;
 class Surface;
 
-class PffGameScreen : public Screen
+class GameScreen : public Screen
 {
 public:
-    explicit PffGameScreen(Assets::AssetLibrary& assetLibrary);
-    ~PffGameScreen() override = default;
+    explicit GameScreen(Assets::AssetLibrary& assetLibrary);
+    ~GameScreen() override = default;
 
     void onEnter() override;
     void onExit() override;

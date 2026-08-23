@@ -142,20 +142,37 @@
     <ClCompile Include="App\PFFApplication.cpp" />
     <ClCompile Include="Database\PFFDatabase.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Screens\CommissionersOfficeScreen.cpp" />
     <ClCompile Include="Screens\Developer\RendererDiagnosticsScreen.cpp" />
     <ClCompile Include="Screens\Developer\TerminalCapabilitiesScreen.cpp" />
     <ClCompile Include="Screens\Developer\TextObjectExportValidationScreen.cpp" />
     <ClCompile Include="Screens\Developer\XpSequenceDiagnosticsScreen.cpp" />
-    <ClCompile Include="Screens\PffGameScreen.cpp" />
+    <ClCompile Include="Screens\IntroScreen.cpp" />
+    <ClCompile Include="Screens\LeagueLeadersScreen.cpp" />
+    <ClCompile Include="Screens\LeaguePlayScreen.cpp" />
+    <ClCompile Include="Screens\LeagueScheduleScreen.cpp" />
+    <ClCompile Include="Screens\MainScreen.cpp" />
+    <ClCompile Include="Screens\GameScreen.cpp" />
+    <ClCompile Include="Screens\TeamsAndStandingsScreen.cpp" />
+    <ClCompile Include="Screens\TradeDeskScreen.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App\PFFApplication.h" />
     <ClInclude Include="Database\PFFDatabase.h" />
+    <ClInclude Include="Screens\CommissionersOfficeScreen.h" />
     <ClInclude Include="Screens\Developer\RendererDiagnosticsScreen.h" />
     <ClInclude Include="Screens\Developer\TerminalCapabilitiesScreen.h" />
     <ClInclude Include="Screens\Developer\TextObjectExportValidationScreen.h" />
     <ClInclude Include="Screens\Developer\XpSequenceDiagnosticsScreen.h" />
-    <ClInclude Include="Screens\PffGameScreen.h" />
+    <ClInclude Include="Screens\IntroScreen.h" />
+    <ClInclude Include="Screens\LeagueLeadersScreen.h" />
+    <ClInclude Include="Screens\LeaguePlayScreen.h" />
+    <ClInclude Include="Screens\LeagueScheduleScreen.h" />
+    <ClInclude Include="Screens\MainScreen.h" />
+    <ClInclude Include="Screens\GameScreen.h" />
+    <ClInclude Include="Screens\TeamsAndStandingsScreen.h" />
+    <ClInclude Include="Screens\TradeDeskScreen.h" />
+    <ClInclude Include="Styles\PFF_Theme.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="startup.config" />

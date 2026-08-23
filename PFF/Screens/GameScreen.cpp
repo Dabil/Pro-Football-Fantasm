@@ -1,4 +1,4 @@
-﻿#include "Screens/PffGameScreen.h"
+﻿#include "Screens/GameScreen.h"
 
 #include <algorithm>
 #include <sstream>
@@ -36,12 +36,12 @@ namespace
     constexpr int ScoreOffsetY = 2;
 }
 
-PffGameScreen::PffGameScreen(Assets::AssetLibrary& assetLibrary)
+GameScreen::GameScreen(Assets::AssetLibrary& assetLibrary)
     : m_assetLibrary(assetLibrary)
 {
 }
 
-bool PffGameScreen::loadAssetObject(
+bool GameScreen::loadAssetObject(
     const std::string& assetKey,
     TextObject& outObject,
     bool& outLoaded,
@@ -95,7 +95,7 @@ bool PffGameScreen::loadAssetObject(
     return true;
 }
 
-bool PffGameScreen::buildScoreBoardDigits()
+bool GameScreen::buildScoreBoardDigits()
 {
     m_scoreBoardDigits.clear();
 
@@ -166,7 +166,7 @@ bool PffGameScreen::buildScoreBoardDigits()
     return static_cast<int>(m_scoreBoardDigits.size()) == ScoreBoardFontDigitCount;
 }
 
-void PffGameScreen::onEnter()
+void GameScreen::onEnter()
 {
     m_elapsedSeconds = 0.0;
 
@@ -212,7 +212,7 @@ void PffGameScreen::onEnter()
     m_statusMessage = "PFF field, scoreboard, and scoreboard font loaded successfully via AssetLibrary.";
 }
 
-void PffGameScreen::onExit()
+void GameScreen::onExit()
 {
     m_fieldObject.clear();
     m_scoreBoardObject.clear();
@@ -231,12 +231,12 @@ void PffGameScreen::onExit()
     m_elapsedSeconds = 0.0;
 }
 
-void PffGameScreen::update(const Animation::TickEvent& event)
+void GameScreen::update(const Animation::TickEvent& event)
 {
     m_elapsedSeconds += event.deltaSeconds;
 }
 
-std::string PffGameScreen::formatScoreValue(int score) const
+std::string GameScreen::formatScoreValue(int score) const
 {
     score = std::clamp(score, 0, 99);
 
@@ -248,7 +248,7 @@ std::string PffGameScreen::formatScoreValue(int score) const
     return std::to_string(score);
 }
 
-void PffGameScreen::drawNumber(ScreenBuffer& buffer, int x, int y, const std::string& value) const
+void GameScreen::drawNumber(ScreenBuffer& buffer, int x, int y, const std::string& value) const
 {
     if (m_scoreBoardDigits.size() != ScoreBoardFontDigitCount)
     {
@@ -272,12 +272,12 @@ void PffGameScreen::drawNumber(ScreenBuffer& buffer, int x, int y, const std::st
     }
 }
 
-void PffGameScreen::drawScore(ScreenBuffer& buffer, int x, int y, int score) const
+void GameScreen::drawScore(ScreenBuffer& buffer, int x, int y, int score) const
 {
     drawNumber(buffer, x, y, formatScoreValue(score));
 }
 
-void PffGameScreen::draw(Surface& surface)
+void GameScreen::draw(Surface& surface)
 {
     ScreenBuffer& buffer = surface.buffer();
 
@@ -327,7 +327,7 @@ void PffGameScreen::draw(Surface& surface)
     buffer.writeString(1, 1, resolutionText, Themes::Text);
 }
 
-void PffGameScreen::drawLoadError(Surface& surface) const
+void GameScreen::drawLoadError(Surface& surface) const
 {
     ScreenBuffer& buffer = surface.buffer();
 
