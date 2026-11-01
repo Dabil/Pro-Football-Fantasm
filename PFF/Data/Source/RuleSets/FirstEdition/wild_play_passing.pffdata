@@ -1,0 +1,410 @@
+// Pro Football Fantasm First Edition — Wild Play Chart: Passing Plays
+// Canonical source-preserving WPSL migration for GCE / PFF Classic.
+//
+// SOURCE_TEXT is copied exactly from the supplied WildPlaysPassing.ods transcription.
+// Executable scripts are included only where WPSL v0.1.1 can express the source safely.
+// Missing language vocabulary and genuine source/rule ambiguities remain explicit.
+// Draft scripts are design evidence only and are NOT compiler-certified executable content.
+
+[CHART_BEGIN]
+[CHART_KEY]PFF_FIRST_EDITION_WILD_PLAY_PASSING
+[DISPLAY_NAME]Wild Play — Passing Plays
+[CHART_TYPE]WILD_PLAY
+[WILD_PLAY_CATEGORY]PASSING
+[DIE_TYPE]D20
+[ROLL_MIN]1
+[ROLL_MAX]20
+[RESULT_COUNT]20
+[WILD_PLAY_DATA_VERSION]0.1.1
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[DEFAULT_SCRIPT_VERSION]0.1.1
+[SOURCE_FILE]WildPlaysPassing.ods
+[SOURCE_SHEET]Sheet1
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[RULESET_SELECTOR_ALIAS]IR=IntendedReceiver
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_PASSING_01
+[PLAY_TYPE]PASSING
+[ROLL]1
+[SOURCE_TEXT]Offensive Holding & Defense Offsides. Offseeting Penalties, replay the down.
+[SOURCE_REFERENCE]WildPlaysPassing.ods#Sheet1!A2:B2
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[INTERPRETATION_STATUS]COMPLETE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[SCRIPT_STATUS]READY_FOR_COMPILER_VALIDATION
+[SCRIPT_CONTENT_HASH_SHA256]83b8bf599e0b779b62496163063bb03e7381d7f862d2e47d1aa72b8777d128ca
+[SCRIPT_BEGIN]
+Penalty {Offense} OffensiveHolding as p1;
+Penalty {Defense} DefensiveOffsides as p2;
+Offset p1, p2;
+ReplayDown;
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_PASSING_02
+[PLAY_TYPE]PASSING
+[ROLL]2
+[SOURCE_TEXT]Pass is blocked. {QB} catches ball and runs. Go to the Scramble Chart.
+[SOURCE_REFERENCE]WildPlaysPassing.ods#Sheet1!A3:B3
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[INTERPRETATION_STATUS]COMPLETE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[SCRIPT_STATUS]REQUIRES_WPSL_EXTENSION
+[REQUIRED_WPSL_FEATURE]PASS_BLOCKED_CAUGHT_BY_PASSER
+[IMPLEMENTATION_NOTE]Source clearly describes a blocked forward pass caught by the quarterback before using the Scramble Chart. WPSL v0.1.1 has no football Action primitive for that blocked-pass/catch sequence.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]61ba0085cf3da4ab57cd427f1d8da24c4337e01d316d97b13d9e0ec19b602cfb
+[DRAFT_SCRIPT_BEGIN]
+PassBlocked CaughtBy {QB};
+Scramble {QB};
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_PASSING_03
+[PLAY_TYPE]PASSING
+[ROLL]3
+[SOURCE_TEXT]Center snaps the ball early. Go to the Fumble Chart. 
+[SOURCE_REFERENCE]WildPlaysPassing.ods#Sheet1!A4:B4
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[INTERPRETATION_STATUS]COMPLETE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[SCRIPT_STATUS]READY_FOR_COMPILER_VALIDATION
+[SCRIPT_CONTENT_HASH_SHA256]702637d6ea707437961f5196d7f819cc5aab7e4b86d8b73cee428cc64c09442f
+[SCRIPT_BEGIN]
+Fumble;
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_PASSING_04
+[PLAY_TYPE]PASSING
+[ROLL]4
+[SOURCE_TEXT]{QB} crosses the line of scrimmage before passing. Officials rule a loss of down.
+[SOURCE_REFERENCE]WildPlaysPassing.ods#Sheet1!A5:B5
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[INTERPRETATION_STATUS]RULING_PENDING
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[SCRIPT_STATUS]BLOCKED_BY_SOURCE_OR_RULE_RULING
+[RULING_KEY]PASSING_WILD_PLAY_04_ILLEGAL_FORWARD_PASS_ENFORCEMENT
+[RULING_NOTE]Source says the quarterback crosses the line of scrimmage before passing and officials rule a loss of down. Verify whether the intended PFF result is only loss of down or the full active-rule Illegal Forward Pass enforcement, including any yardage.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]bfd046ed335383883eb7461bdafcd7eb05c4e3d6d1059d6db4ec6c830285a823
+[DRAFT_SCRIPT_BEGIN]
+Penalty {Offense} IllegalForwardPass;
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_PASSING_05
+[PLAY_TYPE]PASSING
+[ROLL]5
+[SOURCE_TEXT]{IR} catches the ball for a 20D yard gain, but he spikes the ball and is penalized 10 yds. 
+[SOURCE_REFERENCE]WildPlaysPassing.ods#Sheet1!A6:B6
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[INTERPRETATION_STATUS]COMPLETE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[SCRIPT_STATUS]READY_FOR_COMPILER_VALIDATION
+[SCRIPT_CONTENT_HASH_SHA256]f9cd8e4c689b583a09a3a775c858cb5b6e9dc91cc475f18c57d62ae9fb9c88a5
+[SCRIPT_BEGIN]
+Pass {IR} Complete Yards D20;
+DeadBall;
+Incident Celebration Actor {IR};
+Penalty {Offense} UnsportsmanlikeConduct Yards 10 Timing DeadBall;
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_PASSING_06
+[PLAY_TYPE]PASSING
+[ROLL]6
+[SOURCE_TEXT]Offsetting Personal Fouls after the play. Re-roll the dice to resolve the play. 
+[SOURCE_REFERENCE]WildPlaysPassing.ods#Sheet1!A7:B7
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[INTERPRETATION_STATUS]COMPLETE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[SCRIPT_STATUS]READY_FOR_COMPILER_VALIDATION
+[SCRIPT_CONTENT_HASH_SHA256]3587d77308ff825923841ef52d850cdb0f104a66bf2b7c5cd4ab76d0a94aa164
+[SCRIPT_BEGIN]
+ResolvePlay RerollDice;
+
+Penalty {Offense} PersonalFoul Timing PostPlay as p1;
+Penalty {Defense} PersonalFoul Timing PostPlay as p2;
+Offset p1, p2;
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_PASSING_07
+[PLAY_TYPE]PASSING
+[ROLL]7
+[SOURCE_TEXT]The Defensive Player indicated on the play card called for a head slap penalty for 15 yds. 
+[SOURCE_REFERENCE]WildPlaysPassing.ods#Sheet1!A8:B8
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[INTERPRETATION_STATUS]COMPLETE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[SCRIPT_STATUS]REQUIRES_WPSL_EXTENSION
+[REQUIRED_WPSL_FEATURE]PENALTY_OFFENDER_PARTICIPANT
+[IMPLEMENTATION_NOTE]The source explicitly identifies the current-play defensive player as the offender. Current Penalty syntax identifies the team but has no participant/offender argument.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]da8ba0dc1f7b68b72d5abe3df182ae0a5796d45121f6e75fb327bc9e4201a207
+[DRAFT_SCRIPT_BEGIN]
+Penalty {Defense} HeadSlap By {Defender} Yards 15;
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_PASSING_08
+[PLAY_TYPE]PASSING
+[ROLL]8
+[SOURCE_TEXT]Play is called a catch to 1R at the first down marker. But the instant replay booth rules the ball was juggled. 
+[SOURCE_REFERENCE]WildPlaysPassing.ods#Sheet1!A9:B9
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[INTERPRETATION_STATUS]COMPLETE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[SCRIPT_STATUS]REQUIRES_WPSL_EXTENSION
+[REQUIRED_WPSL_FEATURE]PASS_INCOMPLETE
+[REQUIRED_WPSL_FEATURE]INTENDED_RECEIVER_SELECTOR
+[REQUIRED_WPSL_FEATURE]PASS_CATCH_RULING_KEY
+[IMPLEMENTATION_NOTE]Final source result is an incomplete pass after replay reverses the apparent catch. WPSL needs an explicit incomplete-pass form and the appropriate ruling vocabulary.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]842ff223abf2b0481177984c7b1d5a97340dee2f98821d34975e0e3a75c63321
+[DRAFT_SCRIPT_BEGIN]
+Ruling CatchAtLineToGain Provisional as r1;
+Review r1;
+Overturn r1;
+Pass {IR} Incomplete;
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_PASSING_09
+[PLAY_TYPE]PASSING
+[ROLL]9
+[SOURCE_TEXT]{IR} catches the ball and appears headed for a touchdown. He spikes the ball early. Touchback.
+[SOURCE_REFERENCE]WildPlaysPassing.ods#Sheet1!A10:B10
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[INTERPRETATION_STATUS]RULING_PENDING
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[SCRIPT_STATUS]BLOCKED_BY_SOURCE_OR_RULE_RULING
+[RULING_KEY]PASSING_WILD_PLAY_09_PREMATURE_SPIKE_TOUCHBACK_SEQUENCE
+[RULING_NOTE]Source ends with Touchback after the intended receiver catches the ball and spikes it early. It does not specify the exact catch yardage/spot, whether this is represented as a live loose-ball/fumble sequence, or the intended receiving/fumble statistics. Do not invent that chain.
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_PASSING_10
+[PLAY_TYPE]PASSING
+[ROLL]10
+[SOURCE_TEXT]If the defense is the home team, penalized 5 yds for crowd noise. 
+[SOURCE_REFERENCE]WildPlaysPassing.ods#Sheet1!A11:B11
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[INTERPRETATION_STATUS]RULING_PENDING
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[SCRIPT_STATUS]BLOCKED_BY_SOURCE_OR_RULE_RULING
+[RULING_KEY]PASSING_WILD_PLAY_10_CROWD_NOISE_NON_HOME_BRANCH
+[RULING_NOTE]Source specifies a 5-yard crowd-noise penalty if the defense is the home team, but does not state the non-home branch, timing, replay-down behavior, or whether the original play otherwise resolves normally.
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_PASSING_11
+[PLAY_TYPE]PASSING
+[ROLL]11
+[SOURCE_TEXT]Illegal Motion & Defensive Holding offsetting penalties. Replay the down.
+[SOURCE_REFERENCE]WildPlaysPassing.ods#Sheet1!A12:B12
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[INTERPRETATION_STATUS]COMPLETE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[SCRIPT_STATUS]READY_FOR_COMPILER_VALIDATION
+[SCRIPT_CONTENT_HASH_SHA256]5a635ee9bcba54af5122bda08a2fe9a7e3fe94efb91e14c0be8931da7508457b
+[SCRIPT_BEGIN]
+Penalty {Offense} IllegalMotion as p1;
+Penalty {Defense} DefensiveHolding as p2;
+Offset p1, p2;
+ReplayDown;
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_PASSING_12
+[PLAY_TYPE]PASSING
+[ROLL]12
+[SOURCE_TEXT]{OffensivePlayer} indicated on the play card ejected from the game. 
+[SOURCE_REFERENCE]WildPlaysPassing.ods#Sheet1!A13:B13
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[INTERPRETATION_STATUS]COMPLETE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[SCRIPT_STATUS]READY_FOR_COMPILER_VALIDATION
+[SCRIPT_CONTENT_HASH_SHA256]3b1ab75411b165677291116655426484141b0eae946db0e81523211047430e1b
+[SCRIPT_BEGIN]
+ResolvePlay ReuseDice;
+Eject {OffensivePlayer};
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_PASSING_13
+[PLAY_TYPE]PASSING
+[ROLL]13
+[SOURCE_TEXT]{DefensivePlayer} indicatd on the play card ejected from the game. 
+[SOURCE_REFERENCE]WildPlaysPassing.ods#Sheet1!A14:B14
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[INTERPRETATION_STATUS]COMPLETE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[SCRIPT_STATUS]READY_FOR_COMPILER_VALIDATION
+[SCRIPT_CONTENT_HASH_SHA256]4b4b28acd62f69f64837dcfeb61d40d252810ff9632bb578787f750be6f5edbd
+[SCRIPT_BEGIN]
+ResolvePlay ReuseDice;
+Eject {Defender};
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_PASSING_14
+[PLAY_TYPE]PASSING
+[ROLL]14
+[SOURCE_TEXT]Broken Play, {QB} is chased from the pocket. Go to the Scramble chart. 
+[SOURCE_REFERENCE]WildPlaysPassing.ods#Sheet1!A15:B15
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[INTERPRETATION_STATUS]COMPLETE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[SCRIPT_STATUS]READY_FOR_COMPILER_VALIDATION
+[SCRIPT_CONTENT_HASH_SHA256]4deb63278adea312b7dfb98d94de97d5b87d7ac7810a44eee5ac42ffaf6b55ea
+[SCRIPT_BEGIN]
+Scramble {QB};
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_PASSING_15
+[PLAY_TYPE]PASSING
+[ROLL]15
+[SOURCE_TEXT]{IR} goes out of bounds before catching the pass. Pass is ruled incomplete. 
+[SOURCE_REFERENCE]WildPlaysPassing.ods#Sheet1!A16:B16
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[INTERPRETATION_STATUS]COMPLETE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[SCRIPT_STATUS]REQUIRES_WPSL_EXTENSION
+[REQUIRED_WPSL_FEATURE]PASS_INCOMPLETE
+[REQUIRED_WPSL_FEATURE]INTENDED_RECEIVER_SELECTOR
+[IMPLEMENTATION_NOTE]The source result is clear, but WPSL v0.1.1 Pass currently supports Complete and Intercepted, not Incomplete.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]c9e055292f9e6650b607b258a5d490d9d7d7a8436f3d85baf932c845c0262e98
+[DRAFT_SCRIPT_BEGIN]
+Pass {IR} Incomplete;
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_PASSING_16
+[PLAY_TYPE]PASSING
+[ROLL]16
+[SOURCE_TEXT]Pass play is caught at the first down marker, but the referee says he bobbled it, incomplete pass. Instant replay booth overrules the call and awards just enough for a first down. 
+[SOURCE_REFERENCE]WildPlaysPassing.ods#Sheet1!A17:B17
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[INTERPRETATION_STATUS]COMPLETE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[SCRIPT_STATUS]REQUIRES_WPSL_EXTENSION
+[REQUIRED_WPSL_FEATURE]PASS_COMPLETE_TO_LINE_TO_GAIN
+[REQUIRED_WPSL_FEATURE]INTENDED_RECEIVER_SELECTOR
+[REQUIRED_WPSL_FEATURE]INCOMPLETE_PASS_RULING_KEY
+[IMPLEMENTATION_NOTE]The source requires a final completed pass for exactly enough yardage to reach the line to gain after replay overturns an incomplete ruling. WPSL lacks a semantic pass-completion-to-line-to-gain form.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]0266d14a549754c1f08d81ed74f3f9059c0348dc707083f1e890ad6f1a7faaf9
+[DRAFT_SCRIPT_BEGIN]
+Ruling IncompletePass Provisional as r1;
+Review r1;
+Overturn r1;
+Pass {IR} Complete To LineToGain;
+PlaceBall LineToGain;
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_PASSING_17
+[PLAY_TYPE]PASSING
+[ROLL]17
+[SOURCE_TEXT]{QB} misses the signal and calls a run. Roll a 20D; refer to the Balanced Coach Chart. 
+[SOURCE_REFERENCE]WildPlaysPassing.ods#Sheet1!A18:B18
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[INTERPRETATION_STATUS]COMPLETE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[SCRIPT_STATUS]READY_FOR_COMPILER_VALIDATION
+[SCRIPT_CONTENT_HASH_SHA256]c100a756bff016adc474f7fb847fe38f450583e42bc19d8b7b433ab6fb1b9170
+[SCRIPT_BEGIN]
+ReplacePlay Running From BalancedCoach Using D20;
+ResolvePlay ReuseDice;
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_PASSING_18
+[PLAY_TYPE]PASSING
+[ROLL]18
+[SOURCE_TEXT]Defense sacks the quarterback for -10D yads, but is penalized 5 yds for celebrating.
+[SOURCE_REFERENCE]WildPlaysPassing.ods#Sheet1!A19:B19
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[INTERPRETATION_STATUS]COMPLETE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[SCRIPT_STATUS]REQUIRES_WPSL_EXTENSION
+[REQUIRED_WPSL_FEATURE]SACK
+[IMPLEMENTATION_NOTE]The source requires an actual sack Action with a fresh 10-D loss plus a 5-yard post-play defensive celebration penalty. Advance alone would lose sack semantics/statistics.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]c16449bc652304bca49e94f8831a39e8a400dd07881d70ba6604e9b95a5c4cb8
+[DRAFT_SCRIPT_BEGIN]
+Sack {QB} Loss D10;
+DeadBall;
+Penalty {Defense} Celebration Yards 5 Timing DeadBall;
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_PASSING_19
+[PLAY_TYPE]PASSING
+[ROLL]19
+[SOURCE_TEXT]{IR} catches the ball for a 20D yard gain, attempt to lateral the ball and its fumbled. Resolve using the Fumble chart. 
+[SOURCE_REFERENCE]WildPlaysPassing.ods#Sheet1!A20:B20
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[INTERPRETATION_STATUS]COMPLETE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[SCRIPT_STATUS]REQUIRES_WPSL_EXTENSION
+[REQUIRED_WPSL_FEATURE]LATERAL
+[REQUIRED_WPSL_FEATURE]INTENDED_RECEIVER_SELECTOR
+[IMPLEMENTATION_NOTE]The source explicitly includes a lateral attempt before the fumble. Lateral is live-ball football behavior and should become an Action, not an IncidentalEvent.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]7ff755a5a84021e1df15f5e1299987b86b8a3762efbdf7d473657578d90f9c0b
+[DRAFT_SCRIPT_BEGIN]
+Pass {IR} Complete Yards D20;
+Lateral {IR};
+Fumble;
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_PASSING_20
+[PLAY_TYPE]PASSING
+[ROLL]20
+[SOURCE_TEXT]Instant Replay booth rules Defensive Pass Interference. Use normal procedure to resolve play. 
+[SOURCE_REFERENCE]WildPlaysPassing.ods#Sheet1!A21:B21
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[INTERPRETATION_STATUS]RULING_PENDING
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[SCRIPT_STATUS]BLOCKED_BY_SOURCE_OR_RULE_RULING
+[RULING_KEY]PASSING_WILD_PLAY_20_REPLAY_DPI_SEQUENCE
+[RULING_NOTE]Source says the instant replay booth rules Defensive Pass Interference and to use normal procedure to resolve the play. The exact ordering between replay ruling, DPI enforcement, and ordinary play resolution must be verified before executable certification.
+[WILD_PLAY_RESULT_END]
+
+[CHART_END]

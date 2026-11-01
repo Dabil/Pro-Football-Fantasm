@@ -1,0 +1,477 @@
+// Pro Football Fantasm First Edition — Wild Play Chart: Kicking Plays
+// Canonical source-preserving WPSL migration for GCE / PFF Classic.
+//
+// SOURCE_TEXT is copied exactly from the supplied WildPlaysKicking.ods transcription.
+// Kicking exposes new special-teams DSL requirements beyond WPSL v0.1.1.
+// Draft scripts are design evidence only; they are NOT compiler-certified executable content.
+// Genuine source/rule gaps remain RULING_PENDING rather than being filled by assumption.
+
+[CHART_BEGIN]
+[CHART_KEY]PFF_FIRST_EDITION_WILD_PLAY_KICKING
+[DISPLAY_NAME]Wild Play — Kicking Plays
+[CHART_TYPE]WILD_PLAY
+[WILD_PLAY_CATEGORY]KICKING
+[DIE_TYPE]D20
+[ROLL_MIN]1
+[ROLL_MAX]20
+[RESULT_COUNT]20
+[WILD_PLAY_DATA_VERSION]0.1.1
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[DEFAULT_SCRIPT_VERSION]0.1.1
+[SOURCE_FILE]WildPlaysKicking.ods
+[SOURCE_SHEET]Sheet1
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_KICKING_01
+[PLAY_TYPE]KICKING
+[ROLL]1
+[SOURCE_TEXT]Receiving team penalized 5 yds for having twelve men on the field. 
+[SOURCE_REFERENCE]WildPlaysKicking.ods#Sheet1!A2:B2
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[INTERPRETATION_STATUS]COMPLETE
+[SCRIPT_STATUS]REQUIRES_WPSL_EXTENSION
+[REQUIRED_WPSL_FEATURE]KICKING_TEAM_RECEIVING_TEAM_SELECTORS
+[IMPLEMENTATION_NOTE]Source clearly penalizes the receiving team 5 yards. WPSL v0.1.1 has Offense/Defense/Home/Away/Possession team selectors but no semantic KickingTeam/ReceivingTeam selectors.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]8d3e75c37fbbac3a67a789dc72f70b3aeaeabf67f3599fc18b7c819ce20b5562
+[DRAFT_SCRIPT_BEGIN]
+Penalty {ReceivingTeam} TwelveMenOnField Yards 5;
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_KICKING_02
+[PLAY_TYPE]KICKING
+[ROLL]2
+[SOURCE_TEXT]Receiving team penalized 5 yds for having twelve men on the field. 
+[SOURCE_REFERENCE]WildPlaysKicking.ods#Sheet1!A3:B3
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[INTERPRETATION_STATUS]COMPLETE
+[SCRIPT_STATUS]REQUIRES_WPSL_EXTENSION
+[REQUIRED_WPSL_FEATURE]KICKING_TEAM_RECEIVING_TEAM_SELECTORS
+[IMPLEMENTATION_NOTE]Same source behavior as Kicking Wild Play 1; requires a semantic ReceivingTeam selector rather than mapping special teams to ordinary Offense/Defense roles.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]8d3e75c37fbbac3a67a789dc72f70b3aeaeabf67f3599fc18b7c819ce20b5562
+[DRAFT_SCRIPT_BEGIN]
+Penalty {ReceivingTeam} TwelveMenOnField Yards 5;
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_KICKING_03
+[PLAY_TYPE]KICKING
+[ROLL]3
+[SOURCE_TEXT]If punting (or FG attempt), Center snaps the ball early, punter must run. Go to Scramble Chart. 
+[SOURCE_REFERENCE]WildPlaysKicking.ods#Sheet1!A4:B4
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[INTERPRETATION_STATUS]RULING_PENDING
+[SCRIPT_STATUS]BLOCKED_BY_SOURCE_OR_RULE_RULING
+[RULING_KEY]KICKING_WILD_PLAY_03_NON_PUNT_FG_BRANCH_AND_RUNNER
+[REQUIRED_WPSL_FEATURE_AFTER_RULING]KICK_TYPE_CONDITION
+[REQUIRED_WPSL_FEATURE_AFTER_RULING]SPECIAL_TEAMS_RUNNER_SELECTOR
+[REQUIRED_WPSL_FEATURE_AFTER_RULING]GENERIC_SCRAMBLE_RESOLVER
+[RULING_NOTE]Source says 'If punting (or FG attempt), Center snaps the ball early, punter must run' but does not define what happens for other kicking-play types, and the named runner is odd for the FG branch. Do not infer the missing branch or participant.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]b007b3bfc2f35d05576c62339d6b3fc2aabf892953a39eeb71962d63cef448a1
+[DRAFT_SCRIPT_BEGIN]
+If KickType.IsPunt Or KickType.IsFieldGoalAttempt {
+    Scramble {SpecialTeamsRunner};
+}
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_KICKING_04
+[PLAY_TYPE]KICKING
+[ROLL]4
+[SOURCE_TEXT]Kick (Punt) muffed by returner. Go to the Fumble Chart. No return is allowed. 
+[SOURCE_REFERENCE]WildPlaysKicking.ods#Sheet1!A5:B5
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[INTERPRETATION_STATUS]COMPLETE
+[SCRIPT_STATUS]REQUIRES_WPSL_EXTENSION
+[REQUIRED_WPSL_FEATURE]MUFF
+[REQUIRED_WPSL_FEATURE]KICK_RETURNER_SELECTOR
+[REQUIRED_WPSL_FEATURE]NO_RETURN_AFTER_MUFF
+[IMPLEMENTATION_NOTE]A muff is not safely represented as an ordinary Fumble. The source also explicitly prohibits a return after recovery.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]97f07513a6f74624c0ca1d03d8933814ab9938adda5cde450c523a89d9dcd30e
+[DRAFT_SCRIPT_BEGIN]
+Muff {KickReturner};
+Invoke FumbleRecovery;
+NoReturn;
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_KICKING_05
+[PLAY_TYPE]KICKING
+[ROLL]5
+[SOURCE_TEXT]Kicker slips while kicking and misses the ball. Go to Scramble Chart. (unless its a kickoff, then re-roll)
+[SOURCE_REFERENCE]WildPlaysKicking.ods#Sheet1!A6:B6
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[INTERPRETATION_STATUS]COMPLETE
+[SCRIPT_STATUS]REQUIRES_WPSL_EXTENSION
+[REQUIRED_WPSL_FEATURE]KICK_TYPE_CONDITION
+[REQUIRED_WPSL_FEATURE]KICKER_SELECTOR
+[REQUIRED_WPSL_FEATURE]GENERIC_SCRAMBLE_RESOLVER
+[IMPLEMENTATION_NOTE]Source explicitly gives a kickoff reroll branch and otherwise sends the kicker to the Scramble Chart. WPSL needs kick-type predicates, a Kicker selector, and Scramble support for a non-QB player.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]857bdd03af61beddae73dd1ea75d2b04c0034e0a131e3022b88c9e73554765a1
+[DRAFT_SCRIPT_BEGIN]
+If KickType.IsKickoff {
+    ResolvePlay RerollDice;
+}
+Else {
+    Scramble {Kicker};
+}
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_KICKING_06
+[PLAY_TYPE]KICKING
+[ROLL]6
+[SOURCE_TEXT]The ball inadvertently hits a receiving player. Go to the Fumble Chart. 
+[SOURCE_REFERENCE]WildPlaysKicking.ods#Sheet1!A7:B7
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[INTERPRETATION_STATUS]COMPLETE
+[SCRIPT_STATUS]REQUIRES_WPSL_EXTENSION
+[REQUIRED_WPSL_FEATURE]RECEIVING_PLAYER_SELECTOR
+[REQUIRED_WPSL_FEATURE]MUFF_OR_LOOSE_KICK_CONTACT
+[IMPLEMENTATION_NOTE]Source says the ball inadvertently hits a receiving player and then uses the Fumble Chart. WPSL needs a special-teams receiving-player selector and a loose-kick/muff semantic rather than forcing this through ordinary live-ball Fumble.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]5f298372d1fb34dbac7812145d1dd6d00ecd84a593bac54954ed037f7932c06d
+[DRAFT_SCRIPT_BEGIN]
+Muff {ReceivingPlayer};
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_KICKING_07
+[PLAY_TYPE]KICKING
+[ROLL]7
+[SOURCE_TEXT]Snap is botched. Player must run. Go to the Scramble Chart unless it's a kickoff, then re-roll)
+[SOURCE_REFERENCE]WildPlaysKicking.ods#Sheet1!A8:B8
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[INTERPRETATION_STATUS]RULING_PENDING
+[SCRIPT_STATUS]BLOCKED_BY_SOURCE_OR_RULE_RULING
+[RULING_KEY]KICKING_WILD_PLAY_07_BOTCHED_SNAP_RUNNER_IDENTITY
+[REQUIRED_WPSL_FEATURE_AFTER_RULING]KICK_TYPE_CONDITION
+[REQUIRED_WPSL_FEATURE_AFTER_RULING]SPECIAL_TEAMS_RUNNER_SELECTOR
+[REQUIRED_WPSL_FEATURE_AFTER_RULING]GENERIC_SCRAMBLE_RESOLVER
+[RULING_NOTE]Kickoff reroll is explicit, but the non-kickoff source only says 'Player must run' and does not identify whether that is punter, holder, kicker, or another player.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]2ee6112ab1ff8d72d9bf9492c45d8999c79a715f409f99e2058ec98242568552
+[DRAFT_SCRIPT_BEGIN]
+If KickType.IsKickoff {
+    ResolvePlay RerollDice;
+}
+Else {
+    Scramble {SpecialTeamsRunner};
+}
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_KICKING_08
+[PLAY_TYPE]KICKING
+[ROLL]8
+[SOURCE_TEXT]If punting, receiving team called for invalid fair catch signal. Penalty - 5 yds. 
+[SOURCE_REFERENCE]WildPlaysKicking.ods#Sheet1!A9:B9
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[INTERPRETATION_STATUS]RULING_PENDING
+[SCRIPT_STATUS]BLOCKED_BY_SOURCE_OR_RULE_RULING
+[RULING_KEY]KICKING_WILD_PLAY_08_NON_PUNT_BRANCH
+[REQUIRED_WPSL_FEATURE_AFTER_RULING]KICK_TYPE_CONDITION
+[REQUIRED_WPSL_FEATURE_AFTER_RULING]RECEIVING_TEAM_SELECTOR
+[RULING_NOTE]Source defines the penalty only 'If punting' and does not state what the Wild Play does for kickoff/FG/other kick types. Do not silently treat the missing branch as normal resolution, no-op, or reroll.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]ab7299ca5af5cddc43ee6a3e680f9d92ee5e548dec68877f65c7c21007feedfe
+[DRAFT_SCRIPT_BEGIN]
+If KickType.IsPunt {
+    Penalty {ReceivingTeam} InvalidFairCatchSignal Yards 5;
+}
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_KICKING_09
+[PLAY_TYPE]KICKING
+[ROLL]9
+[SOURCE_TEXT]Offsetting penalties called. Go to the Penalty Chart to determine the penalties. Re-roll kick. 
+[SOURCE_REFERENCE]WildPlaysKicking.ods#Sheet1!A10:B10
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[INTERPRETATION_STATUS]COMPLETE
+[SCRIPT_STATUS]REQUIRES_WPSL_EXTENSION
+[REQUIRED_WPSL_FEATURE]OFFSETTING_PENALTY_CHART_RESOLVER
+[REQUIRED_WPSL_FEATURE]REROLL_KICK
+[IMPLEMENTATION_NOTE]Source explicitly calls offsetting penalties, directs the Penalty Chart to determine them, and then rerolls the kick. A bounded ruleset resolver is preferable to duplicating Penalty Chart procedure in WPSL.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]d23e75a91f316561df0e5d16a7dcf77bfc0cee65b24330005675b88bc8af3c4b
+[DRAFT_SCRIPT_BEGIN]
+Invoke OffsettingPenaltyChart;
+ResolvePlay RerollDice;
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_KICKING_10
+[PLAY_TYPE]KICKING
+[ROLL]10
+[SOURCE_TEXT]Snap is mishandled. Player attempts to throw a pass. Use Middle and resolve play. 
+[SOURCE_REFERENCE]WildPlaysKicking.ods#Sheet1!A11:B11
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[INTERPRETATION_STATUS]RULING_PENDING
+[SCRIPT_STATUS]BLOCKED_BY_SOURCE_OR_RULE_RULING
+[RULING_KEY]KICKING_WILD_PLAY_10_MIDDLE_PLAY_IDENTITY_AND_PASSER
+[REQUIRED_WPSL_FEATURE_AFTER_RULING]EXPLICIT_REPLACEMENT_PLAY
+[REQUIRED_WPSL_FEATURE_AFTER_RULING]SPECIAL_TEAMS_PASSER_SELECTOR
+[RULING_NOTE]Source says the snap is mishandled, a player attempts a pass, and to 'Use Middle and resolve play.' The exact canonical Middle play identity, passer identity, and dice reuse/reroll procedure require source/rules confirmation.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]61d6d2bd9e4a5f920568af03bab8977dbb1264105fd805209ad6eb2e21dae105
+[DRAFT_SCRIPT_BEGIN]
+ReplacePlay Explicit Middle;
+ResolvePlay RerollDice;
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_KICKING_11
+[PLAY_TYPE]KICKING
+[ROLL]11
+[SOURCE_TEXT]Kick is blocked and recovered by the defesne. Go to the Breakaway Chart to determine how many yds from the line of scrimmage the defense returns. If it's a kickoff resolve the normal way only the receiving player uses the breakaway chart to determine yardage gained. 
+[SOURCE_REFERENCE]WildPlaysKicking.ods#Sheet1!A12:B12
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[INTERPRETATION_STATUS]RULING_PENDING
+[SCRIPT_STATUS]BLOCKED_BY_SOURCE_OR_RULE_RULING
+[RULING_KEY]KICKING_WILD_PLAY_11_BLOCKED_KICK_RECOVERER_IDENTITY
+[REQUIRED_WPSL_FEATURE_AFTER_RULING]BLOCKED_KICK
+[REQUIRED_WPSL_FEATURE_AFTER_RULING]SPECIAL_TEAMS_RECOVERY
+[REQUIRED_WPSL_FEATURE_AFTER_RULING]BREAKAWAY_FROM_LINE_OF_SCRIMMAGE
+[REQUIRED_WPSL_FEATURE_AFTER_RULING]KICKOFF_RETURN_BREAKAWAY_OVERRIDE
+[RULING_NOTE]The source specifies defensive recovery/Breakaway after a blocked punt or FG, but does not identify which defensive player recovered the ball even though Breakaway rating depends on player identity. The kickoff branch also replaces normal return yardage with Breakaway.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]cfd83264b3b69c9a9ce336c31aedaa21e0eb2bc98243f55481b96bcaec5a8254
+[DRAFT_SCRIPT_BEGIN]
+If KickType.IsKickoff {
+    ResolveKickoff ReturnMode Breakaway NoAdjustments;
+}
+Else {
+    BlockKick;
+    RecoverBy {ReceivingPlayer};
+    Invoke Breakaway From LineOfScrimmage;
+}
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_KICKING_12
+[PLAY_TYPE]KICKING
+[ROLL]12
+[SOURCE_TEXT]Receiving player indicated on the play card ejected from the game. 
+[SOURCE_REFERENCE]WildPlaysKicking.ods#Sheet1!A13:B13
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[INTERPRETATION_STATUS]COMPLETE
+[SCRIPT_STATUS]REQUIRES_WPSL_EXTENSION
+[REQUIRED_WPSL_FEATURE]RECEIVING_PLAYER_SELECTOR
+[IMPLEMENTATION_NOTE]The source identifies the receiving player indicated on the play card. WPSL needs that semantic special-teams participant selector.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]14291961e614f49063591b959655ea6d41145097e05c7c4953da05b86d5e8aef
+[DRAFT_SCRIPT_BEGIN]
+Eject {ReceivingPlayer};
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_KICKING_13
+[PLAY_TYPE]KICKING
+[ROLL]13
+[SOURCE_TEXT]If punting, the kicking team is called for fair catch interference. Penalty – 15 yds. 
+[SOURCE_REFERENCE]WildPlaysKicking.ods#Sheet1!A14:B14
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[INTERPRETATION_STATUS]RULING_PENDING
+[SCRIPT_STATUS]BLOCKED_BY_SOURCE_OR_RULE_RULING
+[RULING_KEY]KICKING_WILD_PLAY_13_NON_PUNT_BRANCH
+[REQUIRED_WPSL_FEATURE_AFTER_RULING]KICK_TYPE_CONDITION
+[REQUIRED_WPSL_FEATURE_AFTER_RULING]KICKING_TEAM_SELECTOR
+[RULING_NOTE]Source defines fair-catch interference only if punting and does not state what occurs for other kicking-play types.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]dee8cd8f57a57ff1cb0b03aa24db4002741bbda1311530577fdf0976372564ab
+[DRAFT_SCRIPT_BEGIN]
+If KickType.IsPunt {
+    Penalty {KickingTeam} FairCatchInterference Yards 15;
+}
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_KICKING_14
+[PLAY_TYPE]KICKING
+[ROLL]14
+[SOURCE_TEXT]Punter/Kicker called for faking “roughing the kicker.” Penalty – 15 yds. 
+[SOURCE_REFERENCE]WildPlaysKicking.ods#Sheet1!A15:B15
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[INTERPRETATION_STATUS]COMPLETE
+[SCRIPT_STATUS]REQUIRES_WPSL_EXTENSION
+[REQUIRED_WPSL_FEATURE]KICKING_TEAM_SELECTOR
+[REQUIRED_WPSL_FEATURE]KICKER_OR_PUNTER_SELECTOR
+[REQUIRED_WPSL_FEATURE]PENALTY_OFFENDER_PARTICIPANT
+[IMPLEMENTATION_NOTE]Source identifies the punter/kicker as the offender and gives a 15-yard penalty. Current Penalty syntax lacks special-team team selectors and an offender participant.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]2d5a29b3a338baec9490820d47af95e8e86eafc05f9191ad339fcb0551423265
+[DRAFT_SCRIPT_BEGIN]
+Penalty {KickingTeam} FakingRoughingTheKicker By {KickerOrPunter} Yards 15;
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_KICKING_15
+[PLAY_TYPE]KICKING
+[ROLL]15
+[SOURCE_TEXT]The kick returner attempts to lateral, but the ball is fumbled. Go to the Fumble chart. 
+[SOURCE_REFERENCE]WildPlaysKicking.ods#Sheet1!A16:B16
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[INTERPRETATION_STATUS]COMPLETE
+[SCRIPT_STATUS]REQUIRES_WPSL_EXTENSION
+[REQUIRED_WPSL_FEATURE]KICK_RETURNER_SELECTOR
+[REQUIRED_WPSL_FEATURE]LATERAL_ATTEMPT
+[IMPLEMENTATION_NOTE]The source explicitly says the returner attempts a lateral and fumbles. The lateral attempt is live-ball football behavior and should not be erased into a generic Fumble.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]3e3aef74f41e01bf69ddc707e903643c195e0646be8783cd21f152afec4fc38f
+[DRAFT_SCRIPT_BEGIN]
+LateralAttempt {KickReturner};
+Fumble;
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_KICKING_16
+[PLAY_TYPE]KICKING
+[ROLL]16
+[SOURCE_TEXT]Offsetting penalties called Go to the Penalty Chart to determine the penalties. 
+[SOURCE_REFERENCE]WildPlaysKicking.ods#Sheet1!A17:B17
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[INTERPRETATION_STATUS]RULING_PENDING
+[SCRIPT_STATUS]BLOCKED_BY_SOURCE_OR_RULE_RULING
+[RULING_KEY]KICKING_WILD_PLAY_16_OFFSETTING_PENALTY_ENFORCEMENT
+[REQUIRED_WPSL_FEATURE_AFTER_RULING]OFFSETTING_PENALTY_CHART_RESOLVER
+[RULING_NOTE]Source says offsetting penalties are called and to use the Penalty Chart to determine them, but unlike roll 9 it does not say to reroll the kick. Timing/enforcement and whether the kick result stands or is replayed must be verified.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]13d048300278719054e99b63dd913e47595eb0a3f87882bc1cd4b51520582a0f
+[DRAFT_SCRIPT_BEGIN]
+Invoke OffsettingPenaltyChart;
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_KICKING_17
+[PLAY_TYPE]KICKING
+[ROLL]17
+[SOURCE_TEXT]If punting, the Punter slips while kicking the ball. Roll a 20-D to determine the punt yardage. 
+[SOURCE_REFERENCE]WildPlaysKicking.ods#Sheet1!A18:B18
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[INTERPRETATION_STATUS]RULING_PENDING
+[SCRIPT_STATUS]BLOCKED_BY_SOURCE_OR_RULE_RULING
+[RULING_KEY]KICKING_WILD_PLAY_17_NON_PUNT_BRANCH_AND_PUNT_YARDAGE_OVERRIDE
+[REQUIRED_WPSL_FEATURE_AFTER_RULING]KICK_TYPE_CONDITION
+[REQUIRED_WPSL_FEATURE_AFTER_RULING]PUNTER_SELECTOR
+[REQUIRED_WPSL_FEATURE_AFTER_RULING]PUNT_DISTANCE_OVERRIDE
+[RULING_NOTE]Source says 'If punting' and uses a fresh 20-D for punt yardage, but does not define the non-punt branch. WPSL also needs an explicit punt-distance override once that branch is resolved.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]772d8f503d83cc9b8a3a29ac2bbe77b92fcbabcffda776655a7f7e4c7d51feb1
+[DRAFT_SCRIPT_BEGIN]
+If KickType.IsPunt {
+    Roll D20 as yards;
+    Punt Yards yards;
+}
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_KICKING_18
+[PLAY_TYPE]KICKING
+[ROLL]18
+[SOURCE_TEXT]The kick/punt is blocked, the ball winds up in the kicker's hands. Go to the Scramble Chart. 
+[SOURCE_REFERENCE]WildPlaysKicking.ods#Sheet1!A19:B19
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[INTERPRETATION_STATUS]COMPLETE
+[SCRIPT_STATUS]REQUIRES_WPSL_EXTENSION
+[REQUIRED_WPSL_FEATURE]BLOCKED_KICK
+[REQUIRED_WPSL_FEATURE]KICKER_SELECTOR
+[REQUIRED_WPSL_FEATURE]GENERIC_SCRAMBLE_RESOLVER
+[IMPLEMENTATION_NOTE]Source explicitly says the kick/punt is blocked, the ball winds up in the kicker's hands, and the kicker uses the Scramble Chart.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]0be1bb749cb126b58277741847ee00280e059435af4cb3ce50ae64ea7dcdab2e
+[DRAFT_SCRIPT_BEGIN]
+BlockKick;
+TakeBall {Kicker};
+Scramble {Kicker};
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_KICKING_19
+[PLAY_TYPE]KICKING
+[ROLL]19
+[SOURCE_TEXT]If a field goal attempt, defense called for taking a running start. Penalty – 15 yds. 
+[SOURCE_REFERENCE]WildPlaysKicking.ods#Sheet1!A20:B20
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[INTERPRETATION_STATUS]RULING_PENDING
+[SCRIPT_STATUS]BLOCKED_BY_SOURCE_OR_RULE_RULING
+[RULING_KEY]KICKING_WILD_PLAY_19_NON_FIELD_GOAL_BRANCH
+[REQUIRED_WPSL_FEATURE_AFTER_RULING]KICK_TYPE_CONDITION
+[REQUIRED_WPSL_FEATURE_AFTER_RULING]RECEIVING_OR_DEFENSE_TEAM_SELECTOR
+[RULING_NOTE]Source defines the defensive running-start penalty only for a field-goal attempt and does not state what occurs for punt/kickoff/other kick types.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]1b261fa28673901cb38ed34d59435e56a1ad65a6ce9440e44a8b2f050bd2023b
+[DRAFT_SCRIPT_BEGIN]
+If KickType.IsFieldGoalAttempt {
+    Penalty {ReceivingTeam} RunningStart Yards 15;
+}
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_KICKING_20
+[PLAY_TYPE]KICKING
+[ROLL]20
+[SOURCE_TEXT]The kick returner laterals to another player. Go to Breakaway Chart (no adjustments)
+[SOURCE_REFERENCE]WildPlaysKicking.ods#Sheet1!A21:B21
+[PROVENANCE_TYPE]OFFICIAL_PFF_BASE
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[SCRIPT_VERSION]0.1.1
+[INTERPRETATION_STATUS]RULING_PENDING
+[SCRIPT_STATUS]BLOCKED_BY_SOURCE_OR_RULE_RULING
+[RULING_KEY]KICKING_WILD_PLAY_20_LATERAL_RECIPIENT_SELECTION
+[REQUIRED_WPSL_FEATURE_AFTER_RULING]KICK_RETURNER_SELECTOR
+[REQUIRED_WPSL_FEATURE_AFTER_RULING]LATERAL
+[REQUIRED_WPSL_FEATURE_AFTER_RULING]BREAKAWAY_NO_ADJUSTMENTS
+[RULING_NOTE]Source requires the returner to lateral to another player, then use Breakaway with no adjustments, but does not identify how the recipient is selected. Do not introduce a random recipient without an adopted rule.
+[DRAFT_SCRIPT_CONTENT_HASH_SHA256]4b9917f28766070bf3491765016be08fa7bb7728a72747d3ed821276e4b6e3b1
+[DRAFT_SCRIPT_BEGIN]
+Lateral {KickReturner} To {AnotherReceivingPlayer};
+Invoke Breakaway NoAdjustments;
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[CHART_END]
