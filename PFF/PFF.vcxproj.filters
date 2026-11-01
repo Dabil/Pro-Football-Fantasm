@@ -95,6 +95,9 @@
     <ClInclude Include="Database\PFFDatabase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Database\PFFStandings.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Screens\IntroScreen.h">
       <Filter>Header Files</Filter>
     </ClInclude>

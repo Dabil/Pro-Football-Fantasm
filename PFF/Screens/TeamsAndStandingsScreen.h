@@ -2,7 +2,7 @@
 
 #include "Screens/Screen.h"
 #include "App/LoadedWorldContext.h"
-#include "GCE/Database/WorldDatabase.h"
+#include "Database/PFFStandings.h"
 #include "Assets/AssetLibrary.h"
 #include "UI/Widgets/Button.h"
 #include "UI/Widgets/ContainerWidget.h"
@@ -47,7 +47,9 @@ private:
 		std::string_view regionName,
 		std::string_view regionContent,
 		std::string_view conference,
-		std::string_view division) const;
+		std::string_view division);
+	void drawFooter(Composition::PageComposer& page, const Rect& footer) const;
+	void drawHeadingTooltip(Surface& surface) const;
 
 private:
 	Assets::AssetLibrary& m_assetLibrary;
@@ -64,8 +66,16 @@ private:
 
 	std::function<LoadedWorldContext()> m_loadedWorldContextProvider;
 	LoadedWorldContext m_dataContext;
-	std::vector<WorldTeamRecord> m_teams;
+	std::vector<PffStandingRow> m_teams;
 	std::string m_teamLoadMessage;
+	std::string m_gameTimeLabel;
 	bool m_teamsLoaded = false;
+	struct HeadingTooltip
+	{
+		Rect bounds;
+		std::string label;
+	};
+	std::vector<HeadingTooltip> m_headingTooltips;
+	Point m_mousePosition{ -1, -1 };
 };
 

@@ -160,6 +160,7 @@
     <ClInclude Include="App\LoadedWorldContext.h" />
     <ClInclude Include="App\PFFApplication.h" />
     <ClInclude Include="Database\PFFDatabase.h" />
+    <ClInclude Include="Database\PFFStandings.h" />
     <ClInclude Include="Screens\CommissionersOfficeScreen.h" />
     <ClInclude Include="Screens\Developer\RendererDiagnosticsScreen.h" />
     <ClInclude Include="Screens\Developer\TerminalCapabilitiesScreen.h" />
