@@ -50,6 +50,11 @@ private:
     // The Core builder will need direct SQLite access while constructing
     // the disposable compiled database. Runtime callers should not.
     friend struct CoreDatabaseBuildAccess;
+    friend struct CoreDatabaseQueryAccess;
+
+    // Transitional access for the generic GCE World database layer.
+    // Database itself will eventually move into a GCE-owned header.
+    friend struct WorldDatabaseAccess;
 };
 
 // -----------------------------------------------------------------------------
@@ -133,4 +138,132 @@ struct CoreDatabaseBuildResult
 // diagnostic rather than being silently ignored.
 CoreDatabaseBuildResult createCoreDatabaseFromSource(
     const CoreDatabaseBuildRequest& request);
+
+// -----------------------------------------------------------------------------
+// Core database read/query API
+// -----------------------------------------------------------------------------
+
+struct CoreTeamRecord
+{
+    std::int64_t teamId = 0;
+    std::int64_t teamSeasonId = 0;
+
+    std::string teamKey;
+    std::string teamSeasonKey;
+    std::string city;
+    std::string nickname;
+    std::string conference;
+    std::string division;
+
+    [[nodiscard]] std::string displayName() const
+    {
+        if (city.empty())
+        {
+            return nickname;
+        }
+
+        if (nickname.empty())
+        {
+            return city;
+        }
+
+        return city + " " + nickname;
+    }
+};
+
+struct CoreTeamsLoadResult
+{
+    bool success = false;
+    std::vector<CoreTeamRecord> teams;
+    std::string errorMessage;
+
+    [[nodiscard]] bool succeeded() const noexcept
+    {
+        return success;
+    }
+};
+
+// Reads the team list for one season from an existing compiled Core database.
+// This is intentionally a narrow first read API used by TeamsAndStandingsScreen.
+// Broader repositories/query services can replace or build on this later.
+CoreTeamsLoadResult loadCoreTeams(
+    const std::filesystem::path& databasePath,
+    std::int32_t season = 1989);
+
+
+struct CoreScheduleGameRecord
+{
+    std::string sourceGameId;
+    std::int32_t weekNumber = 0;
+
+    std::string gameDate;
+    std::string dayLabel;
+    std::string timeLabel;
+    std::string site;
+
+    std::int64_t awayTeamSeasonId = 0;
+    std::int64_t homeTeamSeasonId = 0;
+
+    std::string awayCity;
+    std::string awayNickname;
+    std::string homeCity;
+    std::string homeNickname;
+
+    [[nodiscard]] std::string awayDisplayName() const
+    {
+        if (awayCity.empty())
+        {
+            return awayNickname;
+        }
+
+        if (awayNickname.empty())
+        {
+            return awayCity;
+        }
+
+        return awayCity + " " + awayNickname;
+    }
+
+    [[nodiscard]] std::string homeDisplayName() const
+    {
+        if (homeCity.empty())
+        {
+            return homeNickname;
+        }
+
+        if (homeNickname.empty())
+        {
+            return homeCity;
+        }
+
+        return homeCity + " " + homeNickname;
+    }
+
+    [[nodiscard]] std::string matchupDisplayName() const
+    {
+        return awayDisplayName() + " at " + homeDisplayName();
+    }
+};
+
+struct CoreScheduleLoadResult
+{
+    bool success = false;
+
+    std::vector<std::int32_t> weeks;
+    std::vector<CoreScheduleGameRecord> games;
+    std::string errorMessage;
+
+    [[nodiscard]] bool succeeded() const noexcept
+    {
+        return success;
+    }
+};
+
+// Reads the historical regular-season schedule for one season from an
+// existing compiled Core database. Results are ordered by week/date/time.
+CoreScheduleLoadResult loadCoreRegularSeasonSchedule(
+    const std::filesystem::path& databasePath,
+    std::int32_t season = 1989);
+
+
 

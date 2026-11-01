@@ -2525,6 +2525,14 @@ VALUES(?, ?, ?, ?, ?, ?, ?, ?);
     }
 }
 
+struct CoreDatabaseQueryAccess
+{
+    static sqlite3* handle(Database& database) noexcept
+    {
+        return database.db_;
+    }
+};
+
 struct CoreDatabaseBuildAccess
 {
     static sqlite3* handle(Database& database) noexcept
@@ -2813,6 +2821,16 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
                 context,
                 "Season",
                 std::to_string(request.season));
+
+            // The source schedule uses one league-wide schedule clock rather
+            // than venue-local time. World creation reads this generic Core
+            // metadata value and converts source date/time labels to canonical
+            // UTC without embedding PFF/NFL-specific timezone knowledge in GCE.
+            insertMetadata(
+                db,
+                context,
+                "ScheduleClockZoneId",
+                "America/New_York");
 
             context.rulesetId =
                 insertRuleset(context, request.ruleSet);
@@ -3124,4 +3142,221 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
 
     return result;
 }
+
+
+
+// -----------------------------------------------------------------------------
+// Core database read/query API
+// -----------------------------------------------------------------------------
+
+CoreTeamsLoadResult loadCoreTeams(
+    const std::filesystem::path& databasePath,
+    std::int32_t season)
+{
+    CoreTeamsLoadResult result;
+
+    Database database;
+
+    if (!database.open(databasePath, DatabaseOpenMode::ReadOnly))
+    {
+        result.errorMessage = database.lastError();
+        return result;
+    }
+
+    try
+    {
+        sqlite3* db = CoreDatabaseQueryAccess::handle(database);
+
+        Statement statement(
+            db,
+            R"SQL(
+SELECT
+    t.TeamID,
+    ts.TeamSeasonID,
+    t.TeamKey,
+    ts.TeamSeasonKey,
+    t.City,
+    t.Nickname,
+    COALESCE(conference.DisplayName, ''),
+    COALESCE(division.DisplayName, '')
+FROM TeamSeasons ts
+JOIN Teams t
+    ON t.TeamID = ts.TeamID
+JOIN CompetitionSeasons cs
+    ON cs.CompetitionSeasonID = ts.CompetitionSeasonID
+LEFT JOIN CompetitionGroups conference
+    ON conference.CompetitionGroupID = ts.ConferenceGroupID
+LEFT JOIN CompetitionGroups division
+    ON division.CompetitionGroupID = ts.DivisionGroupID
+WHERE cs.SeasonYear = ?
+ORDER BY
+    CASE conference.DisplayName
+        WHEN 'AFC' THEN 0
+        WHEN 'NFC' THEN 1
+        ELSE 2
+    END,
+    CASE division.DisplayName
+        WHEN 'East' THEN 0
+        WHEN 'Central' THEN 1
+        WHEN 'West' THEN 2
+        ELSE 3
+    END,
+    t.City,
+    t.Nickname;
+)SQL");
+
+        bindInt(statement.get(), 1, season);
+
+        while (statement.stepRow(db))
+        {
+            CoreTeamRecord team;
+            team.teamId = sqlite3_column_int64(statement.get(), 0);
+            team.teamSeasonId = sqlite3_column_int64(statement.get(), 1);
+
+            auto textColumn = [&](int column) -> std::string
+                {
+                    const unsigned char* value =
+                        sqlite3_column_text(statement.get(), column);
+
+                    return value != nullptr
+                        ? reinterpret_cast<const char*>(value)
+                        : std::string{};
+                };
+
+            team.teamKey = textColumn(2);
+            team.teamSeasonKey = textColumn(3);
+            team.city = textColumn(4);
+            team.nickname = textColumn(5);
+            team.conference = textColumn(6);
+            team.division = textColumn(7);
+
+            result.teams.push_back(std::move(team));
+        }
+
+        result.success = true;
+    }
+    catch (const std::exception& ex)
+    {
+        result.errorMessage = ex.what();
+        result.teams.clear();
+        result.success = false;
+    }
+
+    return result;
+}
+
+CoreScheduleLoadResult loadCoreRegularSeasonSchedule(
+    const std::filesystem::path& databasePath,
+    std::int32_t season)
+{
+    CoreScheduleLoadResult result;
+
+    Database database;
+
+    if (!database.open(databasePath, DatabaseOpenMode::ReadOnly))
+    {
+        result.errorMessage = database.lastError();
+        return result;
+    }
+
+    try
+    {
+        sqlite3* db = CoreDatabaseQueryAccess::handle(database);
+
+        Statement statement(
+            db,
+            R"SQL(
+SELECT
+    sg.SourceGameID,
+    sg.WeekNumber,
+    sg.GameDate,
+    COALESCE(sg.DayLabel, ''),
+    COALESCE(sg.TimeLabel, ''),
+    sg.Site,
+    awayTs.TeamSeasonID,
+    homeTs.TeamSeasonID,
+    awayTeam.City,
+    awayTeam.Nickname,
+    homeTeam.City,
+    homeTeam.Nickname
+FROM ScheduleGames sg
+JOIN CompetitionSeasons cs
+    ON cs.CompetitionSeasonID = sg.CompetitionSeasonID
+JOIN TeamSeasons awayTs
+    ON awayTs.TeamSeasonID = sg.AwayTeamSeasonID
+JOIN Teams awayTeam
+    ON awayTeam.TeamID = awayTs.TeamID
+JOIN TeamSeasons homeTs
+    ON homeTs.TeamSeasonID = sg.HomeTeamSeasonID
+JOIN Teams homeTeam
+    ON homeTeam.TeamID = homeTs.TeamID
+WHERE cs.SeasonYear = ?
+  AND sg.Stage = 'REGULAR'
+  AND sg.WeekNumber IS NOT NULL
+ORDER BY
+    sg.WeekNumber,
+    sg.GameDate,
+    sg.TimeLabel,
+    sg.SourceGameID;
+)SQL");
+
+        bindInt(statement.get(), 1, season);
+
+        std::int32_t lastWeek = -1;
+
+        while (statement.stepRow(db))
+        {
+            auto textColumn = [&](int column) -> std::string
+                {
+                    const unsigned char* value =
+                        sqlite3_column_text(statement.get(), column);
+
+                    return value != nullptr
+                        ? reinterpret_cast<const char*>(value)
+                        : std::string{};
+                };
+
+            CoreScheduleGameRecord game;
+            game.sourceGameId = textColumn(0);
+            game.weekNumber = sqlite3_column_int(statement.get(), 1);
+            game.gameDate = textColumn(2);
+            game.dayLabel = textColumn(3);
+            game.timeLabel = textColumn(4);
+            game.site = textColumn(5);
+            game.awayTeamSeasonId = sqlite3_column_int64(statement.get(), 6);
+            game.homeTeamSeasonId = sqlite3_column_int64(statement.get(), 7);
+            game.awayCity = textColumn(8);
+            game.awayNickname = textColumn(9);
+            game.homeCity = textColumn(10);
+            game.homeNickname = textColumn(11);
+
+            if (game.weekNumber != lastWeek)
+            {
+                result.weeks.push_back(game.weekNumber);
+                lastWeek = game.weekNumber;
+            }
+
+            result.games.push_back(std::move(game));
+        }
+
+        if (result.weeks.empty())
+        {
+            result.errorMessage =
+                "No regular-season schedule weeks were found in the Core database.";
+            return result;
+        }
+
+        result.success = true;
+    }
+    catch (const std::exception& ex)
+    {
+        result.errorMessage = ex.what();
+        result.games.clear();
+        result.weeks.clear();
+        result.success = false;
+    }
+
+    return result;
+}
+
 
