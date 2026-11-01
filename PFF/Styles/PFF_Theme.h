@@ -11,7 +11,11 @@ namespace PFF_Colors
         style::Fg(ThemeColor::Basic256Rgb(
             Color::FromBasic(Color::Basic::Yellow),
             Color::FromIndexed(223),
-            Color::FromRgb(255, 235, 178)));
+            Color::FromRgb(255, 235, 178)))
+        + style::Bg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::Green),
+            Color::FromIndexed(58),
+            Color::FromRgb(51, 89, 2)));
 
     ///////////////////////////////////////////////////////////////
     // M A I N   U I   C O L O R S
