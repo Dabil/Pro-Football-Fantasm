@@ -80,7 +80,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)vendor\TUI;$(SolutionDir)vendor\sqlite;$(ProjectDir);$(ProjectDir)Screens;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Vendor;$(SolutionDir)vendor\TUI;$(SolutionDir)vendor\sqlite;$(ProjectDir);$(ProjectDir)Screens;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -96,7 +96,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)vendor\TUI;$(SolutionDir)vendor\sqlite;$(ProjectDir);$(ProjectDir)Screens;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Vendor;$(SolutionDir)vendor\TUI;$(SolutionDir)vendor\sqlite;$(ProjectDir);$(ProjectDir)Screens;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -112,7 +112,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)vendor\TUI;$(SolutionDir)vendor\sqlite;$(ProjectDir);$(ProjectDir)Screens;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Vendor;$(SolutionDir)vendor\TUI;$(SolutionDir)vendor\sqlite;$(ProjectDir);$(ProjectDir)Screens;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -128,7 +128,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)vendor\TUI;$(SolutionDir)vendor\sqlite;$(ProjectDir);$(ProjectDir)Screens;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Vendor;$(SolutionDir)vendor\TUI;$(SolutionDir)vendor\sqlite;$(ProjectDir);$(ProjectDir)Screens;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -157,6 +157,7 @@
     <ClCompile Include="Screens\TradeDeskScreen.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="App\LoadedWorldContext.h" />
     <ClInclude Include="App\PFFApplication.h" />
     <ClInclude Include="Database\PFFDatabase.h" />
     <ClInclude Include="Screens\CommissionersOfficeScreen.h" />
@@ -181,6 +182,9 @@
     <None Include="Assets\XP\ScoreBoardFont.xp" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\vendor\GCE\GCE.vcxproj">
+      <Project>{a14a0504-81e3-4806-a182-22fe05fb53b6}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\vendor\TUI\TUI.vcxproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>

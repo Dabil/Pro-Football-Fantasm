@@ -122,6 +122,9 @@
     <ClInclude Include="Screens\TradeDeskScreen.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="App\LoadedWorldContext.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="startup.config">
