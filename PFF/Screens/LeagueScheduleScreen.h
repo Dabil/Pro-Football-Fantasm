@@ -1,45 +1,80 @@
 #pragma once
 
 #include "Screens/Screen.h"
+#include "App/LoadedWorldContext.h"
+#include "GCE/Database/WorldDatabase.h"
 #include "Assets/AssetLibrary.h"
 #include "UI/Widgets/Button.h"
 #include "UI/Widgets/ContainerWidget.h"
 
+#include <cstddef>
+#include <filesystem>
 #include <functional>
+#include <string>
 #include <string_view>
+#include <vector>
 
 class Surface;
+
+namespace Composition
+{
+    class PageComposer;
+}
 
 class LeagueScheduleScreen : public Screen
 {
 public:
-	explicit LeagueScheduleScreen(
-		Assets::AssetLibrary& assetLibrary,
-		std::function<bool(std::string_view)> commandDispatcher);
+    explicit LeagueScheduleScreen(
+        Assets::AssetLibrary& assetLibrary,
+        std::function<bool(std::string_view)> commandDispatcher,
+        std::function<LoadedWorldContext()> loadedWorldContextProvider);
 
-	~LeagueScheduleScreen();
+    ~LeagueScheduleScreen();
 
-	void onEnter() override;
-	void onExit() override;
-	bool handleEvent(const Input::Event& event) override;
-	void update(const Animation::TickEvent& event) override;
-	void draw(Surface& surface) override;
-
-private:
-	void buildButtons();
-	void positionButtons(const Rect& footer);
-	void handleButtonActivation(const ButtonActivationResult& result);
+    void onEnter() override;
+    void onExit() override;
+    bool handleEvent(const Input::Event& event) override;
+    void update(const Animation::TickEvent& event) override;
+    void draw(Surface& surface) override;
 
 private:
-	Assets::AssetLibrary& m_assetLibrary;
+    void buildButtons();
+    void positionButtons(const Rect& navigationPane, const Rect& footer);
+    void handleButtonActivation(const ButtonActivationResult& result);
 
-	// Title Text
-	std::string m_TitleBannerFontKey = "banner.ansi_shadow";
-	TextObject m_LeagueScheduleTitleObject;
-	Assets::LoadBannerFontResult m_fontResult;
+    void loadSchedule();
+    void refreshLeagueContext();
+    void updateNavigationButtons();
+    void drawCurrentWeek(
+        Composition::PageComposer& page,
+        std::string_view panelRegionName,
+        std::string_view contentRegionName) const;
 
-	// buttons
-	std::function<bool(std::string_view)> m_commandDispatcher;
-	ContainerWidget m_root;
-	Button* m_leaguePlayButton = nullptr;
+    [[nodiscard]] std::int32_t currentWeek() const noexcept;
+
+private:
+    Assets::AssetLibrary& m_assetLibrary;
+
+    // Title Text
+    std::string m_TitleBannerFontKey = "banner.ansi_shadow";
+    TextObject m_LeagueScheduleTitleObject;
+    Assets::LoadBannerFontResult m_fontResult;
+
+    // Buttons
+    std::function<bool(std::string_view)> m_commandDispatcher;
+    ContainerWidget m_root;
+    Button* m_leaguePlayButton = nullptr;
+    Button* m_lookAheadButton = nullptr;
+    Button* m_lookBackButton = nullptr;
+
+    // Data belongs to the selected saved league and competition season.
+    std::function<LoadedWorldContext()> m_loadedWorldContextProvider;
+    LoadedWorldContext m_dataContext;
+
+    std::vector<std::int32_t> m_availableWeeks;
+    std::vector<WorldScheduleGameRecord> m_scheduleGames;
+    std::size_t m_currentWeekIndex = 0;
+    std::string m_scheduleLoadMessage;
+    bool m_scheduleLoaded = false;
 };
+

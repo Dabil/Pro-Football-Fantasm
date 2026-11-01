@@ -94,7 +94,7 @@ void LeagueLeadersScreen::buildButtons()
     auto leaguePlayButton = std::make_unique<Button>(
         Rect{ Point{ 0, 0 }, Size{ 34, 3 } },
         "Return",
-        "route:pff:league_play");
+        "nav:back");
 
     leaguePlayButton->setActivationCallback(
         [this](const ButtonActivationResult& result)

@@ -97,7 +97,7 @@ void LeaguePlayScreen::buildButtons()
     auto mainButton = std::make_unique<Button>(
         Rect{ Point{ 0, 0 }, Size{ 34, 3 } },
         "Return",
-        "route:pff:main");
+        "nav:back");
 
     auto teamsAndStandingsButton = std::make_unique<Button>(
         Rect{ Point{ 0, 0 }, Size{ 34, 3 } },

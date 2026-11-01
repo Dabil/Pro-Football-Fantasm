@@ -15,7 +15,8 @@ class MainScreen : public Screen
 public:
 	explicit MainScreen(
 		Assets::AssetLibrary& assetLibrary,
-		std::function<bool(std::string_view)> commandDispatcher);
+		std::function<bool(std::string_view)> commandDispatcher,
+		std::function<bool()> hasLoadedLeague);
 
 	~MainScreen();
 
@@ -27,6 +28,7 @@ public:
 
 private:
 	void buildButtons();
+	void updateLeaguePlayAvailability();
 	void positionButtons(const Rect& leftPane, const Rect& rightPane);
 	void handleButtonActivation(const ButtonActivationResult& result);
 
@@ -41,6 +43,7 @@ private:
 
 	// buttons
 	std::function<bool(std::string_view)> m_commandDispatcher;
+	std::function<bool()> m_hasLoadedLeague;
 	ContainerWidget m_root;
 	Button* m_leaguePlayButton = nullptr;
 	Button* m_commissionersOfficeButton = nullptr;

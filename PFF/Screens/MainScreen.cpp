@@ -24,11 +24,14 @@ namespace
 
 MainScreen::MainScreen(
 	Assets::AssetLibrary& assetLibrary,
-	std::function<bool(std::string_view)> commandDispatcher)
+	std::function<bool(std::string_view)> commandDispatcher,
+	std::function<bool()> hasLoadedLeague)
 	: m_assetLibrary(assetLibrary)
 	, m_commandDispatcher(std::move(commandDispatcher))
+	, m_hasLoadedLeague(std::move(hasLoadedLeague))
 {
 	buildButtons();
+	updateLeaguePlayAvailability();
 }
 
 MainScreen::~MainScreen()
@@ -38,6 +41,7 @@ MainScreen::~MainScreen()
 
 void MainScreen::onEnter()
 {
+	updateLeaguePlayAvailability();
 	m_fontResult = m_assetLibrary.loadBannerFontAsset(m_TitleBannerFontKey);
 
 	if (!m_fontResult.success || !m_fontResult.hasFont())
@@ -64,16 +68,19 @@ void MainScreen::onExit()
 
 bool MainScreen::handleEvent(const Input::Event& event)
 {
+    updateLeaguePlayAvailability();
     return m_root.handleEvent(event);
 }
 
 void MainScreen::update(const Animation::TickEvent& event)
 {
+    updateLeaguePlayAvailability();
     m_root.update(event);
 }
 
 void MainScreen::draw(Surface& surface)
 {
+	updateLeaguePlayAvailability();
 	ScreenBuffer& buffer = surface.buffer();
 	buffer.clear(PFF_Colors::MainBackgroundColor);
 
@@ -131,6 +138,18 @@ void MainScreen::buildButtons()
 
     m_commissionersOfficeButton = commissionersOfficeButton.get();
     m_root.addChild(std::move(commissionersOfficeButton));
+}
+
+void MainScreen::updateLeaguePlayAvailability()
+{
+    const bool available = m_hasLoadedLeague && m_hasLoadedLeague();
+    m_leaguePlayButton->setVisible(available);
+    m_leaguePlayButton->setEnabled(available);
+
+    if (!available && m_root.focusedChild() == m_leaguePlayButton)
+    {
+        m_root.setFocusedChild(*m_commissionersOfficeButton);
+    }
 }
 
 void MainScreen::positionButtons(const Rect& leftPane, const Rect& rightPane)
