@@ -1,6 +1,7 @@
 // PFF includes
 #include "Screens/TeamsAndStandingsScreen.h"
 #include "Styles/PFF_Theme.h"
+#include "Screens/GameTimeFormatting.h"
 
 // TUI includes
 #include "Rendering/Surface.h"
@@ -49,52 +50,7 @@ namespace
         { "ST", "Streak", 4 }
     }};
 
-    std::string formatGameTimeEastern(const std::string& timestamp)
-    {
-        int year = 0, month = 0, day = 0, hour = 0, minute = 0, second = 0;
-        if (sscanf_s(timestamp.c_str(), "%d-%d-%dT%d:%d:%d", &year, &month,
-            &day, &hour, &minute, &second) != 6 || year < 1601 || year > 9999 ||
-            month < 1 || month > 12 || day < 1 || day > 31 ||
-            hour < 0 || hour > 23 || minute < 0 || minute > 59 || second < 0 || second > 59)
-        {
-            return "Game time unavailable";
-        }
-
-        SYSTEMTIME utc{};
-        utc.wYear = static_cast<WORD>(year);
-        utc.wMonth = static_cast<WORD>(month);
-        utc.wDay = static_cast<WORD>(day);
-        utc.wHour = static_cast<WORD>(hour);
-        utc.wMinute = static_cast<WORD>(minute);
-        utc.wSecond = static_cast<WORD>(second);
-        DYNAMIC_TIME_ZONE_INFORMATION eastern{};
-        bool found = false;
-        for (DWORD index = 0; EnumDynamicTimeZoneInformation(index, &eastern) == ERROR_SUCCESS; ++index)
-        {
-            if (std::wstring(eastern.TimeZoneKeyName) == L"Eastern Standard Time")
-            {
-                found = true;
-                break;
-            }
-        }
-        TIME_ZONE_INFORMATION historicalRules{};
-        SYSTEMTIME local{};
-        if (!found || !GetTimeZoneInformationForYear(utc.wYear, &eastern, &historicalRules) ||
-            !SystemTimeToTzSpecificLocalTime(&historicalRules, &utc, &local))
-        {
-            return "Game time unavailable";
-        }
-
-        static const char* months[] = { "January", "February", "March", "April", "May", "June",
-            "July", "August", "September", "October", "November", "December" };
-        std::ostringstream text;
-        text.imbue(std::locale::classic());
-        text << months[local.wMonth - 1] << ' ' << local.wDay << ", " << local.wYear
-            << "  " << (local.wHour % 12 == 0 ? 12 : local.wHour % 12)
-            << ':' << std::setfill('0') << std::setw(2) << local.wMinute
-            << (local.wHour < 12 ? " AM ET" : " PM ET");
-        return text.str();
-    }
+    using PffGameTime::formatGameTimeEastern;
 
     std::string formatWinPercentage(double value)
     {
