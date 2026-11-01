@@ -552,6 +552,9 @@
     <ClInclude Include="UI\Widgets\ScrollBox.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="UI\Widgets\TextInput.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Rendering\ScreenBuffer.cpp">
@@ -1020,6 +1023,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="UI\Widgets\ScrollBox.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Widgets\TextInput.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
