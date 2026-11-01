@@ -48,7 +48,8 @@ private:
     void drawCurrentWeek(
         Composition::PageComposer& page,
         std::string_view panelRegionName,
-        std::string_view contentRegionName) const;
+        std::string_view contentRegionName);
+    void drawFooter(Composition::PageComposer& page, const Rect& footer) const;
 
     [[nodiscard]] std::int32_t currentWeek() const noexcept;
 
@@ -76,5 +77,10 @@ private:
     std::size_t m_currentWeekIndex = 0;
     std::string m_scheduleLoadMessage;
     bool m_scheduleLoaded = false;
+    std::string m_gameTimeLabel;
+    int m_scrollOffset = 0;
+    int m_maxScrollOffset = 0;
+    int m_visibleRows = 1;
+    Rect m_scheduleBounds;
 };
 

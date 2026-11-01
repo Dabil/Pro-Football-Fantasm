@@ -3469,7 +3469,10 @@ SELECT
     COALESCE(g.StartedUtc, ''),
     COALESCE(g.CompletedUtc, ''),
     g.AwayScore,
-    g.HomeScore
+    g.HomeScore,
+    COALESCE(away.Nickname, ''),
+    COALESCE(home.Nickname, ''),
+    COALESCE(venue.VenueName, '')
 FROM WorldScheduledGames sg
 JOIN TeamSeasons away
     ON away.TeamSeasonID = sg.AwayTeamSeasonID
@@ -3478,6 +3481,8 @@ JOIN TeamSeasons home
 LEFT JOIN Games g
     ON g.WorldScheduledGameID = sg.WorldScheduledGameID
    AND g.GameStatus <> 'VOID'
+LEFT JOIN WorldVenues venue
+    ON venue.WorldVenueID = sg.WorldVenueID
 WHERE sg.CompetitionSeasonID = ?
 ORDER BY
     sg.ScheduledUtc,
@@ -3506,6 +3511,9 @@ ORDER BY
             game.homeTeamSeasonId = sqlite3_column_int64(statement.get(), 12);
             game.awayDisplayName = columnText(statement.get(), 13);
             game.homeDisplayName = columnText(statement.get(), 14);
+            game.awayNickname = columnText(statement.get(), 21);
+            game.homeNickname = columnText(statement.get(), 22);
+            game.venueName = columnText(statement.get(), 23);
 
             const std::string scheduleStatus = columnText(statement.get(), 15);
             const std::string gameStatus = columnText(statement.get(), 16);
@@ -3531,6 +3539,7 @@ ORDER BY
                             sqlite3_column_type(statement.get(), 20) != SQLITE_NULL)
                         {
                             game.hasFinalScore = true;
+                            game.hasVisibleScore = true;
                             game.awayScore = sqlite3_column_int(statement.get(), 19);
                             game.homeScore = sqlite3_column_int(statement.get(), 20);
                         }
@@ -3543,6 +3552,14 @@ ORDER BY
                 else if (gameStatus == "IN_PROGRESS")
                 {
                     game.status = startedVisible ? "IN_PROGRESS" : "SCHEDULED";
+                    if (startedVisible &&
+                        sqlite3_column_type(statement.get(), 19) != SQLITE_NULL &&
+                        sqlite3_column_type(statement.get(), 20) != SQLITE_NULL)
+                    {
+                        game.hasVisibleScore = true;
+                        game.awayScore = sqlite3_column_int(statement.get(), 19);
+                        game.homeScore = sqlite3_column_int(statement.get(), 20);
+                    }
                 }
                 else if (!startedVisible && scheduleStatus == "SCHEDULED")
                 {

@@ -374,11 +374,24 @@ struct WorldScheduleGameRecord
     std::string awayDisplayName;
     std::string homeDisplayName;
 
+    // SCHEDULE-UI-20261101: additive read-model metadata for the owner-requested
+    // LeagueScheduleScreen update (2026-11-01). Generic upstream candidate;
+    // imported upstream revision unknown. No schema or write-contract change.
+    // Implementation and visibility checks: Database/WorldDatabase.cpp;
+    // integration fixture: bin/x64/Debug/schedule_validation.cpp in PFF.
+    std::string awayNickname;
+    std::string homeNickname;
+    std::string venueName;
+
     // Initial values are expected to include SCHEDULED / IN_PROGRESS / FINAL.
     // Keep this as data rather than teaching UI code transition rules.
     std::string status;
 
     bool hasFinalScore = false;
+    // True only for a visible final score or an actually IN_PROGRESS game's
+    // available current scoreboard after its start is visible. A future FINAL
+    // game presented as IN_PROGRESS does not expose its stored final score.
+    bool hasVisibleScore = false;
     std::int32_t awayScore = 0;
     std::int32_t homeScore = 0;
 

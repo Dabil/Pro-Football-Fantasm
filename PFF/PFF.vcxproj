@@ -172,6 +172,7 @@
     <ClInclude Include="Screens\LeagueScheduleScreen.h" />
     <ClInclude Include="Screens\MainScreen.h" />
     <ClInclude Include="Screens\GameScreen.h" />
+    <ClInclude Include="Screens\GameTimeFormatting.h" />
     <ClInclude Include="Screens\TeamsAndStandingsScreen.h" />
     <ClInclude Include="Screens\TradeDeskScreen.h" />
     <ClInclude Include="Styles\PFF_Theme.h" />

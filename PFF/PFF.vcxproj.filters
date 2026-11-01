@@ -74,6 +74,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Screens\GameTimeFormatting.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Screens\GameScreen.h">
       <Filter>Header Files</Filter>
     </ClInclude>

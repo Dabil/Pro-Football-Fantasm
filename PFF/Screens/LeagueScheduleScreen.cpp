@@ -1,19 +1,40 @@
 // PFF includes
 #include "Screens/LeagueScheduleScreen.h"
 #include "Styles/PFF_Theme.h"
+#include "Screens/GameTimeFormatting.h"
 
 // TUI includes
 #include "Rendering/Surface.h"
 #include "Rendering/Composition/PageComposer.h"
 #include "Rendering/Objects/BannerFactory.h"
+#include "Input/Event.h"
+#include "Utilities/Text/TextClip.h"
+#include "Utilities/Text/TextWrap.h"
 
 // C++ library includes
 #include <algorithm>
+#include <array>
 #include <utility>
 
 namespace
 {
     using Composition::PageComposer;
+
+    std::string displayResult(const WorldScheduleGameRecord& game)
+    {
+        if (game.hasVisibleScore || game.hasFinalScore)
+        {
+            const std::string away=(game.awayNickname.empty()?game.awayDisplayName:game.awayNickname)+
+                ": "+std::to_string(game.awayScore);
+            const std::string home=(game.homeNickname.empty()?game.homeDisplayName:game.homeNickname)+
+                ": "+std::to_string(game.homeScore);
+            return game.homeScore>game.awayScore ? home+", "+away : away+", "+home;
+        }
+        if (game.status=="IN_PROGRESS") return "In progress - score unavailable";
+        if (game.status=="FINAL") return "Score unavailable";
+        if (game.status=="CANCELLED" || game.status=="CANCELED") return "Cancelled";
+        return "Pending";
+    }
 }
 
 LeagueScheduleScreen::LeagueScheduleScreen(
@@ -58,6 +79,8 @@ void LeagueScheduleScreen::onExit()
     m_scheduleLoadMessage.clear();
     m_currentWeekIndex = 0;
     m_scheduleLoaded = false;
+    m_gameTimeLabel.clear();
+    m_scrollOffset = m_maxScrollOffset = 0;
 
     updateNavigationButtons();
 }
@@ -65,6 +88,32 @@ void LeagueScheduleScreen::onExit()
 bool LeagueScheduleScreen::handleEvent(const Input::Event& event)
 {
     refreshLeagueContext();
+    int scroll = 0;
+    if (const auto* input=event.asCommand())
+    {
+        switch (input->command.code)
+        {
+        case Input::CommandCode::MoveDown: scroll=1; break;
+        case Input::CommandCode::MoveUp: scroll=-1; break;
+        case Input::CommandCode::PageDown: scroll=m_visibleRows; break;
+        case Input::CommandCode::PageUp: scroll=-m_visibleRows; break;
+        case Input::CommandCode::MoveHome: scroll=-m_maxScrollOffset; break;
+        case Input::CommandCode::MoveEnd: scroll=m_maxScrollOffset; break;
+        default: break;
+        }
+    }
+    if (const auto* mouse=event.asMouse())
+    {
+        if (mouse->isWheel() && m_scheduleBounds.contains(mouse->position.x,mouse->position.y))
+        {
+            scroll=mouse->button==Input::MouseButton::WheelUp || mouse->wheelDelta>0 ? -3 : 3;
+        }
+    }
+    if (scroll!=0)
+    {
+        m_scrollOffset=std::clamp(m_scrollOffset+scroll,0,m_maxScrollOffset);
+        return true;
+    }
     return m_root.handleEvent(event);
 }
 
@@ -91,6 +140,7 @@ void LeagueScheduleScreen::draw(Surface& surface)
     const int navigationWidth = std::min(34, std::max(28, body.size.width / 3));
 
     const auto [navigationPane, schedulePane] = page.splitRight(body, navigationWidth);
+    m_scheduleBounds = schedulePane;
 
     m_root.setBounds(body);
     positionButtons(navigationPane, footer);
@@ -136,10 +186,11 @@ void LeagueScheduleScreen::draw(Surface& surface)
         page.writeLine(
             "ScheduleContent",
             2,
-            m_scheduleLoadMessage,
+            TextClip::clipUtf8Text(m_scheduleLoadMessage,page.resolveRegion("ScheduleContent").size.width),
             PFF_Colors::TextHighlightColor);
     }
 
+    drawFooter(page,footer);
     m_root.draw(surface);
 }
 
@@ -265,6 +316,7 @@ void LeagueScheduleScreen::handleButtonActivation(
             m_currentWeekIndex + 1 < m_availableWeeks.size())
         {
             ++m_currentWeekIndex;
+            m_scrollOffset = 0;
             updateNavigationButtons();
         }
 
@@ -276,6 +328,7 @@ void LeagueScheduleScreen::handleButtonActivation(
         if (m_scheduleLoaded && m_currentWeekIndex > 0)
         {
             --m_currentWeekIndex;
+            m_scrollOffset = 0;
             updateNavigationButtons();
         }
 
@@ -313,6 +366,9 @@ void LeagueScheduleScreen::loadSchedule()
         context.worldKey == m_dataContext.worldKey &&
         context.activeCompetitionSeasonId == m_dataContext.activeCompetitionSeasonId;
     m_dataContext = context;
+    m_gameTimeLabel = context.isLoaded() ? PffGameTime::formatGameTimeEastern(context.currentTimeUtc) : "";
+    if (!sameSeason) m_scrollOffset = 0;
+    m_maxScrollOffset = 0;
     m_availableWeeks.clear();
     m_scheduleGames.clear();
     m_scheduleLoadMessage.clear();
@@ -344,6 +400,15 @@ void LeagueScheduleScreen::loadSchedule()
 
     m_availableWeeks = std::move(result.regularSeasonWeeks);
     m_scheduleGames = std::move(result.games);
+    std::stable_sort(m_scheduleGames.begin(),m_scheduleGames.end(),
+        [](const WorldScheduleGameRecord& left,const WorldScheduleGameRecord& right)
+        {
+            if (left.scheduledKickoffUtc.empty()!=right.scheduledKickoffUtc.empty())
+                return !left.scheduledKickoffUtc.empty();
+            if (left.scheduledKickoffUtc!=right.scheduledKickoffUtc)
+                return left.scheduledKickoffUtc<right.scheduledKickoffUtc;
+            return left.scheduledGameId<right.scheduledGameId;
+        });
     m_scheduleLoaded = !m_availableWeeks.empty();
 
     if (!m_scheduleLoaded)
@@ -352,7 +417,24 @@ void LeagueScheduleScreen::loadSchedule()
             "The loaded league contains no regular-season schedule weeks.";
     }
 
-    if (sameSeason && previousWeek > 0)
+    if (!sameSeason && m_scheduleLoaded)
+    {
+        // A new view starts at the earliest unfinished regular-season week.
+        auto firstUnfinished=m_availableWeeks.end();
+        for (auto week=m_availableWeeks.begin();week!=m_availableWeeks.end();++week)
+        {
+            if (std::any_of(m_scheduleGames.begin(),m_scheduleGames.end(),[&](const auto& game)
+                {return game.stage=="REGULAR" && game.weekNumber==*week && game.status!="FINAL" &&
+                    game.status!="CANCELLED" && game.status!="CANCELED" && game.status!="VOID";}))
+            {
+                firstUnfinished=week;
+                break;
+            }
+        }
+        m_currentWeekIndex=firstUnfinished==m_availableWeeks.end() ? m_availableWeeks.size()-1 :
+            static_cast<std::size_t>(firstUnfinished-m_availableWeeks.begin());
+    }
+    else if (sameSeason && previousWeek > 0)
     {
         const auto previous = std::find(m_availableWeeks.begin(), m_availableWeeks.end(), previousWeek);
         if (previous != m_availableWeeks.end())
@@ -387,7 +469,7 @@ void LeagueScheduleScreen::updateNavigationButtons()
 void LeagueScheduleScreen::drawCurrentWeek(
     Composition::PageComposer& page,
     std::string_view panelRegionName,
-    std::string_view contentRegionName) const
+    std::string_view contentRegionName)
 {
     const std::int32_t week = currentWeek();
 
@@ -397,7 +479,7 @@ void LeagueScheduleScreen::drawCurrentWeek(
     }
 
     const std::string weekTitle =
-        "WEEK " + std::to_string(week) + " - " + m_dataContext.worldName;
+        "WEEK " + std::to_string(week);
 
     page.writePanelTitle(
         panelRegionName,
@@ -406,7 +488,44 @@ void LeagueScheduleScreen::drawCurrentWeek(
         3,
         1);
 
-    int row = 3;
+    const Rect content=page.resolveRegion(contentRegionName);
+    if (content.size.width<102 || content.size.height<7)
+    {
+        page.writeLine(content,2,TextClip::clipUtf8Text(
+            "Enlarge the window to show all five schedule columns.",content.size.width),
+            PFF_Colors::TextHighlightColor);
+        m_maxScrollOffset=0;
+        return;
+    }
+    const int extra=content.size.width-102;
+    const std::array<int,5> widths{{24+extra/3,15,11,18+extra/3,26+extra-2*(extra/3)}};
+    const std::array<std::string,5> headings{{"MatchUp","Day and Date","Time","Location","Result"}};
+    std::vector<std::string> rows;
+    auto appendRow=[&](const std::array<std::string,5>& values)
+    {
+        std::array<std::vector<std::string>,5> wrapped;
+        std::size_t height=1;
+        for (std::size_t column=0;column<5;++column)
+        {
+            wrapped[column]=wrapText(values[column],widths[column]);
+            height=std::max(height,wrapped[column].size());
+        }
+        for (std::size_t line=0;line<height;++line)
+        {
+            std::string text;
+            for (std::size_t column=0;column<5;++column)
+            {
+                const std::string cell=line<wrapped[column].size()?wrapped[column][line]:"";
+                text+=cell;
+                const int used=TextClip::measureDisplayWidth(UnicodeConversion::utf8ToU32(cell));
+                text.append(static_cast<std::size_t>(std::max(0,widths[column]-used)),' ');
+                if (column<4) text+="  ";
+            }
+            rows.push_back(std::move(text));
+        }
+    };
+    std::string previousGroup;
+    bool first=true;
 
     for (const WorldScheduleGameRecord& game : m_scheduleGames)
     {
@@ -415,14 +534,42 @@ void LeagueScheduleScreen::drawCurrentWeek(
             continue;
         }
 
-        page.writeLine(
-            contentRegionName,
-            row,
-            game.matchupDisplayName(),
-            PFF_Colors::TextHighlightColor);
-
-        row += 2;
+        const std::string group=game.scheduledKickoffUtc.empty()
+            ? "unknown:"+game.gameDate+" "+game.timeLabel : game.scheduledKickoffUtc;
+        if (first || group!=previousGroup)
+        {
+            if (!first) rows.emplace_back();
+            appendRow(headings);
+            previousGroup=group;
+            first=false;
+        }
+        const auto kickoff=PffGameTime::easternTime(game.scheduledKickoffUtc);
+        const std::string date=kickoff ? PffGameTime::dayAndDate(*kickoff) :
+            (game.gameDate.empty()?"Date unavailable":game.dayLabel+" "+game.gameDate);
+        const std::string time=kickoff ? PffGameTime::clock(*kickoff) :
+            (game.timeLabel.empty()?"Unavailable":game.timeLabel);
+        appendRow({{game.matchupDisplayName(),date,time,
+            game.venueName.empty()?"Venue unavailable":game.venueName,displayResult(game)}});
     }
+
+    m_visibleRows=std::max(1,content.size.height-4);
+    m_maxScrollOffset=std::max(0,static_cast<int>(rows.size())-m_visibleRows);
+    m_scrollOffset=std::clamp(m_scrollOffset,0,m_maxScrollOffset);
+    for (int row=0;row<m_visibleRows && m_scrollOffset+row<static_cast<int>(rows.size());++row)
+        page.writeLine(content,2+row,rows[static_cast<std::size_t>(m_scrollOffset+row)],PFF_Colors::TextHighlightColor);
+    if (m_maxScrollOffset>0)
+        page.writeLine(content,content.size.height-1,TextClip::clipUtf8Text(
+            "Scroll: mouse wheel / arrows / Page Up / Page Down",content.size.width),PFF_Colors::TextHighlightColor);
+}
+
+void LeagueScheduleScreen::drawFooter(PageComposer& page,const Rect& footer) const
+{
+    const Rect textArea{Point{footer.position.x+2,footer.position.y+1},
+        Size{std::max(0,footer.size.width-42),2}};
+    page.writeLine(textArea,0,TextClip::clipUtf8Text(
+        m_dataContext.isLoaded()?m_dataContext.worldName:"No league loaded",textArea.size.width),
+        PFF_Colors::TextHighlightColor);
+    page.writeLine(textArea,1,TextClip::clipUtf8Text(m_gameTimeLabel,textArea.size.width),PFF_Colors::TextHighlightColor);
 }
 
 std::int32_t LeagueScheduleScreen::currentWeek() const noexcept
