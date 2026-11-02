@@ -1,0 +1,34 @@
+
+// Pro Football Fantasm Classic - First Edition ruleset package manifest
+// Manifest format proposal v0.1. File paths are relative to this manifest.
+// This file lists source inputs; it does not itself prove simulation completeness.
+
+[RULESET_BEGIN]
+[MANIFEST_VERSION] 0.1
+[PACKAGE_KEY] PFF_CLASSIC_1989_BASE
+[PACKAGE_VERSION] 0.1
+[DISPLAY_NAME] Pro Football Fantasm - First Edition Rules
+[PACKAGE_TYPE] RULESET
+
+[FILES_BEGIN]
+[FILE] offensive_plays.pffdata
+[FILE] defensive_plays.pffdata
+[FILE] special_teams.pffdata
+[FILE] result_codes.pffdata
+[FILE] breakaway.pffdata
+[FILE] endurance.pffdata
+[FILE] fumble.pffdata
+[FILE] Injury_Chart.pffdata
+[FILE] interception_point.pffdata
+[FILE] interception_return.pffdata
+[FILE] penalty.pffdata
+[FILE] scramble.pffdata
+[FILE] solitaire_play_calling.pffdata
+[FILE] weather.pffdata
+[FILE] weather_turf_effects.pffdata
+[FILE] wild_play_kicking.pffdata
+[FILE] wild_play_passing.pffdata
+[FILE] wild_play_running.pffdata
+[FILES_END]
+
+[RULESET_END]
