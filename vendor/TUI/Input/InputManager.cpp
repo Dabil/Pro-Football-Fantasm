@@ -8,6 +8,10 @@ namespace Input
     {
         KeyCode mapVirtualKey(std::uint16_t virtualKey, char32_t character, const KeyModifiers& modifiers)
         {
+            // VT input commonly encodes Backspace as DEL, with no usable VK.
+            if (virtualKey == 0x08) return KeyCode::Backspace;
+            if (virtualKey == 0x2E) return KeyCode::Delete;
+            if (character == U'\x7F') return KeyCode::Backspace;
             if (character != U'\0')
             {
                 if (character == U' ')

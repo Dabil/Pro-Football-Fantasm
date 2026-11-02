@@ -1,4 +1,5 @@
 #include "Input/WindowsConsoleKeyboardSource.h"
+#include "Input/VtEditingKey.h"
 
 #define NOMINMAX
 #include <windows.h>
@@ -91,7 +92,11 @@ namespace Input
             return ch == L'A'
                 || ch == L'B'
                 || ch == L'C'
-                || ch == L'D';
+                || ch == L'D'
+                || ch == L'H'
+                || ch == L'F'
+                || ch == L'Z'
+                || ch == L'~';
         }
 
         bool isLikelyEscapeSequenceCharacter(wchar_t ch)
@@ -107,6 +112,9 @@ namespace Input
                 || ch == L'C'
                 || ch == L'D'
                 || ch == L'Z'
+                || ch == L'H'
+                || ch == L'F'
+                || ch == L'~'
                 || std::iswdigit(ch) != 0;
         }
 
@@ -263,6 +271,18 @@ namespace Input
                 {
                     const std::wstring& value = sequence.value();
 
+                    // Consume the entire numeric CSI key, including '~'.
+                    // Previously ESC [ 3 was dropped and '~' became text.
+                    const auto editingKey = Detail::vtEditingKey(value);
+                    if (editingKey)
+                    {
+                        RawKeyEvent raw;
+                        raw.virtualKey = editingKey;
+                        raw.modifiers = readModifiers(key.dwControlKeyState);
+                        raw.pressed = true;
+                        return RawInputEvent(raw);
+                    }
+
                     // SGR mouse: ESC [ < b ; x ; y M/m
                     if (value.size() >= 3
                         && value[0] == L'\x1B'
@@ -371,12 +391,17 @@ namespace Input
 
         HANDLE handle = static_cast<HANDLE>(m_inputHandle);
 
+        // VT bytes can arrive in adjacent console batches. Wait briefly for
+        // the remainder instead of leaking a late '~' into a text field.
+        const auto deadline = GetTickCount64() + 25;
         while (sequence.size() < 32)
         {
             DWORD eventCount = 0;
             if (!GetNumberOfConsoleInputEvents(handle, &eventCount) || eventCount == 0)
             {
-                break;
+                if (GetTickCount64() >= deadline) break;
+                Sleep(1);
+                continue;
             }
 
             INPUT_RECORD peek{};
@@ -388,7 +413,9 @@ namespace Input
 
             if (peek.EventType != KEY_EVENT || peek.Event.KeyEvent.bKeyDown == FALSE)
             {
-                break;
+                INPUT_RECORD skipped{}; DWORD count = 0;
+                if (!ReadConsoleInputW(handle, &skipped, 1, &count) || !count) break;
+                continue;
             }
 
             const wchar_t ch = peek.Event.KeyEvent.uChar.UnicodeChar;

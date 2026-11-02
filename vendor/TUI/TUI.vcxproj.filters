@@ -333,6 +333,9 @@
     <ClInclude Include="Input\WindowsConsoleKeyboardSource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Input\VtEditingKey.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Input\Command.h">
       <Filter>Header Files</Filter>
     </ClInclude>

@@ -166,6 +166,7 @@
     <ClInclude Include="Input\MouseEvent.h" />
     <ClInclude Include="Input\RawKeyboardSource.h" />
     <ClInclude Include="Input\WindowsConsoleKeyboardSource.h" />
+    <ClInclude Include="Input\VtEditingKey.h" />
     <ClInclude Include="Rendering\Backends\ConsoleCapabilityDetector.h" />
     <ClInclude Include="Rendering\Backends\RendererCapabilityDetector.h" />
     <ClInclude Include="Rendering\Backends\TerminalCapabilityDetector.h">
