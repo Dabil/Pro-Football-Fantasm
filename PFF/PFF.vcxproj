@@ -160,6 +160,9 @@
     <ClInclude Include="App\LoadedWorldContext.h" />
     <ClInclude Include="App\PFFApplication.h" />
     <ClInclude Include="Database\PFFDatabase.h" />
+    <ClInclude Include="Database\CoreManifest.h" />
+    <ClInclude Include="Database\LeagueSetup.h" />
+    <ClInclude Include="Database\PFFChartImport.inl" />
     <ClInclude Include="Database\PFFStandings.h" />
     <ClInclude Include="Screens\CommissionersOfficeScreen.h" />
     <ClInclude Include="Screens\Developer\RendererDiagnosticsScreen.h" />
@@ -179,6 +182,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="startup.config" />
+    <None Include="Database\CoreManifestTests.cpp" />
+    <None Include="Database\RunCoreManifestTests.cmd" />
     <None Include="Assets\XP\Field.xp" />
     <None Include="Assets\XP\ScoreBoard.xp" />
     <None Include="Assets\XP\ScoreBoardFont.xp" />

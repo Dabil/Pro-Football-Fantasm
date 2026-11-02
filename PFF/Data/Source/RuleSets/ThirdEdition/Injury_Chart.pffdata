@@ -1,0 +1,40 @@
+// Transcribed from ORIGINAL 1989 PFF rulebook scan, page 7: INJURY CHART.
+// IMPORTANT: the earlier Game_Charts.csv contains an incomplete 17-cell
+// injury transcription; this independent 20-result source supersedes it.
+
+// Key:
+// O: Out for rest of game
+// O#: Out for rest of game plus # of games more
+// H: Out for the rest of this half
+// Q: Out for the rest of this quarter
+// P: Out for the rest of this posession
+// D: Out for the rest of this series of downs (until the next 1st down)
+
+[INJURY_CHART_BEGIN]
+  [CHART_KEY]PFF_FE_INJURY
+  [SOURCE_REFERENCE]1989 original rulebook chart page 7
+  [DIE]ADJUSTED_20_D
+  [ADJUSTMENT]SUBTRACT_PLAYER_INJ_RATING
+  [MAX_GAMES_MISSED]PLAYER_INJ_RATING
+  [PROVENANCE]OFFICIAL_PFF_BASE
+  [OUTCOME_1]O4
+  [OUTCOME_2]O3
+  [OUTCOME_3]O2
+  [OUTCOME_4]O1
+  [OUTCOME_5]O1
+  [OUTCOME_6]O
+  [OUTCOME_7]O
+  [OUTCOME_8]O
+  [OUTCOME_9]H
+  [OUTCOME_10]H
+  [OUTCOME_11]H
+  [OUTCOME_12]Q
+  [OUTCOME_13]Q
+  [OUTCOME_14]Q
+  [OUTCOME_15]P
+  [OUTCOME_16]P
+  [OUTCOME_17]P
+  [OUTCOME_18]D
+  [OUTCOME_19]D
+  [OUTCOME_20]D
+[INJURY_CHART_END]

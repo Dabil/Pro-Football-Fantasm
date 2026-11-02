@@ -1,4 +1,5 @@
 #include "Database/PFFDatabase.h"
+#include "Database/CoreManifest.h"
 
 #include <sqlite3.h>
 
@@ -677,6 +678,8 @@ ON CONFLICT(RelativePath) DO UPDATE SET
         context.inserted();
     }
 
+    #include "Database/PFFChartImport.inl"
+
     std::uint64_t loadVenues(BuildContext& context,
         const std::filesystem::path& file)
     {
@@ -979,7 +982,7 @@ VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?);
                 fileSeason = parseInt(tag.value, file, tag.line, "SEASON");
                 if (fileSeason != requestedSeason)
                 {
-                    throw BuildException(
+                    context.diagnostic(DatabaseDiagnosticSeverity::Warning,
                         "League source season does not match build request.",
                         file,
                         tag.line);
@@ -1298,11 +1301,10 @@ VALUES(?, ?, ?);
                         sourceLine);
                 }
 
-                if (profile.ruleset.empty() ||
-                    profile.ruleset != "FirstEdition")
+                if (profile.ruleset.empty())
                 {
                     throw BuildException(
-                        "Player rating profile RULESET is missing or unsupported: " +
+                        "Player rating profile RULESET is missing: " +
                         profile.ruleset,
                         file,
                         sourceLine);
@@ -1796,7 +1798,7 @@ VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
                 if (season != requestedSeason)
                 {
-                    throw BuildException(
+                    context.diagnostic(DatabaseDiagnosticSeverity::Warning,
                         "Schedule season does not match build request.",
                         file,
                         tag.line);
@@ -2382,60 +2384,6 @@ VALUES(?, ?, ?, ?, ?, ?, ?, ?);
         return count;
     }
 
-    std::uint64_t tableCount(sqlite3* db, const char* table)
-    {
-        const std::string sql =
-            "SELECT COUNT(*) FROM " + std::string(table) + ";";
-
-        Statement statement(db, sql.c_str());
-
-        if (!statement.stepRow(db))
-        {
-            throw BuildException(
-                "COUNT query returned no row for table " +
-                std::string(table));
-        }
-
-        return static_cast<std::uint64_t>(
-            sqlite3_column_int64(statement.get(), 0));
-    }
-
-    void validateInitialCounts(BuildContext& context)
-    {
-        struct ExpectedCount
-        {
-            const char* table;
-            std::uint64_t expected;
-        };
-
-        const ExpectedCount counts[] =
-        {
-            { "Teams", 28 },
-            { "TeamSeasons", 28 },
-            { "Players", 1008 },
-            { "ScheduleGames", 233 },
-            { "OffensivePlays", 36 },
-            { "OffensivePlayMatchups", 720 },
-            { "OffensivePlayOutcomes", 7200 },
-            { "DefensivePlays", 12 }
-        };
-
-        for (const ExpectedCount& expected : counts)
-        {
-            const std::uint64_t actual =
-                tableCount(context.db, expected.table);
-
-            if (actual != expected.expected)
-            {
-                throw BuildException(
-                    std::string("Initial package count validation failed for ") +
-                    expected.table + ": expected " +
-                    std::to_string(expected.expected) +
-                    ", found " + std::to_string(actual) + ".");
-            }
-        }
-    }
-
     void validateDatabase(sqlite3* db)
     {
         {
@@ -2703,15 +2651,85 @@ const std::string& Database::lastError() const noexcept
 // -----------------------------------------------------------------------------
 
 CoreDatabaseBuildResult createCoreDatabaseFromSource(
-    const CoreDatabaseBuildRequest& request)
+    const CoreDatabaseBuildRequest& inputRequest)
 {
+    CoreDatabaseBuildRequest request = inputRequest;
     CoreDatabaseBuildResult result;
     result.databasePath = request.outputDatabase;
 
     std::filesystem::path temporaryDatabase;
+    std::filesystem::path temporaryDirectory;
 
     try
     {
+        std::vector<CoreManifest::Package> packages;
+        std::map<std::string, std::filesystem::path> selectedFiles;
+        std::vector<std::pair<std::filesystem::path, std::string>> sourceBytes;
+        const bool manifestMode = !request.rulesetManifest.empty() || !request.seasonManifest.empty();
+        if (manifestMode)
+        {
+            packages.push_back(CoreManifest::read(request.rulesetManifest, "RULESET"));
+            packages.push_back(CoreManifest::read(request.seasonManifest, "SEASON"));
+            if (packages[0].key == packages[1].key)
+                throw BuildException("Duplicate package identity: " + packages[0].key);
+            request.season = packages[1].year;
+            // These are the source families implemented by this builder, not a
+            // promise that other editions or historical seasons are supported.
+            const std::set<std::string> rulesetFiles{
+                "result_codes.pffdata", "offensive_plays.pffdata", "defensive_plays.pffdata" };
+            const std::set<std::string> seasonFiles{
+                "venues.pffdata", "venue_aliases.pffdata", "league_structure.pffdata",
+                "players.pffdata", "basic_offensive_unit_ratings.pffdata",
+                "basic_defensive_unit_ratings.pffdata", "schedule.pffdata" };
+            bool unsupported = false;
+            for (std::size_t i = 0; i < packages.size(); ++i)
+            {
+                const auto& package = packages[i];
+                sourceBytes.emplace_back(package.path, CoreManifest::bytes(package.path));
+                for (const auto& file : package.files)
+                {
+                    const auto name = file.filename().u8string();
+                    if (!(i == 0 ? rulesetFiles : seasonFiles).count(name) &&
+                        !(i == 0 && chartFormats().count(name)))
+                    {
+                        result.diagnostics.push_back({ DatabaseDiagnosticSeverity::Error,
+                            "No importer is available for this source. Install an importer before building.", file, 0 });
+                        unsupported = true;
+                    }
+                    if (!selectedFiles.emplace(name, file).second)
+                        throw BuildException("Conflicting source filename: " + name, file);
+                    sourceBytes.emplace_back(file, CoreManifest::bytes(file));
+                }
+                for (const auto& name : (i == 0 ? rulesetFiles : seasonFiles))
+                    if (!selectedFiles.count(name))
+                        throw BuildException("Required importer input is absent from manifest: " + name, package.path);
+            }
+            if (unsupported) return result;
+            // Obtain the rules identity from authored data, independently of
+            // the output basename and package directory/display name.
+            request.ruleSet.clear();
+            for (const auto& tag : readTaggedFile(selectedFiles.at("basic_offensive_unit_ratings.pffdata")))
+                if (tag.tag == "RULESET") request.ruleSet = tag.value;
+            for (const auto& file : selectedFiles)
+            {
+                if (chartFormats().count(file.first)) continue;
+                bool rulesetWarning = false, seasonWarning = false;
+                for (const auto& tag : readTaggedFile(file.second))
+                {
+                    if (tag.tag == "RULESET" && tag.value != request.ruleSet && !rulesetWarning)
+                    { rulesetWarning = true;
+                        result.diagnostics.push_back({DatabaseDiagnosticSeverity::Warning,
+                            "Source RULESET differs from the build binding; source values are preserved.", file.second, tag.line}); }
+                    if (tag.tag == "SEASON" && tag.value != std::to_string(request.season) && !seasonWarning)
+                    { seasonWarning = true;
+                        result.diagnostics.push_back({DatabaseDiagnosticSeverity::Warning,
+                            "Source SEASON differs from the manifest; source values are preserved.", file.second, tag.line}); }
+                }
+            }
+            if (CoreManifest::basenameError(request.outputDatabase.stem().u8string()).size() ||
+                request.outputDatabase.extension() != ".db")
+                throw BuildException("Invalid Core database basename or extension.");
+        }
         if (request.sourceRoot.empty())
         {
             throw BuildException("sourceRoot is required.");
@@ -2739,12 +2757,12 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
                 pathUtf8(request.sourceRoot));
         }
 
-        const std::filesystem::path rulesetDirectory =
+        const std::filesystem::path rulesetDirectory = manifestMode ? packages[0].path.parent_path() :
             request.sourceRoot /
             "RuleSets" /
             request.ruleSet;
 
-        const std::filesystem::path seasonDirectory =
+        const std::filesystem::path seasonDirectory = manifestMode ? packages[1].path.parent_path() :
             request.sourceRoot /
             "Seasons" /
             std::to_string(request.season);
@@ -2779,12 +2797,15 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
             std::filesystem::create_directories(parent);
         }
 
-        temporaryDatabase = request.outputDatabase;
-        temporaryDatabase += ".building";
-
         {
+            auto reservation = request.outputDatabase;
+            reservation += ".building";
             std::error_code ec;
-            std::filesystem::remove(temporaryDatabase, ec);
+            if (!std::filesystem::create_directory(reservation, ec))
+                throw BuildException("Cannot reserve temporary build directory; choose another name: " +
+                    pathUtf8(reservation) + (ec ? " (" + ec.message() + ")" : ""));
+            temporaryDirectory = reservation;
+            temporaryDatabase = reservation / "Core.db";
         }
 
         Database database;
@@ -2813,9 +2834,25 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
         try
         {
             createSchema(db);
+            createChartSchema(db);
+            insertMetadata(db, context, "ChartImportSchemaVersion", "1");
+            insertMetadata(db, context, "ChartExecutionReadiness", "NOT_CERTIFIED");
 
             insertMetadata(db, context, "CoreSchemaVersion", "1");
             insertMetadata(db, context, "Ruleset", request.ruleSet);
+            for (std::size_t i = 0; i < packages.size(); ++i)
+            {
+                const auto prefix = "ManifestPackage." + std::to_string(i) + ".";
+                insertMetadata(db, context, prefix + "Key", packages[i].key);
+                insertMetadata(db, context, prefix + "Version", packages[i].version);
+                insertMetadata(db, context, prefix + "Path", pathUtf8(std::filesystem::relative(packages[i].path, request.sourceRoot)));
+            }
+            for (std::size_t i = 0; i < sourceBytes.size(); ++i)
+            {
+                const auto prefix = "ManifestSource." + std::to_string(i) + ".";
+                insertMetadata(db, context, prefix + "Path", pathUtf8(std::filesystem::relative(sourceBytes[i].first, request.sourceRoot)));
+                insertMetadata(db, context, prefix + "FNV1a64SourceBytes", CoreManifest::checksum(sourceBytes[i].second));
+            }
             insertMetadata(
                 db,
                 context,
@@ -2835,51 +2872,54 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
             context.rulesetId =
                 insertRuleset(context, request.ruleSet);
 
+            auto selectedFile = [&](const std::filesystem::path& directory, const std::string& name) {
+                return manifestMode ? selectedFiles.at(name) : requireFile(directory, name.c_str());
+            };
             const std::filesystem::path venues =
-                requireFile(seasonDirectory, "venues.pffdata");
+                selectedFile(seasonDirectory, "venues.pffdata");
 
             const std::filesystem::path venueAliases =
-                requireFile(
+                selectedFile(
                     seasonDirectory,
                     "venue_aliases.pffdata");
 
             const std::filesystem::path league =
-                requireFile(
+                selectedFile(
                     seasonDirectory,
                     "league_structure.pffdata");
 
             const std::filesystem::path players =
-                requireFile(
+                selectedFile(
                     seasonDirectory,
                     "players.pffdata");
 
             const std::filesystem::path offensiveUnitRatings =
-                requireFile(
+                selectedFile(
                     seasonDirectory,
                     "basic_offensive_unit_ratings.pffdata");
 
             const std::filesystem::path defensiveUnitRatings =
-                requireFile(
+                selectedFile(
                     seasonDirectory,
                     "basic_defensive_unit_ratings.pffdata");
 
             const std::filesystem::path schedule =
-                requireFile(
+                selectedFile(
                     seasonDirectory,
                     "schedule.pffdata");
 
             const std::filesystem::path resultCodes =
-                requireFile(
+                selectedFile(
                     rulesetDirectory,
                     "result_codes.pffdata");
 
             const std::filesystem::path offensivePlays =
-                requireFile(
+                selectedFile(
                     rulesetDirectory,
                     "offensive_plays.pffdata");
 
             const std::filesystem::path defensivePlays =
-                requireFile(
+                selectedFile(
                     rulesetDirectory,
                     "defensive_plays.pffdata");
 
@@ -3001,6 +3041,18 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
                     return loadDefensivePlays(context, file);
                 });
 
+            if (manifestMode)
+            {
+                for (const auto& file : packages[0].files)
+                {
+                    const auto format = chartFormats().find(file.filename().u8string());
+                    if (format == chartFormats().end()) continue;
+                    loadAndRegister(file, format->second.family, [&](const auto& path) {
+                        return loadChartPackage(context, path, format->second);
+                    });
+                }
+            }
+
             // Discover all remaining source files. They are recorded and
             // explicitly reported rather than silently skipped.
             const std::unordered_map<std::string, bool> supportedRulesetFiles =
@@ -3057,25 +3109,55 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
                     }
                 };
 
-            discoverUnsupported(
+            if (!manifestMode) discoverUnsupported(
                 rulesetDirectory,
                 supportedRulesetFiles);
 
-            discoverUnsupported(
+            if (!manifestMode) discoverUnsupported(
                 seasonDirectory,
                 supportedSeasonFiles);
 
-            validateInitialCounts(context);
             validateDatabase(db);
+            context.diagnostic(DatabaseDiagnosticSeverity::Info,
+                "foreign_key_check and integrity_check passed. Historical package counts are not enforced.");
+
+            // Persist only actual warnings from this build. Older Cores without
+            // this marker have unknown warning history, not a clean bill of health.
+            std::size_t warningCount = 0;
+            for (const auto& diagnostic : result.diagnostics)
+            {
+                if (diagnostic.severity != DatabaseDiagnosticSeverity::Warning) continue;
+                const auto prefix = "BuildWarning." + std::to_string(warningCount++) + ".";
+                insertMetadata(db, context, prefix + "Message", diagnostic.message);
+                insertMetadata(db, context, prefix + "File", diagnostic.sourceFile.empty() ? std::string{} :
+                    pathUtf8(std::filesystem::relative(diagnostic.sourceFile, request.sourceRoot)));
+                insertMetadata(db, context, prefix + "Line", std::to_string(diagnostic.sourceLine));
+            }
+            insertMetadata(db, context, "BuildWarningCount", std::to_string(warningCount));
 
             exec(db, "COMMIT;");
 
             database.close();
 
-            publishDatabase(
+            for (const auto& source : sourceBytes)
+                if (CoreManifest::bytes(source.first) != source.second)
+                    throw BuildException("Source changed during validation/build; review again.", source.first);
+
+            if (request.validateOnly)
+                std::filesystem::remove(temporaryDatabase);
+            else publishDatabase(
                 temporaryDatabase,
                 request.outputDatabase,
                 request.overwriteExisting);
+
+            std::error_code cleanupError;
+            std::filesystem::remove(temporaryDirectory, cleanupError);
+            if (cleanupError)
+                context.diagnostic(DatabaseDiagnosticSeverity::Warning,
+                    "Build completed, but temporary directory cleanup needs attention: " + cleanupError.message(),
+                    temporaryDirectory);
+            temporaryDatabase.clear();
+            temporaryDirectory.clear();
 
             result.success = true;
             result.databasePath = request.outputDatabase;
@@ -3083,7 +3165,8 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
             result.diagnostics.push_back(
                 {
                     DatabaseDiagnosticSeverity::Info,
-                    "Core database build completed successfully.",
+                    request.validateOnly ? "Validation passed; no Core was published. Simulation readiness is not certified." :
+                        "Core database build completed successfully. Simulation readiness is not certified.",
                     request.outputDatabase,
                     0
                 });
@@ -3092,7 +3175,7 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
         {
             try
             {
-                exec(db, "ROLLBACK;");
+                if (database.isOpen()) exec(db, "ROLLBACK;");
             }
             catch (...)
             {
@@ -3117,6 +3200,7 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
         {
             std::error_code ec;
             std::filesystem::remove(temporaryDatabase, ec);
+            if (!temporaryDirectory.empty()) std::filesystem::remove(temporaryDirectory, ec);
         }
 
         result.success = false;
@@ -3135,6 +3219,7 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
         {
             std::error_code ec;
             std::filesystem::remove(temporaryDatabase, ec);
+            if (!temporaryDirectory.empty()) std::filesystem::remove(temporaryDirectory, ec);
         }
 
         result.success = false;

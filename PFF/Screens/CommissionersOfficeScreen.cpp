@@ -63,12 +63,72 @@ void CommissionersOfficeScreen::onEnter()
 
 void CommissionersOfficeScreen::onExit()
 {
+    closeLeagueSetup();
+    closeCoreBuild();
     m_CommissionersOfficeTitleObject.clear();
     cancelLoadLeagueSelection();
 }
 
 bool CommissionersOfficeScreen::handleEvent(const Input::Event& event)
 {
+    if (m_leagueStage != LeagueStage::Closed)
+    {
+        if (const auto* command=event.asCommand())
+        {
+            const auto code=command->command.code;
+            if(code==Input::CommandCode::Cancel || code==Input::CommandCode::Back || code==Input::CommandCode::Close)
+            {
+                if(m_coreChoicesOpen) {m_coreChoicesOpen=false; m_coreChoices->setVisible(false); m_coreChoices->setEnabled(false); m_leagueRoot.setFocusedChild(*m_coreSelector);}
+                else closeLeagueSetup();
+                return true;
+            }
+            if(m_coreChoicesOpen && code==Input::CommandCode::Confirm) {selectLeagueCore();return true;}
+            if(!m_coreChoicesOpen && code==Input::CommandCode::Confirm)
+            {if(auto* focus=m_leagueRoot.focusedChild()) focus->handleEvent(event);return true;}
+        }
+        if(m_coreChoicesOpen)
+        {
+            const bool handled=m_coreChoices->handleEvent(event);
+            if(const auto* mouse=event.asMouse())
+                if(handled && mouse->button==Input::MouseButton::Left && (mouse->isPress()||mouse->isClick())) selectLeagueCore();
+            return handled;
+        }
+        return m_leagueRoot.handleEvent(event);
+    }
+    if (m_coreStage != CoreStage::Closed)
+    {
+        if (const auto* command = event.asCommand())
+        {
+            const auto code = command->command.code;
+            if (code == Input::CommandCode::Cancel || code == Input::CommandCode::Close || code == Input::CommandCode::Back)
+            {
+                if (m_openDropdown) closePackageDropdown(false);
+                else if (m_coreStage == CoreStage::Configure || m_coreStage == CoreStage::Result) closeCoreBuild();
+                return true;
+            }
+            if (m_openDropdown && code == Input::CommandCode::Confirm)
+            { closePackageDropdown(true); return true; }
+            if (code == Input::CommandCode::Refresh && m_coreStage == CoreStage::Configure)
+            { reloadCorePackages(); return true; }
+        }
+        if (m_openDropdown)
+        {
+            const bool handled = m_packageList->handleEvent(event);
+            if (const auto* mouse = event.asMouse())
+                if (mouse->button == Input::MouseButton::Left && (mouse->isPress() || mouse->isClick()) && handled)
+                    closePackageDropdown(true);
+            return handled;
+        }
+        // ContainerWidget offers unhandled commands to other children. A
+        // review-list Confirm must not activate an unrelated action button.
+        if (const auto* command = event.asCommand())
+            if (command->command.code == Input::CommandCode::Confirm)
+            {
+                if (auto* focused = m_coreRoot.focusedChild()) focused->handleEvent(event);
+                return true;
+            }
+        return m_coreRoot.handleEvent(event);
+    }
     // While the league list owns focus, Enter/Space means "load the selected
     // league" rather than merely changing ListBox selection.
     if (m_loadLeagueSelectionActive)
@@ -95,7 +155,41 @@ bool CommissionersOfficeScreen::handleEvent(const Input::Event& event)
 
 void CommissionersOfficeScreen::update(const Animation::TickEvent& event)
 {
-    m_root.update(event);
+    if(m_leagueCreation.valid() && m_leagueCreation.wait_for(std::chrono::seconds(0))==std::future_status::ready)
+    {
+        m_leagueMessages.clear();
+        try
+        {
+            const auto result=m_leagueCreation.get();
+            m_leagueMessages.push_back(result.success?"SUCCESS: League created at "+result.databasePath.u8string():"League creation failed; existing saves are unchanged.");
+            for(const auto& diagnostic:result.diagnostics) m_leagueMessages.push_back(diagnostic.message);
+            if(result.success)
+            {
+                m_leagueMessages.push_back("Preserved Core: "+result.coreSnapshotPath.u8string());
+                m_leagueMessages.push_back("Snapshot SHA-256: "+result.coreSnapshotFileHash);
+                if(!m_loadLeagueCallback || !m_loadLeagueCallback(result.databasePath))
+                    m_leagueMessages.push_back("The league was saved but could not be loaded. Use Load League to retry.");
+                else m_leagueMessages.push_back("League loaded.");
+            }
+        }
+        catch(const std::exception& ex){m_leagueMessages.push_back(ex.what());}
+        m_leagueStage=LeagueStage::Result; m_leagueDetailsKey.clear();
+        m_cancelLeague->setVisible(true); m_cancelLeague->setEnabled(true); m_cancelLeague->setLabel("Continue");
+        m_leagueRoot.setFocusedChild(*m_cancelLeague);
+    }
+    if(m_leagueStage!=LeagueStage::Closed) {m_leagueRoot.update(event);return;}
+    if (m_coreBuildTask.valid() && m_coreBuildTask.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+    {
+        try { finishCoreBuild(m_coreBuildTask.get()); }
+        catch (const std::exception& ex)
+        {
+            CoreDatabaseBuildResult result;
+            result.diagnostics.push_back({DatabaseDiagnosticSeverity::Error, ex.what(), {}, 0});
+            finishCoreBuild(std::move(result));
+        }
+    }
+    if (m_coreStage != CoreStage::Closed) m_coreRoot.update(event);
+    else m_root.update(event);
 }
 
 void CommissionersOfficeScreen::draw(Surface& surface)
@@ -158,6 +252,20 @@ void CommissionersOfficeScreen::draw(Surface& surface)
         "TitleArea",
         Composition::Align::center());
 
+    if (m_leagueStage != LeagueStage::Closed)
+    {
+        drawLeagueSetup(page,controlPane);
+        m_leagueRoot.draw(surface);
+        return;
+    }
+
+    if (m_coreStage != CoreStage::Closed)
+    {
+        drawCoreBuild(page, controlPane);
+        m_coreRoot.draw(surface);
+        return;
+    }
+
     if (m_loadLeagueSelectionActive)
     {
         drawLoadLeagueSelection(page);
@@ -188,6 +296,74 @@ void CommissionersOfficeScreen::draw(Surface& surface)
 
 void CommissionersOfficeScreen::buildWidgets()
 {
+    auto leagueName=std::make_unique<TextInput>();
+    leagueName->setMaxLength(64); leagueName->setPlaceholder("Enter league name (spaces allowed)");
+    leagueName->setNormalStyle(PFF_Colors::TextHighlightColor); leagueName->setFocusedStyle(PFF_Colors::ButtonHoverColor);
+    leagueName->setPlaceholderStyle(PFF_Colors::TextHighlightColor);
+    m_leagueName=leagueName.get(); m_leagueRoot.addChild(std::move(leagueName));
+    auto leagueButton=[this](const std::string& label,auto callback) {
+        auto button=std::make_unique<Button>(label);
+        button->setNormalStyle(PFF_Colors::ButtonNormalColor); button->setFocusedStyle(PFF_Colors::ButtonHoverColor);
+        button->setHoverStyle(PFF_Colors::ButtonHoverColor); button->setPressedStyle(PFF_Colors::ButtonPressedColor);
+        button->setActivationCallback([callback](const ButtonActivationResult& result){if(result.activated) callback();});
+        auto* pointer=button.get();m_leagueRoot.addChild(std::move(button));return pointer;
+    };
+    m_coreSelector=leagueButton("Select Core Database v",[this] {
+        if(m_installedCores.empty()) return;
+        m_coreChoicesOpen=true; m_coreChoices->setVisible(true);m_coreChoices->setEnabled(true);
+        m_coreChoices->selectIndex(m_chosenCore);m_leagueRoot.setFocusedChild(*m_coreChoices);
+    });
+    m_createLeague=leagueButton("Create League",[this]{createSelectedLeague();});
+    m_cancelLeague=leagueButton("Cancel",[this]{closeLeagueSetup();});
+    auto leagueList=[this] {
+        auto list=std::make_unique<ListBox>();
+        list->setNormalStyle(PFF_Colors::TextHighlightColor);list->setFocusedStyle(PFF_Colors::TextHighlightColor);
+        list->setSelectedStyle(PFF_Colors::ButtonNormalColor);list->setSelectedFocusedStyle(PFF_Colors::ButtonHoverColor);
+        list->setVerticalScrollbarVisible(true);auto* ptr=list.get();m_leagueRoot.addChild(std::move(list));return ptr;
+    };
+    m_leagueDetails=leagueList();m_existingSaves=leagueList();m_coreChoices=leagueList();
+    auto name = std::make_unique<TextInput>();
+    name->setPlaceholder("Enter database name");
+    name->setMaxLength(64);
+    m_coreName = name.get();
+    m_coreRoot.addChild(std::move(name));
+    auto addButton = [this](const std::string& label, auto callback) {
+        auto button = std::make_unique<Button>(label);
+        button->setActivationCallback([callback](const ButtonActivationResult& result) {
+            if (result.activated) callback();
+        });
+        button->setNormalStyle(PFF_Colors::ButtonNormalColor);
+        button->setFocusedStyle(PFF_Colors::ButtonHoverColor);
+        button->setHoverStyle(PFF_Colors::ButtonHoverColor);
+        button->setPressedStyle(PFF_Colors::ButtonPressedColor);
+        auto* ptr = button.get();
+        m_coreRoot.addChild(std::move(button));
+        return ptr;
+    };
+    m_rulesetDropdown = addButton("Select ruleset v", [this] { openPackageDropdown(true); });
+    m_seasonDropdown = addButton("Select season v", [this] { openPackageDropdown(false); });
+    m_coreBuildButton = addButton("Build Core Database", [this] { buildCoreDatabase(); });
+    m_reloadPackages = addButton("Reload Packages", [this] { reloadCorePackages(); });
+    m_coreBack = addButton("Cancel", [this] {
+        if (m_coreStage == CoreStage::Configure || m_coreStage == CoreStage::Result) closeCoreBuild();
+    });
+    auto messages = std::make_unique<ListBox>();
+    m_buildMessages = messages.get();
+    m_coreRoot.addChild(std::move(messages));
+    auto packageList = std::make_unique<ListBox>();
+    m_packageList = packageList.get();
+    m_coreRoot.addChild(std::move(packageList));
+    m_coreName->setNormalStyle(PFF_Colors::TextHighlightColor);
+    m_coreName->setFocusedStyle(PFF_Colors::ButtonHoverColor);
+    m_coreName->setPlaceholderStyle(PFF_Colors::TextHighlightColor);
+    for (auto* list : {m_packageList, m_buildMessages})
+    {
+        list->setNormalStyle(PFF_Colors::TextHighlightColor);
+        list->setFocusedStyle(PFF_Colors::TextHighlightColor);
+        list->setSelectedStyle(PFF_Colors::ButtonNormalColor);
+        list->setSelectedFocusedStyle(PFF_Colors::ButtonHoverColor);
+        list->setVerticalScrollbarVisible(true);
+    }
     auto buildCoreDbButton = std::make_unique<Button>(
         Rect{ Point{ 0, 0 }, Size{ 28, 3 } },
         "Build Core DB",
@@ -355,24 +531,13 @@ void CommissionersOfficeScreen::handleButtonActivation(
 
     if (result.commandId == BuildCoreDbCommand)
     {
-        buildCoreDatabase();
+        beginCoreBuild();
         return;
     }
 
     if (result.commandId == NewLeagueCommand)
     {
-        // If the user starts creating a new league while the load chooser is
-        // open, leave selection mode first.
-        if (m_loadLeagueSelectionActive)
-        {
-            cancelLoadLeagueSelection();
-        }
-
-        if (m_commandDispatcher)
-        {
-            m_commandDispatcher(result.commandId);
-        }
-
+        beginLeagueSetup();
         return;
     }
 
@@ -398,14 +563,354 @@ void CommissionersOfficeScreen::handleButtonActivation(
 
 void CommissionersOfficeScreen::buildCoreDatabase()
 {
-    CoreDatabaseBuildRequest request;
-    request.sourceRoot = std::filesystem::path("Data") / "Source";
-    request.ruleSet = "FirstEdition";
-    request.season = 1989;
-    request.outputDatabase = std::filesystem::path("Data") / "1989_PFF_Core.db";
-    request.overwriteExisting = true;
+    if (m_coreStage != CoreStage::Configure || m_coreBuildTask.valid()) return;
+    clearCoreMessages();
+    m_coreStage = CoreStage::Building;
+    // Hide actions immediately, including before the next frame is drawn.
+    for (auto* widget : std::vector<Widget*>{m_coreName, m_rulesetDropdown, m_seasonDropdown,
+        m_coreBuildButton, m_reloadPackages, m_coreBack, m_packageList})
+    { widget->setVisible(false); widget->setEnabled(false); }
+    m_buildMessages->setVisible(true);
+    m_buildMessages->setEnabled(true);
+    m_coreRoot.setFocusedChild(*m_buildMessages);
+    try
+    {
+        const auto error = CoreManifest::basenameError(m_coreName->text());
+        if (!error.empty()) throw std::runtime_error(error);
+        if (m_rulesets.empty() || m_seasons.empty())
+            throw std::runtime_error("Install a valid ruleset and season, then reopen Build Core DB.");
+        CoreDatabaseBuildRequest request;
+        request.sourceRoot = std::filesystem::path("Data") / "Source";
+        request.rulesetManifest = m_rulesets.at(m_selectedRuleset).path;
+        request.seasonManifest = m_seasons.at(m_selectedSeason).path;
+        request.outputDatabase = std::filesystem::path("Data") / (m_coreName->text() + ".db");
+        addCoreMessage("Database: " + request.outputDatabase.u8string());
+        addCoreMessage("Ruleset: " + m_rulesets.at(m_selectedRuleset).displayName);
+        addCoreMessage("Season: " + m_seasons.at(m_selectedSeason).displayName);
+        addCoreMessage("Building Core database. Please wait...");
+        for (const auto& message : m_discoveryMessages) addCoreMessage("WARNING: " + message);
+        // The worker owns only a request copy. Widgets and presentation state
+        // stay on the UI thread; the shared builder validates and publishes once.
+        m_coreBuildTask = std::async(std::launch::async, [request] {
+            return createCoreDatabaseFromSource(request);
+        });
+    }
+    catch (const std::exception& ex)
+    {
+        CoreDatabaseBuildResult result;
+        result.diagnostics.push_back({DatabaseDiagnosticSeverity::Error, ex.what(), {}, 0});
+        finishCoreBuild(std::move(result));
+    }
+}
 
-    (void)createCoreDatabaseFromSource(request);
+void CommissionersOfficeScreen::finishCoreBuild(CoreDatabaseBuildResult result)
+{
+    clearCoreMessages();
+    addCoreMessage(result.success ? "SUCCESS: " + result.databasePath.u8string() : "BUILD FAILED: existing Core preserved.");
+    addCoreMessage("Imported files: " + std::to_string(result.filesProcessed) +
+        "; inserted records: " + std::to_string(result.recordsInserted));
+    for (const auto& diagnostic : result.diagnostics)
+    {
+        const auto prefix = diagnostic.severity == DatabaseDiagnosticSeverity::Error ? "ERROR: " :
+            diagnostic.severity == DatabaseDiagnosticSeverity::Warning ? "WARNING: " : "OK: ";
+        addCoreMessage(prefix + diagnostic.message + " Source: " + diagnostic.sourceFile.u8string() + ":" +
+            std::to_string(diagnostic.sourceLine));
+    }
+    m_coreStage = CoreStage::Result;
+    m_coreBack->setLabel("Continue");
+    m_coreBack->setVisible(true);
+    m_coreBack->setEnabled(true);
+    m_coreRoot.setFocusedChild(*m_coreBack);
+}
+
+void CommissionersOfficeScreen::beginCoreBuild()
+{
+    cancelLoadLeagueSelection();
+    m_coreStage = CoreStage::Configure;
+    reloadCorePackages();
+    m_coreRoot.setFocusedChild(*m_coreName);
+}
+
+void CommissionersOfficeScreen::closeCoreBuild()
+{
+    if (m_coreBuildTask.valid()) return;
+    m_coreStage = CoreStage::Closed;
+    m_openDropdown = 0;
+    m_coreName->clear();
+    m_rulesets.clear();
+    m_seasons.clear();
+    m_discoveryMessages.clear();
+    clearCoreMessages();
+    m_coreRoot.clearChildFocus();
+    if (m_buildCoreDbButton) m_root.setFocusedChild(*m_buildCoreDbButton);
+}
+
+void CommissionersOfficeScreen::reloadCorePackages()
+{
+    m_openDropdown = 0;
+    m_discoveryMessages.clear();
+    const auto root = std::filesystem::path("Data") / "Source";
+    m_rulesets = CoreManifest::discover(root / "RuleSets", ".pffruleset", "RULESET", m_discoveryMessages);
+    m_seasons = CoreManifest::discover(root / "Seasons", ".pffseason", "SEASON", m_discoveryMessages);
+    // v0.1 defines no add-on compatibility grammar or importers. Do not
+    // infer compatibility or offer checkboxes for unsupported packages.
+    try {
+        if (std::filesystem::exists(root / "AddOns"))
+            for (const auto& entry : std::filesystem::recursive_directory_iterator(root / "AddOns"))
+                if (entry.is_regular_file() && entry.path().extension() == ".pffaddon")
+                    m_discoveryMessages.push_back("Unsupported add-on (not selectable): " + entry.path().u8string());
+    }
+    catch (const std::exception& ex) { m_discoveryMessages.push_back(ex.what()); }
+    m_selectedRuleset = m_selectedSeason = 0;
+    refreshCoreLabels();
+}
+
+void CommissionersOfficeScreen::refreshCoreLabels()
+{
+    m_rulesetDropdown->setLabel(m_rulesets.empty() ? "No valid rulesets installed" : m_rulesets[m_selectedRuleset].displayName + " v");
+    m_seasonDropdown->setLabel(m_seasons.empty() ? "No valid seasons installed" : m_seasons[m_selectedSeason].displayName + " v");
+}
+
+void CommissionersOfficeScreen::openPackageDropdown(bool ruleset)
+{
+    const auto& packages = ruleset ? m_rulesets : m_seasons;
+    if (packages.empty()) return;
+    m_openDropdown = ruleset ? 1 : 2;
+    m_packageList->clearItems();
+    for (const auto& package : packages)
+        m_packageList->addItem(package.displayName + " [" + package.key + " @ " + package.version + "]");
+    m_packageList->selectIndex(ruleset ? m_selectedRuleset : m_selectedSeason);
+    m_packageList->setVisible(true);
+    m_packageList->setEnabled(true);
+    m_coreRoot.setFocusedChild(*m_packageList);
+}
+
+void CommissionersOfficeScreen::closePackageDropdown(bool accept)
+{
+    const bool ruleset = m_openDropdown == 1;
+    if (accept && m_packageList->selectedIndex())
+    {
+        (ruleset ? m_selectedRuleset : m_selectedSeason) = *m_packageList->selectedIndex();
+    }
+    m_openDropdown = 0;
+    m_packageList->setVisible(false);
+    m_packageList->setEnabled(false);
+    refreshCoreLabels();
+    m_coreRoot.setFocusedChild(ruleset ? *m_rulesetDropdown : *m_seasonDropdown);
+}
+
+void CommissionersOfficeScreen::clearCoreMessages()
+{
+    m_coreMessages.clear();
+    m_buildMessages->clearItems();
+    m_coreMessageWidth = -1;
+}
+
+void CommissionersOfficeScreen::addCoreMessage(const std::string& message)
+{
+    m_coreMessages.push_back(message);
+    m_coreMessageWidth = -1;
+}
+
+void CommissionersOfficeScreen::wrapCoreMessages(int width)
+{
+    width = std::max(1, width - 1); // reserve the list scrollbar column
+    if (width == m_coreMessageWidth) return;
+    m_coreMessageWidth = width;
+    m_buildMessages->clearItems();
+    for (const auto& message : m_coreMessages)
+    {
+        std::u32string line;
+        int used = 0;
+        for (const auto& cluster : GraphemeSegmentation::segment(UnicodeConversion::utf8ToU32(message)))
+        {
+            const int size = std::max(0, static_cast<int>(cluster.displayWidth));
+            if (used + size > width && !line.empty())
+            { m_buildMessages->addItem(UnicodeConversion::u32ToUtf8(line)); line.clear(); used = 0; }
+            line += cluster.codePoints;
+            used += size;
+        }
+        m_buildMessages->addItem(UnicodeConversion::u32ToUtf8(line));
+    }
+}
+
+void CommissionersOfficeScreen::drawCoreBuild(PageComposer& page, const Rect& controls)
+{
+    const bool configure = m_coreStage == CoreStage::Configure;
+    page.drawPanel("LeaguePanel", PFF_Colors::MainBackgroundColor,
+        PFF_Colors::MainBorderColor, ObjectFactory::singleLineBorder());
+    page.writePanelTitle("LeaguePanel", configure ? " BUILD CORE DATABASE " : " REVIEW CORE DATABASE BUILD ",
+        PFF_Colors::TextHighlightColor, 3, 1);
+    const auto content = page.resolveRegion("LeagueContent");
+    m_coreRoot.setBounds(page.resolveRegion("Body"));
+    auto show = [](Widget* widget, bool visible) { widget->setVisible(visible); widget->setEnabled(visible); };
+    for (auto* widget : std::vector<Widget*>{m_coreName, m_rulesetDropdown, m_seasonDropdown, m_coreBuildButton, m_reloadPackages})
+        show(widget, configure);
+    show(m_coreBack, m_coreStage != CoreStage::Building);
+    m_coreBack->setLabel(configure ? "Cancel" : "Continue");
+    show(m_buildMessages, !configure);
+    show(m_packageList, configure && m_openDropdown != 0);
+    if (!m_coreRoot.focusedChild() || !m_coreRoot.focusedChild()->canReceiveFocus())
+        m_coreRoot.setFocusedChild(configure ? static_cast<Widget&>(*m_coreName) : static_cast<Widget&>(*m_buildMessages));
+    auto field = [&](Widget* widget, int row, int height) {
+        widget->setBounds(Rect{Point{content.position.x, content.position.y + row},
+            Size{std::max(0, content.size.width), std::max(0, std::min(height, content.size.height - row))}});
+    };
+    field(m_coreName, 1, 1);
+    field(m_rulesetDropdown, 5, 3);
+    field(m_seasonDropdown, 9, 3);
+    field(m_buildMessages, 0, content.size.height);
+    if (!configure) wrapCoreMessages(content.size.width);
+    field(m_packageList, m_openDropdown == 1 ? 5 : 9, 8);
+    auto action = [&](Button* button, int row) {
+        button->setBounds(Rect{Point{controls.position.x + 1, controls.position.y + row},
+            Size{std::max(0, controls.size.width - 2), 3}});
+    };
+    action(m_coreBuildButton, 5);
+    action(m_reloadPackages, 10); action(m_coreBack, m_coreStage == CoreStage::Result ? 5 : 15);
+    if (configure)
+    {
+        auto line = [&](int row, const std::string& text) {
+            if (row < content.size.height) page.writeLine("LeagueContent", row,
+                TextClip::clipUtf8Text(text, content.size.width), PFF_Colors::TextHighlightColor);
+        };
+        line(0, "Core Database Name");
+        line(2, "Output: Data/" + m_coreName->text() + ".db");
+        line(4, "Ruleset"); line(8, "Season"); line(12, "Optional Add-ons");
+        line(13, "No compatible add-ons installed.");
+        line(15, "Selected packages: " + std::to_string((m_rulesets.empty() ? 0 : 1) + (m_seasons.empty() ? 0 : 1)));
+        line(17, "Enter opens/selects; Esc cancels; Tab changes focus.");
+        if (!m_discoveryMessages.empty())
+            line(18, "Discovery warnings: " + std::to_string(m_discoveryMessages.size()) + ". See review.");
+    }
+}
+
+void CommissionersOfficeScreen::beginLeagueSetup()
+{
+    cancelLoadLeagueSelection();
+    m_leagueStage=LeagueStage::Configure;
+    m_coreChoicesOpen=false;m_chosenCore=0;m_leagueMessages.clear();m_leagueDetailsKey.clear();
+    m_installedCores=LeagueSetup::discover("Data",m_leagueMessages);
+    m_coreChoices->clearItems();
+    for(const auto& core:m_installedCores) m_coreChoices->addItem(core.path.filename().u8string());
+    m_existingSaves->clearItems();
+    try
+    {
+        std::vector<std::string> saves;
+        if(std::filesystem::exists(WorldRoot)) for(const auto& entry:std::filesystem::directory_iterator(WorldRoot))
+            if(entry.is_directory()) saves.push_back(entry.path().filename().u8string()+
+                (std::filesystem::is_regular_file(entry.path()/"World.db")?" (World.db)":" (folder already exists)"));
+        std::sort(saves.begin(),saves.end());
+        for(const auto& save:saves) m_existingSaves->addItem(save);
+        if(saves.empty()) m_existingSaves->addItem("No existing league/save folders.");
+    }
+    catch(const std::exception& ex){m_existingSaves->addItem(ex.what());}
+    m_leagueName->setVisible(true);m_leagueName->setEnabled(true);
+    m_leagueRoot.setFocusedChild(*m_leagueName);
+}
+
+void CommissionersOfficeScreen::closeLeagueSetup()
+{
+    if(m_leagueCreation.valid()) return;
+    m_leagueStage=LeagueStage::Closed;m_coreChoicesOpen=false;
+    m_leagueName->clear();m_installedCores.clear();m_leagueMessages.clear();m_leagueDetailsKey.clear();
+    m_leagueRoot.clearChildFocus();
+    if(m_newLeagueButton) m_root.setFocusedChild(*m_newLeagueButton);
+}
+
+void CommissionersOfficeScreen::selectLeagueCore()
+{
+    if(m_coreChoices->selectedIndex()) m_chosenCore=*m_coreChoices->selectedIndex();
+    m_coreChoicesOpen=false;m_coreChoices->setVisible(false);m_coreChoices->setEnabled(false);
+    m_leagueDetailsKey.clear();m_leagueRoot.setFocusedChild(*m_coreSelector);
+}
+
+void CommissionersOfficeScreen::createSelectedLeague()
+{
+    if(m_leagueStage!=LeagueStage::Configure || m_leagueCreation.valid()) return;
+    try
+    {
+        const auto error=LeagueSetup::nameError(WorldRoot,m_leagueName->text());
+        if(!error.empty()) throw std::runtime_error(error);
+        if(m_installedCores.empty()) throw std::runtime_error("No Core database is available.");
+        const auto core=m_installedCores.at(m_chosenCore);
+        if(!core.error.empty()) throw std::runtime_error(core.error);
+        const auto name=m_leagueName->text();
+        m_leagueStage=LeagueStage::Creating;
+        m_leagueMessages={"Creating league: "+name,"Saving: "+LeagueSetup::destination(WorldRoot,name).u8string(),
+            "Preserving and verifying the selected Core snapshot. Please wait..."};
+        for(auto* widget:std::vector<Widget*>{m_leagueName,m_coreSelector,m_createLeague,m_cancelLeague,m_coreChoices,m_existingSaves})
+        {widget->setVisible(false);widget->setEnabled(false);}
+        m_leagueDetails->setVisible(true);m_leagueDetails->setEnabled(true);m_leagueRoot.setFocusedChild(*m_leagueDetails);
+        m_leagueCreation=std::async(std::launch::async,[core,name]{return LeagueSetup::create(core,WorldRoot,name);});
+    }
+    catch(const std::exception& ex)
+    {m_leagueMessages={ex.what()};m_leagueStage=LeagueStage::Result;}
+    m_leagueDetailsKey.clear();
+}
+
+void CommissionersOfficeScreen::drawLeagueSetup(PageComposer& page,const Rect& controls)
+{
+    const bool configure=m_leagueStage==LeagueStage::Configure;
+    page.drawPanel("LeaguePanel",PFF_Colors::MainBackgroundColor,PFF_Colors::MainBorderColor,ObjectFactory::singleLineBorder());
+    page.writePanelTitle("LeaguePanel",configure?" NEW LEAGUE ":" LEAGUE CREATION ",PFF_Colors::TextHighlightColor,3,1);
+    const auto content=page.resolveRegion("LeagueContent");
+    m_leagueRoot.setBounds(page.resolveRegion("Body"));
+    auto show=[](Widget* widget,bool visible){widget->setVisible(visible);widget->setEnabled(visible);};
+    for(auto* widget:std::vector<Widget*>{m_leagueName,m_coreSelector,m_createLeague,m_existingSaves}) show(widget,configure);
+    show(m_cancelLeague,m_leagueStage!=LeagueStage::Creating);
+    m_cancelLeague->setLabel(configure?"Cancel":"Continue");
+    show(m_leagueDetails,true);show(m_coreChoices,configure&&m_coreChoicesOpen);
+    auto field=[&](Widget* widget,int row,int height) {
+        widget->setBounds(Rect{Point{content.position.x,content.position.y+row},
+            Size{std::max(0,content.size.width),std::max(0,std::min(height,content.size.height-row))}});
+    };
+    const int saveRows=std::min(5,std::max(1,content.size.height/5));
+    const int saveStart=std::max(12,content.size.height-saveRows);
+    field(m_leagueName,1,1);field(m_coreSelector,5,3);
+    field(m_leagueDetails,configure?9:0,configure?std::max(1,saveStart-10):content.size.height);
+    field(m_existingSaves,saveStart,saveRows);field(m_coreChoices,5,std::max(1,std::min(10,content.size.height-5)));
+    auto action=[&](Button* button,int row){button->setBounds(Rect{Point{controls.position.x+1,controls.position.y+row},Size{std::max(0,controls.size.width-2),3}});};
+    action(m_createLeague,5);action(m_cancelLeague,configure?10:5);
+    std::vector<std::string> details=m_leagueMessages;
+    const auto key=std::to_string(static_cast<int>(m_leagueStage))+":"+std::to_string(m_chosenCore)+":"+std::to_string(content.size.width);
+    if(configure)
+    {
+        const bool available=!m_installedCores.empty();
+        m_coreSelector->setLabel(available?m_installedCores.at(m_chosenCore).path.filename().u8string()+" v":"No Core databases found in Data");
+        const auto error=LeagueSetup::nameError(WorldRoot,m_leagueName->text());
+        m_createLeague->setEnabled(error.empty()&&available&&m_installedCores.at(m_chosenCore).error.empty());
+        auto line=[&](int row,const std::string& text){if(row<content.size.height) page.writeLine("LeagueContent",row,TextClip::clipUtf8Text(text,content.size.width),PFF_Colors::TextHighlightColor);};
+        line(0,"League Name (spaces allowed)");
+        line(2,"Save: "+LeagueSetup::destination(WorldRoot,m_leagueName->text()).u8string());
+        line(3,error.empty()?"Save name is available.":error);
+        line(4,"Core Database");line(8,"Core Details (Tab to scroll)");line(saveStart-1,"Existing league/save folders (Tab to scroll)");
+        if(available)
+        {
+            details=m_installedCores.at(m_chosenCore).details;
+            if(!m_installedCores.at(m_chosenCore).error.empty()) details.push_back(m_installedCores.at(m_chosenCore).error);
+            details.insert(details.end(),m_leagueMessages.begin(),m_leagueMessages.end());
+        }
+        else details.insert(details.begin(),"Install a Core database in Data, then reopen New League.");
+    }
+    if(key!=m_leagueDetailsKey)
+    {
+        m_leagueDetailsKey=key;m_leagueDetails->clearItems();
+        const int width=std::max(1,content.size.width-1);
+        for(const auto& text:details)
+        {
+            std::u32string line;int used=0;
+            for(const auto& cluster:GraphemeSegmentation::segment(UnicodeConversion::utf8ToU32(text)))
+            {
+                const int size=std::max(0,static_cast<int>(cluster.displayWidth));
+                if(used+size>width&&!line.empty()){m_leagueDetails->addItem(UnicodeConversion::u32ToUtf8(line));line.clear();used=0;}
+                line+=cluster.codePoints;used+=size;
+            }
+            m_leagueDetails->addItem(UnicodeConversion::u32ToUtf8(line));
+        }
+    }
+    if(!m_leagueRoot.focusedChild()||!m_leagueRoot.focusedChild()->canReceiveFocus())
+        m_leagueRoot.setFocusedChild(configure?static_cast<Widget&>(*m_leagueName):m_leagueStage==LeagueStage::Result?static_cast<Widget&>(*m_cancelLeague):static_cast<Widget&>(*m_leagueDetails));
 }
 
 void CommissionersOfficeScreen::beginLoadLeagueSelection()

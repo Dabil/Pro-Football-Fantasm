@@ -1,0 +1,17 @@
+// Explicit 1989 league source stadium labels that differ from venue source names.
+// These links are migration mapping decisions; original labels remain unmodified.
+
+[VENUE_ALIAS_BEGIN]
+  [SOURCE_STADIUM_LABEL]The Meadowlands
+  [VENUE_NAME]The Meadowlands Sports Complex
+  [VENUE_KEY]VENUE_THE_MEADOWLANDS_SPORTS_COMPLEX
+  [PROVENANCE]DOCUMENTED_1989_SOURCE_LABEL_MATCH
+[VENUE_ALIAS_END]
+
+[VENUE_ALIAS_BEGIN]
+  [SOURCE_STADIUM_LABEL]Metrodome
+  [VENUE_NAME]Hubert H. Humphrey Metrodome
+  [VENUE_KEY]VENUE_HUBERT_H_HUMPHREY_METRODOME
+  [PROVENANCE]DOCUMENTED_1989_SOURCE_LABEL_MATCH
+[VENUE_ALIAS_END]
+

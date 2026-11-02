@@ -6,9 +6,14 @@
 #include "UI/Widgets/Button.h"
 #include "UI/Widgets/ContainerWidget.h"
 #include "UI/Widgets/ListBox.h"
+#include "UI/Widgets/TextInput.h"
+#include "Database/CoreManifest.h"
+#include "Database/PFFDatabase.h"
+#include "Database/LeagueSetup.h"
 
 #include <filesystem>
 #include <functional>
+#include <future>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -50,6 +55,22 @@ private:
 
     void handleButtonActivation(const ButtonActivationResult& result);
     void buildCoreDatabase();
+    void finishCoreBuild(CoreDatabaseBuildResult result);
+    void beginCoreBuild();
+    void closeCoreBuild();
+    void reloadCorePackages();
+    void openPackageDropdown(bool ruleset);
+    void closePackageDropdown(bool accept);
+    void drawCoreBuild(Composition::PageComposer& page, const Rect& controls);
+    void refreshCoreLabels();
+    void addCoreMessage(const std::string& message);
+    void clearCoreMessages();
+    void wrapCoreMessages(int width);
+    void beginLeagueSetup();
+    void closeLeagueSetup();
+    void selectLeagueCore();
+    void createSelectedLeague();
+    void drawLeagueSetup(Composition::PageComposer& page, const Rect& controls);
 
     void beginLoadLeagueSelection();
     void cancelLoadLeagueSelection();
@@ -95,5 +116,41 @@ private:
     Button* m_newLeagueButton = nullptr;
     Button* m_loadLeagueButton = nullptr;
     Button* m_mainButton = nullptr;
+
+    enum class CoreStage { Closed, Configure, Building, Result };
+    CoreStage m_coreStage = CoreStage::Closed;
+    ContainerWidget m_coreRoot;
+    TextInput* m_coreName = nullptr;
+    Button* m_rulesetDropdown = nullptr;
+    Button* m_seasonDropdown = nullptr;
+    Button* m_coreBuildButton = nullptr;
+    Button* m_coreBack = nullptr;
+    Button* m_reloadPackages = nullptr;
+    ListBox* m_packageList = nullptr;
+    ListBox* m_buildMessages = nullptr;
+    int m_openDropdown = 0;
+    std::vector<CoreManifest::Package> m_rulesets, m_seasons;
+    std::size_t m_selectedRuleset = 0, m_selectedSeason = 0;
+    std::vector<std::string> m_discoveryMessages;
+    std::future<CoreDatabaseBuildResult> m_coreBuildTask;
+    std::vector<std::string> m_coreMessages;
+    int m_coreMessageWidth = -1;
+
+    enum class LeagueStage { Closed, Configure, Creating, Result };
+    LeagueStage m_leagueStage = LeagueStage::Closed;
+    ContainerWidget m_leagueRoot;
+    TextInput* m_leagueName = nullptr;
+    Button* m_coreSelector = nullptr;
+    Button* m_createLeague = nullptr;
+    Button* m_cancelLeague = nullptr;
+    ListBox* m_coreChoices = nullptr;
+    ListBox* m_leagueDetails = nullptr;
+    ListBox* m_existingSaves = nullptr;
+    bool m_coreChoicesOpen = false;
+    std::vector<LeagueSetup::Core> m_installedCores;
+    std::size_t m_chosenCore = 0;
+    std::vector<std::string> m_leagueMessages;
+    std::future<WorldDatabaseCreateResult> m_leagueCreation;
+    std::string m_leagueDetailsKey;
 };
 

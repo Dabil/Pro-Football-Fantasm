@@ -1,0 +1,26 @@
+
+ // Pro Football Fantasm Classic - 1989 Season Package Manifest
+ // Manifest format proposal v0.1.
+ // File paths are relative to this manifest.
+ // This manifest declares season source files.
+ // It does not independently establish simulation readiness.
+
+[SEASON_BEGIN]
+[MANIFEST_VERSION] 0.1
+[PACKAGE_KEY] PFF_CLASSIC_1991_SEASON
+[PACKAGE_VERSION] 0.1
+[DISPLAY_NAME] 1991 National Football League Season
+[PACKAGE_TYPE] SEASON
+[SEASON_YEAR] 1991
+
+[FILES_BEGIN]
+[FILE] league_structure.pffdata
+[FILE] venues.pffdata
+[FILE] venue_aliases.pffdata
+[FILE] players.pffdata
+[FILE] basic_offensive_unit_ratings.pffdata
+[FILE] basic_defensive_unit_ratings.pffdata
+[FILE] schedule.pffdata
+[FILES_END]
+
+[SEASON_END]

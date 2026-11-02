@@ -85,6 +85,11 @@ struct CoreDatabaseBuildRequest
 
     // False by default so an existing Core is never destroyed accidentally.
     bool overwriteExisting = false;
+
+    // Manifest mode is opt-in; legacy callers retain their existing contract.
+    std::filesystem::path rulesetManifest;
+    std::filesystem::path seasonManifest;
+    bool validateOnly = false;
 };
 
 enum class DatabaseDiagnosticSeverity

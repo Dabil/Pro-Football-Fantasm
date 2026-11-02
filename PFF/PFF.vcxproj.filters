@@ -98,6 +98,15 @@
     <ClInclude Include="Database\PFFDatabase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Database\CoreManifest.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Database\LeagueSetup.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Database\PFFChartImport.inl">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Database\PFFStandings.h">
       <Filter>Header Files</Filter>
     </ClInclude>

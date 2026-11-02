@@ -1,0 +1,241 @@
+// Pro Football Fantasm First Edition — Wild Play Chart: Running Plays
+// Canonical WPSL migration for GCE / PFF Classic.
+//
+// Source wording/result tokens are preserved as historical evidence.
+// Executable behavior is expressed only in GCE_WILD_PLAY scripts.
+// Legacy redundant semantic-execution tags were intentionally removed.
+//
+// Running Wild Play 15 remains RULING_PENDING because the supplied source
+// defines the interception branch but does not identify the interceptor.
+// The canonical data must not silently assume {Defender}.
+
+[CHART_BEGIN]
+[CHART_TYPE]WILD_PLAY
+[WILD_PLAY_CATEGORY]RUNNING
+[DIE_TYPE]D20
+[ROLL_MIN]1
+[ROLL_MAX]20
+[RESULT_COUNT]20
+[WILD_PLAY_DATA_VERSION]0.1.1
+[SCRIPT_LANGUAGE]GCE_WILD_PLAY
+[DEFAULT_SCRIPT_VERSION]0.1.1
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_RUNNING_01
+[ROLL]1
+[SOURCE_TEXT]Offensive Holding & Defensive Offsides, Offsetting Penalties, replay the down.
+[SCRIPT_BEGIN]
+Penalty {Offense} OffensiveHolding as p1;
+Penalty {Defense} DefensiveOffsides as p2;
+Offset p1, p2;
+ReplayDown;
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_RUNNING_02
+[ROLL]2
+[SOURCE_TEXT]{BC} fumbles and recovers ball in the backfield. 
+[SCRIPT_BEGIN]
+Fumble RecoverBy {BallCarrier};
+Advance -D20;
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_RUNNING_03
+[ROLL]3
+[SOURCE_TEXT]Center snaps the ball early, fumble!
+[SCRIPT_BEGIN]
+Fumble;
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_RUNNING_04
+[ROLL]4
+[SOURCE_TEXT]BC helped by a teammate
+[SOURCE_RESULT_TOKEN]+10D
+[SCRIPT_BEGIN]
+Advance D10;
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_RUNNING_05
+[ROLL]5
+[SOURCE_TEXT]{BC} fumbles; defense tries to advance the ball and fumbles. 
+[SCRIPT_BEGIN]
+Fumble RecoverBy {Defender};
+Advance 0;
+Fumble;
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_RUNNING_06
+[ROLL]6
+[SOURCE_TEXT]Offsetting personal fouls after the play. 
+[SCRIPT_BEGIN]
+ResolvePlay RerollDice;
+
+Penalty {Offense} PersonalFoul Timing PostPlay as p1;
+Penalty {Defense} PersonalFoul Timing PostPlay as p2;
+Offset p1, p2;
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_RUNNING_07
+[ROLL]7
+[SOURCE_TEXT]QB loses footing while handing off.
+[SCRIPT_BEGIN]
+Advance -D10;
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_RUNNING_08
+[ROLL]8
+[SOURCE_TEXT]{QB} misses the handoff and must run.
+[SCRIPT_BEGIN]
+Scramble {QB};
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_RUNNING_09
+[ROLL]9
+[SOURCE_TEXT]{RB} is trapped and reverses direction. 
+[SCRIPT_BEGIN]
+Advance -D20;
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_RUNNING_10
+[ROLL]10
+[SOURCE_TEXT]If the Defense is the home team penalized 5 yards for crowd noise.
+[SCRIPT_BEGIN]
+If Defense.IsHome {
+    Flag;
+    Penalty {Defense} CrowdNoise Yards 5 Timing DeadBall;
+    ReplayDown;
+}
+Else {
+    ResolvePlay ReuseDice;
+}
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_RUNNING_11
+[ROLL]11
+[SCRIPT_BEGIN]
+Penalty {Offense} IllegalMotion as p1;
+Penalty {Defense} DefensiveHolding as p2;
+Offset p1, p2;
+ReplayDown;
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_RUNNING_12
+[ROLL]12
+[SOURCE_TEXT]{OffensivePlayer} ejected from the game.
+[SCRIPT_BEGIN]
+ResolvePlay ReuseDice;
+Eject {OffensivePlayer};
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_RUNNING_13
+[ROLL]13
+[SOURCE_TEXT]{DefensivePlayer} ejected from the game.
+[SCRIPT_BEGIN]
+ResolvePlay ReuseDice;
+Eject {Defender};
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_RUNNING_14
+[ROLL]14
+[SOURCE_TEXT]Broken Play {QB} runs
+[SCRIPT_BEGIN]
+Scramble {QB};
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_RUNNING_15
+[PLAY_TYPE]RUNNING
+[ROLL]15
+[SOURCE_TEXT]{RB} trapped in the backfield and attempts desparation pass
+[DRAFT_SCRIPT_BEGIN]
+Roll D10 as r;
+
+If r < 5 {
+    Pass {RB} Intercepted;
+    // Interceptor identity intentionally unresolved.
+    // Do not assume {Defender} until source/rules/adopted ruling establishes the interceptor.
+}
+Else {
+    Pass {RB} Complete Yards r;
+}
+[DRAFT_SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_RUNNING_16
+[ROLL]16
+[SOURCE_TEXT]Player runs to the first down marker. The referee marks the ball short. The instant replay booth overrules call and awards a first down.
+[SCRIPT_BEGIN]
+Ruling ShortOfLineToGain Provisional as r1;
+Review r1;
+Overturn r1;
+PlaceBall LineToGain;
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_RUNNING_17
+[ROLL]17
+[SOURCE_TEXT]QB misses signal and calls a pass instead. 
+[SCRIPT_BEGIN]
+ReplacePlay Passing From BalancedCoach Using D20;
+ResolvePlay ReuseDice;
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_RUNNING_18
+[ROLL]18
+[SOURCE_TEXT]{QB} & {BC} run into each other. {QB} falls down. 
+[SCRIPT_BEGIN]
+Advance -D10;
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_RUNNING_19
+[ROLL]19
+[SOURCE_TEXT]{BC} fumbles and it's picked up by a defender who runs the wrong way. 
+[SCRIPT_BEGIN]
+Fumble RecoverBy {Defender};
+Advance -D20;
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[WILD_PLAY_RESULT_BEGIN]
+[WILD_PLAY_KEY]PFF_FE_RUNNING_20
+[ROLL]20
+[SOURCE_TEXT]{DefensivePlayer} steals ball.
+[SCRIPT_BEGIN]
+TakeBall {Defender};
+Invoke Breakaway;
+[SCRIPT_END]
+[WILD_PLAY_RESULT_END]
+
+[CHART_END]
