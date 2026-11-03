@@ -10,6 +10,7 @@
 #include "Input/MouseEvent.h"
 #include "Rendering/ScreenBuffer.h"
 #include "Rendering/Styles/UIThemes.h"
+#include "Rendering/Styles/StyleMerge.h"
 #include "Rendering/Surface.h"
 #include "Rendering/Text/TextCluster.h"
 #include "Utilities/Unicode/GraphemeSegmentation.h"
@@ -52,7 +53,8 @@ namespace
 TextInput::TextInput()
     : Widget()
     , m_styleSet(WidgetStyles::defaultStyleSet(WidgetStyles::Role::TextViewText))
-    , m_placeholderStyle(UIThemes::DisabledText)
+    , m_placeholderNormalStyle(UIThemes::DisabledText)
+    , m_placeholderFocusedStyle(UIThemes::DisabledText)
     , m_cursorStyle(UIThemes::Selection)
 {
     setFocusable(true);
@@ -67,7 +69,8 @@ TextInput::TextInput(std::string text)
 TextInput::TextInput(const Rect& bounds, std::string text)
     : Widget(bounds)
     , m_styleSet(WidgetStyles::defaultStyleSet(WidgetStyles::Role::TextViewText))
-    , m_placeholderStyle(UIThemes::DisabledText)
+    , m_placeholderNormalStyle(UIThemes::DisabledText)
+    , m_placeholderFocusedStyle(UIThemes::DisabledText)
     , m_cursorStyle(UIThemes::Selection)
 {
     setFocusable(true);
@@ -367,6 +370,16 @@ void TextInput::setFocusedStyle(const Style& style)
     m_styleSet.focused = style;
 }
 
+const Style& TextInput::hoverStyle() const
+{
+    return m_styleSet.hovered;
+}
+
+void TextInput::setHoverStyle(const Style& style)
+{
+    m_styleSet.hovered = style;
+}
+
 const Style& TextInput::disabledStyle() const
 {
     return m_styleSet.disabled;
@@ -377,14 +390,24 @@ void TextInput::setDisabledStyle(const Style& style)
     m_styleSet.disabled = style;
 }
 
-const Style& TextInput::placeholderStyle() const noexcept
+const Style& TextInput::placeholderNormalStyle() const noexcept
 {
-    return m_placeholderStyle;
+    return m_placeholderNormalStyle;
 }
 
-void TextInput::setPlaceholderStyle(const Style& style)
+void TextInput::setPlaceholderNormalStyle(const Style& style)
 {
-    m_placeholderStyle = style;
+    m_placeholderNormalStyle = style;
+}
+
+const Style& TextInput::placeholderFocusedStyle() const noexcept
+{
+    return m_placeholderFocusedStyle;
+}
+
+void TextInput::setPlaceholderFocusedStyle(const Style& style)
+{
+    m_placeholderFocusedStyle = style;
 }
 
 const Style& TextInput::cursorStyle() const noexcept
@@ -411,8 +434,10 @@ void TextInput::draw(Surface& surface)
 {
     if (!isVisible())
     {
+        m_mouseHovered = false;
         return;
     }
+    if (!isEnabled()) m_mouseHovered = false;
 
     const Rect inputBounds = bounds();
 
@@ -431,6 +456,11 @@ void TextInput::draw(Surface& surface)
 
     if (m_text.empty() && !m_placeholder.empty())
     {
+        const Style& hintTextStyle = isEnabled() && isFocused()
+            ? m_placeholderFocusedStyle : m_placeholderNormalStyle;
+        // A hint must never paint a different background over the input fill.
+        const Style hintStyle = StyleMerge::merge(renderStyle,
+            hintTextStyle.withoutBackground(), StyleMergeMode::MergePreserveDestination);
         const std::u32string placeholderText =
             UnicodeConversion::utf8ToU32(m_placeholder);
 
@@ -451,7 +481,7 @@ void TextInput::draw(Surface& surface)
                 x,
                 textY,
                 cluster.codePoints,
-                m_placeholderStyle);
+                hintStyle);
 
             x += width;
         }
@@ -524,6 +554,7 @@ bool TextInput::handleEvent(const Input::Event& event)
 {
     if (!isVisible() || !isEnabled())
     {
+        m_mouseHovered = false;
         return false;
     }
 
@@ -669,14 +700,14 @@ bool TextInput::handleCommandEvent(const Input::Event& event)
 
 bool TextInput::handleMouseEvent(const Input::MouseEvent& event)
 {
+    const bool inside = bounds().contains(event.position.x, event.position.y);
+    m_mouseHovered = inside;
+    if (event.isMove() || event.isDrag()) return inside;
+
     if (event.button != Input::MouseButton::Left)
     {
         return false;
     }
-
-    const bool inside = bounds().contains(
-        event.position.x,
-        event.position.y);
 
     if (!inside)
     {
@@ -875,6 +906,11 @@ void TextInput::setCursorFromMouseX(int absoluteX)
     setCursorPosition(cursor);
 }
 
+void TextInput::clearPointerState()
+{
+    m_mouseHovered = false;
+}
+
 const Style& TextInput::resolveRenderStyle() const
 {
     if (!isEnabled())
@@ -882,6 +918,11 @@ const Style& TextInput::resolveRenderStyle() const
         return WidgetStyles::resolve(
             m_styleSet,
             WidgetStyles::State::Disabled);
+    }
+
+    if (m_mouseHovered)
+    {
+        return WidgetStyles::resolve(m_styleSet, WidgetStyles::State::Hovered);
     }
 
     if (isFocused())

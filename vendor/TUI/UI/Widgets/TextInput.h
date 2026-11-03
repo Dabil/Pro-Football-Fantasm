@@ -88,11 +88,18 @@ public:
     const Style& focusedStyle() const;
     void setFocusedStyle(const Style& style);
 
+    const Style& hoverStyle() const;
+    void setHoverStyle(const Style& style);
+
     const Style& disabledStyle() const;
     void setDisabledStyle(const Style& style);
 
-    const Style& placeholderStyle() const noexcept;
-    void setPlaceholderStyle(const Style& style);
+    // Hint text uses state-specific styling. Its background always comes from
+    // the input's current normal/hovered/focused/disabled style, never the hint style.
+    const Style& placeholderNormalStyle() const noexcept;
+    void setPlaceholderNormalStyle(const Style& style);
+    const Style& placeholderFocusedStyle() const noexcept;
+    void setPlaceholderFocusedStyle(const Style& style);
 
     const Style& cursorStyle() const noexcept;
     void setCursorStyle(const Style& style);
@@ -102,6 +109,7 @@ public:
 
     void draw(Surface& surface) override;
     bool handleEvent(const Input::Event& event) override;
+    void clearPointerState() override;
 
 protected:
     void onFocusGained() override;
@@ -136,8 +144,10 @@ private:
     std::size_t m_firstVisibleCluster = 0;
 
     WidgetStyles::StyleSet m_styleSet;
-    Style m_placeholderStyle;
+    Style m_placeholderNormalStyle;
+    Style m_placeholderFocusedStyle;
     Style m_cursorStyle;
+    bool m_mouseHovered = false;
 
     ChangeCallback m_changeCallback;
 };

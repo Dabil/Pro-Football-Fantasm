@@ -443,6 +443,11 @@ void ListBox::draw(Surface& surface)
     drawScrollbarIfNeeded(surface);
 }
 
+bool ListBox::canReceivePointerFocus(Point position) const
+{
+    return canReceiveFocus() && itemIndexFromMousePosition(position).has_value();
+}
+
 bool ListBox::handleEvent(const Input::Event& event)
 {
     if (!isVisible() || !isEnabled())
@@ -452,6 +457,11 @@ bool ListBox::handleEvent(const Input::Event& event)
 
     if (const Input::MouseEvent* mouseEvent = event.asMouse())
     {
+        if (mouseEvent->isMove())
+        {
+            const auto index = itemIndexFromMousePosition(mouseEvent->position);
+            return index.has_value() ? selectIndex(*index) : false;
+        }
         if (mouseEvent->isWheel())
         {
             updateViewport();

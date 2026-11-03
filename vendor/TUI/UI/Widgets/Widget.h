@@ -24,11 +24,14 @@ public:
     void setFocused(bool focused);
 
     bool canReceiveFocus() const;
+    virtual bool canReceivePointerFocus(Point position) const;
 
     void focus();
     void blur();
 
     virtual bool handleEvent(const Input::Event& event);
+    // Clear transient hover/press visuals when keyboard takes ownership.
+    virtual void clearPointerState();
 
 protected:
     virtual void onFocusGained();

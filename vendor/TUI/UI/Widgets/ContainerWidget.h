@@ -41,12 +41,15 @@ public:
 
     Widget* focusedChild();
     const Widget* focusedChild() const;
+    bool isPointerFocusVacant() const;
 
     Widget* hitTest(Point position);
     const Widget* hitTest(Point position) const;
 
     bool setFocusedChild(Widget& child);
     void clearChildFocus();
+    // Start a newly opened screen/form without active or remembered focus.
+    void resetFocus();
 
     bool focusFirstChild();
     bool focusLastChild();
@@ -56,6 +59,7 @@ public:
     void update(const Animation::TickEvent& event) override;
     void draw(Surface& surface) override;
     bool handleEvent(const Input::Event& event) override;
+    void clearPointerState() override;
 
 protected:
     void onFocusLost() override;
@@ -65,10 +69,15 @@ private:
     bool focusChildAt(std::size_t index);
     bool focusChildByDirection(int direction);
     bool dispatchMouseEvent(const Input::Event& event);
+    void focusAtPointer(Widget* target, Point position);
 
 private:
     std::vector<ChildPtr> m_children;
     Widget* m_focusedChild = nullptr;
+    Widget* m_rememberedFocus = nullptr;
     Widget* m_mouseCaptureChild = nullptr;
     Widget* m_mouseHoverChild = nullptr;
+    bool m_pointerOwnsFocus = false;
+    bool m_hasMousePosition = false;
+    Point m_lastMousePosition{};
 };

@@ -93,6 +93,7 @@ public:
 
     void draw(Surface& surface) override;
     bool handleEvent(const Input::Event& event) override;
+    bool canReceivePointerFocus(Point position) const override;
 
 private:
     void normalizeSelection();

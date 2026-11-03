@@ -71,6 +71,7 @@ public:
 
     void draw(Surface& surface) override;
     bool handleEvent(const Input::Event& event) override;
+    void clearPointerState() override;
 
 private:
     const Style& resolveRenderStyle() const;

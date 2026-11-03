@@ -167,9 +167,12 @@ ButtonActivationResult Button::activate()
 
     m_lastActivationResult = result;
 
-    if (m_activationCallback)
+    // Navigation may destroy this button while its callback is running.
+    // Keep the callable alive independently of the widget until it returns.
+    const ActivationCallback callback = m_activationCallback;
+    if (callback)
     {
-        m_activationCallback(result);
+        callback(result);
     }
 
     return result;
@@ -304,6 +307,12 @@ bool Button::handleEvent(const Input::Event& event)
     return result.activated;
 }
 
+void Button::clearPointerState()
+{
+    m_mouseHovered = false;
+    m_leftMousePressedInside = false;
+}
+
 const Style& Button::resolveRenderStyle() const
 {
     if (!isEnabled())
@@ -336,18 +345,7 @@ std::string Button::buildDisplayText(int availableWidth) const
         return {};
     }
 
-    if (availableWidth == 1)
-    {
-        return TextClip::clipUtf8Text(m_label, 1);
-    }
-
-    if (availableWidth == 2)
-    {
-        return "[]";
-    }
-
-    const int labelWidth = std::max(0, availableWidth - 2);
-    return "[" + TextClip::clipUtf8Text(m_label, labelWidth) + "]";
+    return TextClip::clipUtf8Text(m_label, availableWidth);
 }
 
 int Button::measureUtf8Width(std::string_view text) const

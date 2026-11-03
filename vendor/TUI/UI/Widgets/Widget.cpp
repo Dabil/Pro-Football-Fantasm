@@ -57,6 +57,11 @@ bool Widget::canReceiveFocus() const
     return isVisible() && isEnabled() && m_focusable;
 }
 
+bool Widget::canReceivePointerFocus(Point position) const
+{
+    return canReceiveFocus() && bounds().contains(position.x, position.y);
+}
+
 void Widget::focus()
 {
     setFocused(true);
@@ -74,6 +79,10 @@ bool Widget::handleEvent(const Input::Event& event)
 }
 
 void Widget::onFocusGained()
+{
+}
+
+void Widget::clearPointerState()
 {
 }
 
