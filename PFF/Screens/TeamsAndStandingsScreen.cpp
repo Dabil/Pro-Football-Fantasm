@@ -80,6 +80,7 @@ TeamsAndStandingsScreen::~TeamsAndStandingsScreen()
 
 void TeamsAndStandingsScreen::onEnter()
 {
+    m_root.resetFocus();
     // Read mutable team identity and membership from the selected saved league.
     loadTeams();
 
@@ -104,11 +105,11 @@ void TeamsAndStandingsScreen::onExit()
     m_teamsLoaded = false;
     m_headingTooltips.clear();
     m_mousePosition = Point{ -1, -1 };
+    m_standingsCache.reset();
 }
 
 bool TeamsAndStandingsScreen::handleEvent(const Input::Event& event)
 {
-    refreshLeagueContext();
     if (const auto* mouse = event.asMouse())
     {
         m_mousePosition = mouse->position;
@@ -129,8 +130,17 @@ void TeamsAndStandingsScreen::update(const Animation::TickEvent& event)
 void TeamsAndStandingsScreen::draw(Surface& surface)
 {
     refreshLeagueContext();
-    m_headingTooltips.clear();
     ScreenBuffer& buffer = surface.buffer();
+    if (m_standingsCache &&
+        m_standingsCache->buffer().getWidth() == buffer.getWidth() &&
+        m_standingsCache->buffer().getHeight() == buffer.getHeight())
+    {
+        buffer = m_standingsCache->buffer();
+        m_root.draw(surface);
+        drawHeadingTooltip(surface);
+        return;
+    }
+    m_headingTooltips.clear();
     buffer.clear(PFF_Colors::MainBackgroundColor);
 
     PageComposer page(buffer);
@@ -252,6 +262,10 @@ void TeamsAndStandingsScreen::draw(Surface& surface)
     }
 
     drawFooter(page, footer);
+    // Cache before drawing interactive elements so hover, press and tooltip
+    // changes cannot become baked into the next frame.
+    m_standingsCache = std::make_unique<Surface>();
+    m_standingsCache->buffer() = buffer;
     m_root.draw(surface);
     drawHeadingTooltip(surface);
 }
@@ -275,6 +289,9 @@ void TeamsAndStandingsScreen::buildButtons()
 
 void TeamsAndStandingsScreen::positionButtons(const Rect& footer)
 {
+    // Keyboard-active buttons use the same visible highlight as mouse hover.
+    const Style& ButtonFocusedStyle = PFF_Colors::ButtonHoverColor;
+
     if (m_leaguePlayButton)
     {
         const Size buttonSize{ 28, 3 };
@@ -290,7 +307,7 @@ void TeamsAndStandingsScreen::positionButtons(const Rect& footer)
         m_leaguePlayButton->setNormalStyle(PFF_Colors::ButtonNormalColor);
         m_leaguePlayButton->setHoverStyle(PFF_Colors::ButtonHoverColor);
         m_leaguePlayButton->setPressedStyle(PFF_Colors::ButtonPressedColor);
-        m_leaguePlayButton->setFocusedStyle(PFF_Colors::ButtonNormalColor);
+        m_leaguePlayButton->setFocusedStyle(ButtonFocusedStyle);
     }
 }
 
@@ -322,6 +339,7 @@ void TeamsAndStandingsScreen::refreshLeagueContext()
 
 void TeamsAndStandingsScreen::loadTeams()
 {
+    m_standingsCache.reset();
     m_teams.clear();
     m_teamLoadMessage.clear();
     m_teamsLoaded = false;

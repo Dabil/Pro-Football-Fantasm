@@ -9,6 +9,7 @@
 
 #include <filesystem>
 #include <functional>
+#include <memory>
 #include <string>
 #include <vector>
 #include <string_view>
@@ -77,5 +78,7 @@ private:
 	};
 	std::vector<HeadingTooltip> m_headingTooltips;
 	Point m_mousePosition{ -1, -1 };
+    // Static standings/header/footer drawing; controls and tooltips stay live.
+    std::unique_ptr<Surface> m_standingsCache;
 };
 

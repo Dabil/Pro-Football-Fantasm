@@ -54,6 +54,7 @@ LeagueScheduleScreen::~LeagueScheduleScreen()
 
 void LeagueScheduleScreen::onEnter()
 {
+    m_root.resetFocus();
     // Read fixtures from the selected saved league, not the global Core template.
     loadSchedule();
 
@@ -72,6 +73,7 @@ void LeagueScheduleScreen::onEnter()
 
 void LeagueScheduleScreen::onExit()
 {
+    m_scheduleCache.reset();
     m_LeagueScheduleTitleObject.clear();
 
     m_availableWeeks.clear();
@@ -111,7 +113,9 @@ bool LeagueScheduleScreen::handleEvent(const Input::Event& event)
     }
     if (scroll!=0)
     {
-        m_scrollOffset=std::clamp(m_scrollOffset+scroll,0,m_maxScrollOffset);
+        const int offset=std::clamp(m_scrollOffset+scroll,0,m_maxScrollOffset);
+        if (offset!=m_scrollOffset) m_scheduleCache.reset();
+        m_scrollOffset=offset;
         return true;
     }
     return m_root.handleEvent(event);
@@ -127,6 +131,14 @@ void LeagueScheduleScreen::draw(Surface& surface)
 {
     refreshLeagueContext();
     ScreenBuffer& buffer = surface.buffer();
+    if (m_scheduleCache &&
+        m_scheduleCache->buffer().getWidth() == buffer.getWidth() &&
+        m_scheduleCache->buffer().getHeight() == buffer.getHeight())
+    {
+        buffer = m_scheduleCache->buffer();
+        m_root.draw(surface);
+        return;
+    }
     buffer.clear(PFF_Colors::MainBackgroundColor);
 
     PageComposer page(buffer);
@@ -191,6 +203,9 @@ void LeagueScheduleScreen::draw(Surface& surface)
     }
 
     drawFooter(page,footer);
+    // Save the static page before drawing interactive button states.
+    m_scheduleCache = std::make_unique<Surface>();
+    m_scheduleCache->buffer() = buffer;
     m_root.draw(surface);
 }
 
@@ -244,6 +259,9 @@ void LeagueScheduleScreen::positionButtons(
     const Rect& navigationPane,
     const Rect& footer)
 {
+    // Keyboard-active buttons use the same visible highlight as mouse hover.
+    const Style& ButtonFocusedStyle = PFF_Colors::ButtonHoverColor;
+
     const Style& normal = PFF_Colors::ButtonNormalColor;
     const Style& hover = PFF_Colors::ButtonHoverColor;
     const Style& pressed = PFF_Colors::ButtonPressedColor;
@@ -263,7 +281,7 @@ void LeagueScheduleScreen::positionButtons(
         m_leaguePlayButton->setNormalStyle(normal);
         m_leaguePlayButton->setHoverStyle(hover);
         m_leaguePlayButton->setPressedStyle(pressed);
-        m_leaguePlayButton->setFocusedStyle(normal);
+        m_leaguePlayButton->setFocusedStyle(ButtonFocusedStyle);
     }
 
     const Size navigationButtonSize{ 24, 3 };
@@ -285,7 +303,7 @@ void LeagueScheduleScreen::positionButtons(
         m_lookAheadButton->setNormalStyle(normal);
         m_lookAheadButton->setHoverStyle(hover);
         m_lookAheadButton->setPressedStyle(pressed);
-        m_lookAheadButton->setFocusedStyle(normal);
+        m_lookAheadButton->setFocusedStyle(ButtonFocusedStyle);
     }
 
     if (m_lookBackButton)
@@ -298,7 +316,7 @@ void LeagueScheduleScreen::positionButtons(
         m_lookBackButton->setNormalStyle(normal);
         m_lookBackButton->setHoverStyle(hover);
         m_lookBackButton->setPressedStyle(pressed);
-        m_lookBackButton->setFocusedStyle(normal);
+        m_lookBackButton->setFocusedStyle(ButtonFocusedStyle);
     }
 }
 
@@ -317,6 +335,7 @@ void LeagueScheduleScreen::handleButtonActivation(
         {
             ++m_currentWeekIndex;
             m_scrollOffset = 0;
+            m_scheduleCache.reset();
             updateNavigationButtons();
         }
 
@@ -329,6 +348,7 @@ void LeagueScheduleScreen::handleButtonActivation(
         {
             --m_currentWeekIndex;
             m_scrollOffset = 0;
+            m_scheduleCache.reset();
             updateNavigationButtons();
         }
 
@@ -358,6 +378,7 @@ void LeagueScheduleScreen::refreshLeagueContext()
 
 void LeagueScheduleScreen::loadSchedule()
 {
+    m_scheduleCache.reset();
     const std::int32_t previousWeek = currentWeek();
     const LoadedWorldContext context = m_loadedWorldContextProvider
         ? m_loadedWorldContextProvider() : LoadedWorldContext{};

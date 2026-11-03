@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <filesystem>
 #include <functional>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -82,5 +83,7 @@ private:
     int m_maxScrollOffset = 0;
     int m_visibleRows = 1;
     Rect m_scheduleBounds;
+    // Static schedule/header/footer drawing; buttons remain live.
+    std::unique_ptr<Surface> m_scheduleCache;
 };
 
