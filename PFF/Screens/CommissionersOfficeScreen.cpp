@@ -48,6 +48,10 @@ CommissionersOfficeScreen::~CommissionersOfficeScreen()
 
 void CommissionersOfficeScreen::onEnter()
 {
+    // Styles used by this method. Change these theme mappings to restyle it.
+    const Style& titleStyle = PFF_Colors::ProFootballTitleColor; // Commissioner banner lettering.
+
+    m_root.resetFocus();
     m_fontResult = m_assetLibrary.loadBannerFontAsset(m_TitleBannerFontKey);
 
     if (!m_fontResult.success || !m_fontResult.hasFont())
@@ -58,7 +62,7 @@ void CommissionersOfficeScreen::onEnter()
     m_CommissionersOfficeTitleObject = BannerFactory::makeBanner(
         *m_fontResult.asset.font,
         "COMMISSIONER'S OFFICE",
-        PFF_Colors::ProFootballTitleColor);
+        titleStyle);
 }
 
 void CommissionersOfficeScreen::onExit()
@@ -76,21 +80,23 @@ bool CommissionersOfficeScreen::handleEvent(const Input::Event& event)
         if (const auto* command=event.asCommand())
         {
             const auto code=command->command.code;
+            if(m_coreChoicesOpen && (code==Input::CommandCode::NextFocus || code==Input::CommandCode::PreviousFocus))
+            {if(m_leagueRoot.focusedChild()) selectLeagueCore();return m_leagueRoot.handleEvent(event);}
             if(code==Input::CommandCode::Cancel || code==Input::CommandCode::Back || code==Input::CommandCode::Close)
             {
                 if(m_coreChoicesOpen) {m_coreChoicesOpen=false; m_coreChoices->setVisible(false); m_coreChoices->setEnabled(false); m_leagueRoot.setFocusedChild(*m_coreSelector);}
                 else closeLeagueSetup();
                 return true;
             }
-            if(m_coreChoicesOpen && code==Input::CommandCode::Confirm) {selectLeagueCore();return true;}
+            if(m_coreChoicesOpen && code==Input::CommandCode::Confirm) {if(m_leagueRoot.focusedChild()==m_coreChoices) selectLeagueCore();return true;}
             if(!m_coreChoicesOpen && code==Input::CommandCode::Confirm)
             {if(auto* focus=m_leagueRoot.focusedChild()) focus->handleEvent(event);return true;}
         }
         if(m_coreChoicesOpen)
         {
-            const bool handled=m_coreChoices->handleEvent(event);
+            const bool handled=m_leagueRoot.handleEvent(event);
             if(const auto* mouse=event.asMouse())
-                if(handled && mouse->button==Input::MouseButton::Left && (mouse->isPress()||mouse->isClick())) selectLeagueCore();
+                if(handled && m_leagueRoot.focusedChild()==m_coreChoices && mouse->button==Input::MouseButton::Left && (mouse->isPress()||mouse->isClick())) selectLeagueCore();
             return handled;
         }
         return m_leagueRoot.handleEvent(event);
@@ -100,6 +106,8 @@ bool CommissionersOfficeScreen::handleEvent(const Input::Event& event)
         if (const auto* command = event.asCommand())
         {
             const auto code = command->command.code;
+            if(m_openDropdown && (code==Input::CommandCode::NextFocus || code==Input::CommandCode::PreviousFocus))
+            {if(m_coreRoot.focusedChild()) closePackageDropdown(true);return m_coreRoot.handleEvent(event);}
             if (code == Input::CommandCode::Cancel || code == Input::CommandCode::Close || code == Input::CommandCode::Back)
             {
                 if (m_openDropdown) closePackageDropdown(false);
@@ -107,20 +115,20 @@ bool CommissionersOfficeScreen::handleEvent(const Input::Event& event)
                 return true;
             }
             if (m_openDropdown && code == Input::CommandCode::Confirm)
-            { closePackageDropdown(true); return true; }
+            { if(m_coreRoot.focusedChild()==m_packageList) closePackageDropdown(true); return true; }
             if (code == Input::CommandCode::Refresh && m_coreStage == CoreStage::Configure)
             { reloadCorePackages(); return true; }
         }
         if (m_openDropdown)
         {
-            const bool handled = m_packageList->handleEvent(event);
+            const bool handled = m_coreRoot.handleEvent(event);
             if (const auto* mouse = event.asMouse())
-                if (mouse->button == Input::MouseButton::Left && (mouse->isPress() || mouse->isClick()) && handled)
+                if (m_coreRoot.focusedChild()==m_packageList && mouse->button == Input::MouseButton::Left && (mouse->isPress() || mouse->isClick()) && handled)
                     closePackageDropdown(true);
             return handled;
         }
-        // ContainerWidget offers unhandled commands to other children. A
-        // review-list Confirm must not activate an unrelated action button.
+        // The form consumes Confirm after offering it only to its active
+        // control, including when a results list has nothing to activate.
         if (const auto* command = event.asCommand())
             if (command->command.code == Input::CommandCode::Confirm)
             {
@@ -194,8 +202,14 @@ void CommissionersOfficeScreen::update(const Animation::TickEvent& event)
 
 void CommissionersOfficeScreen::draw(Surface& surface)
 {
+    // Styles used by this method. Change these theme mappings to restyle it.
+    const Style& backgroundStyle = PFF_Colors::MainBackgroundColor; // Screen background.
+    const Style& headerFillStyle = PFF_Colors::HeaderOuterColor; // Outer header fill.
+    const Style& headerBorderStyle = PFF_Colors::HeaderOuterColor; // Outer header border.
+    const Style& headerInnerStyle = PFF_Colors::HeaderInnerColor; // Inner banner background.
+
     ScreenBuffer& buffer = surface.buffer();
-    buffer.clear(PFF_Colors::MainBackgroundColor);
+    buffer.clear(backgroundStyle);
 
     PageComposer page(buffer);
     page.clearRegions();
@@ -238,14 +252,14 @@ void CommissionersOfficeScreen::draw(Surface& surface)
 
     page.drawPanel(
         "Header",
-        PFF_Colors::HeaderOuterColor,
-        PFF_Colors::HeaderOuterColor,
+        headerFillStyle,
+        headerBorderStyle,
         ObjectFactory::doubleLineBorder());
 
     buffer.fillRect(
         page.resolveRegion("InnerPanel"),
         U' ',
-        PFF_Colors::HeaderInnerColor);
+        headerInnerStyle);
 
     page.writeObjectInRegion(
         m_CommissionersOfficeTitleObject,
@@ -296,15 +310,49 @@ void CommissionersOfficeScreen::draw(Surface& surface)
 
 void CommissionersOfficeScreen::buildWidgets()
 {
+    // Styles by COMPONENT TYPE. Instances of the same type share these mappings.
+
+    // Action buttons: Create, Build, Reload, Cancel and Continue.
+    const Style& ButtonNormalStyle = PFF_Colors::ButtonNormalColor; // Idle button.
+    const Style& ButtonFocusedStyle = PFF_Colors::ButtonHoverColor; // Keyboard-focused button.
+    const Style& ButtonHoverStyle = PFF_Colors::ButtonHoverColor; // Mouse over a button.
+    const Style& ButtonPressedStyle = PFF_Colors::ButtonPressedColor; // Pressed button.
+
+    // Text inputs: League Name and Core Database Name.
+    const Style& InputNormalStyle = PFF_Colors::InputFieldNormalColor; // Entered text, not focused.
+    const Style& InputFocusedStyle = PFF_Colors::InputFieldFocusedColor; // Entered text while focused.
+    const Style& InputHoverStyle = PFF_Colors::InputFieldFocusedColor; // Mouse over an unfocused input.
+
+    const Style& InputPlaceholderNormalStyle = PFF_Colors::InputFieldNormalHintColor; // Hint when the empty input is not focused.
+    const Style& InputPlaceholderFocusedStyle = PFF_Colors::InputFieldFocusedHintColor; // Hint when the empty input has keyboard focus.
+
+    // Closed dropdown controls: Core Database, Ruleset and Season selectors.
+    const Style& DropdownNormalStyle = PFF_Colors::InputFieldNormalColor; // Closed selector, idle.
+    const Style& DropdownFocusedStyle = PFF_Colors::InputFieldFocusedColor; // Closed selector, keyboard focus.
+    const Style& DropdownHoverStyle = PFF_Colors::ButtonHoverColor; // Mouse over the closed selector.
+    const Style& DropdownPressedStyle = PFF_Colors::ButtonPressedColor; // Pressed selector.
+
+    // Open dropdown option lists: the choices shown after opening a selector.
+    const Style& DropdownListNormalStyle = PFF_Colors::InputFieldNormalColor; // Unselected option, not focused.
+    const Style& DropdownListFocusedStyle = PFF_Colors::InputFieldNormalColor; // Unselected option, list focused.
+    const Style& DropdownListSelectedStyle = PFF_Colors::InputFieldFocusedColor; // Selected option, not focused.
+    const Style& DropdownListSelectedFocusedStyle = PFF_Colors::ButtonHoverColor; // Selected option, list focused.
+
+    // General lists: Core Details, existing saves, Load League and build results.
+    const Style& ListNormalStyle = PFF_Colors::InputFieldNormalColor; // Unselected row, not focused.
+    const Style& ListFocusedStyle = PFF_Colors::InputFieldNormalColor; // Unselected row, list focused.
+    const Style& ListSelectedStyle = PFF_Colors::InputFieldNormalColor; // Selected row, not focused.
+    const Style& ListSelectedFocusedStyle = PFF_Colors::InputFieldFocusedColor; // Selected row, list focused.
+
     auto leagueName=std::make_unique<TextInput>();
-    leagueName->setMaxLength(64); leagueName->setPlaceholder("Enter league name (spaces allowed)");
-    leagueName->setNormalStyle(PFF_Colors::TextHighlightColor); leagueName->setFocusedStyle(PFF_Colors::ButtonHoverColor);
-    leagueName->setPlaceholderStyle(PFF_Colors::TextHighlightColor);
+    leagueName->setMaxLength(64); leagueName->setPlaceholder("<Enter league name>");
+    leagueName->setNormalStyle(InputNormalStyle); leagueName->setFocusedStyle(InputFocusedStyle);
+    leagueName->setHoverStyle(InputHoverStyle);
+    leagueName->setPlaceholderNormalStyle(InputPlaceholderNormalStyle);
+    leagueName->setPlaceholderFocusedStyle(InputPlaceholderFocusedStyle);
     m_leagueName=leagueName.get(); m_leagueRoot.addChild(std::move(leagueName));
-    auto leagueButton=[this](const std::string& label,auto callback) {
+    auto leagueButton=[&](const std::string& label,auto callback) {
         auto button=std::make_unique<Button>(label);
-        button->setNormalStyle(PFF_Colors::ButtonNormalColor); button->setFocusedStyle(PFF_Colors::ButtonHoverColor);
-        button->setHoverStyle(PFF_Colors::ButtonHoverColor); button->setPressedStyle(PFF_Colors::ButtonPressedColor);
         button->setActivationCallback([callback](const ButtonActivationResult& result){if(result.activated) callback();});
         auto* pointer=button.get();m_leagueRoot.addChild(std::move(button));return pointer;
     };
@@ -315,27 +363,21 @@ void CommissionersOfficeScreen::buildWidgets()
     });
     m_createLeague=leagueButton("Create League",[this]{createSelectedLeague();});
     m_cancelLeague=leagueButton("Cancel",[this]{closeLeagueSetup();});
-    auto leagueList=[this] {
+    auto leagueList=[&] {
         auto list=std::make_unique<ListBox>();
-        list->setNormalStyle(PFF_Colors::TextHighlightColor);list->setFocusedStyle(PFF_Colors::TextHighlightColor);
-        list->setSelectedStyle(PFF_Colors::ButtonNormalColor);list->setSelectedFocusedStyle(PFF_Colors::ButtonHoverColor);
         list->setVerticalScrollbarVisible(true);auto* ptr=list.get();m_leagueRoot.addChild(std::move(list));return ptr;
     };
     m_leagueDetails=leagueList();m_existingSaves=leagueList();m_coreChoices=leagueList();
     auto name = std::make_unique<TextInput>();
-    name->setPlaceholder("Enter database name");
+    name->setPlaceholder("<Enter database name>");
     name->setMaxLength(64);
     m_coreName = name.get();
     m_coreRoot.addChild(std::move(name));
-    auto addButton = [this](const std::string& label, auto callback) {
+    auto addButton = [&](const std::string& label, auto callback) {
         auto button = std::make_unique<Button>(label);
         button->setActivationCallback([callback](const ButtonActivationResult& result) {
             if (result.activated) callback();
         });
-        button->setNormalStyle(PFF_Colors::ButtonNormalColor);
-        button->setFocusedStyle(PFF_Colors::ButtonHoverColor);
-        button->setHoverStyle(PFF_Colors::ButtonHoverColor);
-        button->setPressedStyle(PFF_Colors::ButtonPressedColor);
         auto* ptr = button.get();
         m_coreRoot.addChild(std::move(button));
         return ptr;
@@ -353,17 +395,48 @@ void CommissionersOfficeScreen::buildWidgets()
     auto packageList = std::make_unique<ListBox>();
     m_packageList = packageList.get();
     m_coreRoot.addChild(std::move(packageList));
-    m_coreName->setNormalStyle(PFF_Colors::TextHighlightColor);
-    m_coreName->setFocusedStyle(PFF_Colors::ButtonHoverColor);
-    m_coreName->setPlaceholderStyle(PFF_Colors::TextHighlightColor);
-    for (auto* list : {m_packageList, m_buildMessages})
-    {
-        list->setNormalStyle(PFF_Colors::TextHighlightColor);
-        list->setFocusedStyle(PFF_Colors::TextHighlightColor);
-        list->setSelectedStyle(PFF_Colors::ButtonNormalColor);
-        list->setSelectedFocusedStyle(PFF_Colors::ButtonHoverColor);
-        list->setVerticalScrollbarVisible(true);
-    }
+    m_coreName->setNormalStyle(InputNormalStyle);
+    m_coreName->setFocusedStyle(InputFocusedStyle);
+    m_coreName->setHoverStyle(InputHoverStyle);
+    m_coreName->setPlaceholderNormalStyle(InputPlaceholderNormalStyle);
+    m_coreName->setPlaceholderFocusedStyle(InputPlaceholderFocusedStyle);
+    // Apply the component-type mappings declared above.
+    auto styleButton = [](Button& button, const Style& normal, const Style& focused,
+                          const Style& hover, const Style& pressed) {
+        button.setNormalStyle(normal);
+        button.setFocusedStyle(focused);
+        button.setHoverStyle(hover);
+        button.setPressedStyle(pressed);
+    };
+
+    auto styleList = [](ListBox& list, const Style& normal, const Style& focused,
+        const Style& selected, const Style& selectedFocused) {
+            list.setNormalStyle(normal);
+            list.setFocusedStyle(focused);
+            list.setSelectedStyle(selected);
+            list.setSelectedFocusedStyle(selectedFocused);
+            list.setVerticalScrollbarVisible(true);
+
+            auto scrollbar = list.verticalScrollbarStyle();
+            scrollbar.thumbStyle = PFF_Colors::PanelSliderColor;
+            scrollbar.trackStyle = PFF_Colors::PanelTrackColor;
+            list.setVerticalScrollbarStyle(scrollbar);
+        };
+
+    styleButton(*m_coreSelector, DropdownNormalStyle, DropdownFocusedStyle, DropdownHoverStyle, DropdownPressedStyle);
+    styleButton(*m_createLeague, ButtonNormalStyle, ButtonFocusedStyle, ButtonHoverStyle, ButtonPressedStyle);
+    styleButton(*m_cancelLeague, ButtonNormalStyle, ButtonFocusedStyle, ButtonHoverStyle, ButtonPressedStyle);
+    styleButton(*m_rulesetDropdown, DropdownNormalStyle, DropdownFocusedStyle, DropdownHoverStyle, DropdownPressedStyle);
+    styleButton(*m_seasonDropdown, DropdownNormalStyle, DropdownFocusedStyle, DropdownHoverStyle, DropdownPressedStyle);
+    styleButton(*m_coreBuildButton, ButtonNormalStyle, ButtonFocusedStyle, ButtonHoverStyle, ButtonPressedStyle);
+    styleButton(*m_reloadPackages, ButtonNormalStyle, ButtonFocusedStyle, ButtonHoverStyle, ButtonPressedStyle);
+    styleButton(*m_coreBack, ButtonNormalStyle, ButtonFocusedStyle, ButtonHoverStyle, ButtonPressedStyle);
+    styleList(*m_coreChoices, DropdownListNormalStyle, DropdownListFocusedStyle, DropdownListSelectedStyle, DropdownListSelectedFocusedStyle);
+    styleList(*m_packageList, DropdownListNormalStyle, DropdownListFocusedStyle, DropdownListSelectedStyle, DropdownListSelectedFocusedStyle);
+    styleList(*m_leagueDetails, ListNormalStyle, ListFocusedStyle, ListSelectedStyle, ListSelectedFocusedStyle);
+    styleList(*m_existingSaves, ListNormalStyle, ListFocusedStyle, ListSelectedStyle, ListSelectedFocusedStyle);
+    styleList(*m_buildMessages, ListNormalStyle, ListFocusedStyle, ListSelectedStyle, ListSelectedFocusedStyle);
+
     auto buildCoreDbButton = std::make_unique<Button>(
         Rect{ Point{ 0, 0 }, Size{ 28, 3 } },
         "Build Core DB",
@@ -385,6 +458,7 @@ void CommissionersOfficeScreen::buildWidgets()
         "nav:back");
 
     auto leagueListBox = std::make_unique<ListBox>();
+    styleList(*leagueListBox, ListNormalStyle, ListFocusedStyle, ListSelectedStyle, ListSelectedFocusedStyle);
     leagueListBox->setVisible(false);
     leagueListBox->setEnabled(false);
 
@@ -429,9 +503,11 @@ void CommissionersOfficeScreen::positionButtons(
     const Rect& controlPane,
     const Rect& footer)
 {
-    const Style& normal = PFF_Colors::ButtonNormalColor;
-    const Style& hover = PFF_Colors::ButtonHoverColor;
-    const Style& pressed = PFF_Colors::ButtonPressedColor;
+    // Main office action buttons: one shared mapping for all four buttons.
+    const Style& ButtonNormalStyle = PFF_Colors::ButtonNormalColor; // Idle button.
+    const Style& ButtonFocusedStyle = PFF_Colors::ButtonHoverColor; // Keyboard-focused button.
+    const Style& ButtonHoverStyle = PFF_Colors::ButtonHoverColor; // Mouse over a button.
+    const Style& ButtonPressedStyle = PFF_Colors::ButtonPressedColor; // Pressed button.
 
     const Size controlButtonSize{ 24, 3 };
     const int controlX =
@@ -448,10 +524,10 @@ void CommissionersOfficeScreen::positionButtons(
             controlButtonSize
             });
 
-        m_buildCoreDbButton->setNormalStyle(normal);
-        m_buildCoreDbButton->setHoverStyle(hover);
-        m_buildCoreDbButton->setPressedStyle(pressed);
-        m_buildCoreDbButton->setFocusedStyle(normal);
+        m_buildCoreDbButton->setNormalStyle(ButtonNormalStyle);
+        m_buildCoreDbButton->setHoverStyle(ButtonHoverStyle);
+        m_buildCoreDbButton->setPressedStyle(ButtonPressedStyle);
+        m_buildCoreDbButton->setFocusedStyle(ButtonFocusedStyle);
     }
 
     if (m_newLeagueButton)
@@ -461,10 +537,10 @@ void CommissionersOfficeScreen::positionButtons(
             controlButtonSize
             });
 
-        m_newLeagueButton->setNormalStyle(normal);
-        m_newLeagueButton->setHoverStyle(hover);
-        m_newLeagueButton->setPressedStyle(pressed);
-        m_newLeagueButton->setFocusedStyle(normal);
+        m_newLeagueButton->setNormalStyle(ButtonNormalStyle);
+        m_newLeagueButton->setHoverStyle(ButtonHoverStyle);
+        m_newLeagueButton->setPressedStyle(ButtonPressedStyle);
+        m_newLeagueButton->setFocusedStyle(ButtonFocusedStyle);
     }
 
     if (m_loadLeagueButton)
@@ -474,10 +550,10 @@ void CommissionersOfficeScreen::positionButtons(
             controlButtonSize
             });
 
-        m_loadLeagueButton->setNormalStyle(normal);
-        m_loadLeagueButton->setHoverStyle(hover);
-        m_loadLeagueButton->setPressedStyle(pressed);
-        m_loadLeagueButton->setFocusedStyle(normal);
+        m_loadLeagueButton->setNormalStyle(ButtonNormalStyle);
+        m_loadLeagueButton->setHoverStyle(ButtonHoverStyle);
+        m_loadLeagueButton->setPressedStyle(ButtonPressedStyle);
+        m_loadLeagueButton->setFocusedStyle(ButtonFocusedStyle);
     }
 
     if (m_mainButton)
@@ -492,10 +568,10 @@ void CommissionersOfficeScreen::positionButtons(
             buttonSize
             });
 
-        m_mainButton->setNormalStyle(normal);
-        m_mainButton->setHoverStyle(hover);
-        m_mainButton->setPressedStyle(pressed);
-        m_mainButton->setFocusedStyle(normal);
+        m_mainButton->setNormalStyle(ButtonNormalStyle);
+        m_mainButton->setHoverStyle(ButtonHoverStyle);
+        m_mainButton->setPressedStyle(ButtonPressedStyle);
+        m_mainButton->setFocusedStyle(ButtonFocusedStyle);
     }
 }
 
@@ -555,9 +631,11 @@ void CommissionersOfficeScreen::handleButtonActivation(
         return;
     }
 
-    if (m_commandDispatcher)
+    // Navigation can destroy this screen, including its stored dispatcher.
+    const auto dispatcher = m_commandDispatcher;
+    if (dispatcher)
     {
-        m_commandDispatcher(result.commandId);
+        dispatcher(result.commandId);
     }
 }
 
@@ -628,7 +706,7 @@ void CommissionersOfficeScreen::beginCoreBuild()
     cancelLoadLeagueSelection();
     m_coreStage = CoreStage::Configure;
     reloadCorePackages();
-    m_coreRoot.setFocusedChild(*m_coreName);
+    m_coreRoot.resetFocus();
 }
 
 void CommissionersOfficeScreen::closeCoreBuild()
@@ -736,11 +814,15 @@ void CommissionersOfficeScreen::wrapCoreMessages(int width)
 
 void CommissionersOfficeScreen::drawCoreBuild(PageComposer& page, const Rect& controls)
 {
+    // Styles used by this method. Change these theme mappings to restyle it.
+    const Style& panelFillStyle = PFF_Colors::FormPanelColor; // Form panel background/fill.
+    const Style& panelBorderStyle = PFF_Colors::FormBorderColor; // Form panel border.
+    const Style& panelTitleStyle = PFF_Colors::FormPanelHeadingColor; // Form panel heading.
+    const Style& labelStyle = PFF_Colors::FormPanelColor; // Field labels, previews, instructions and status messages.
+
     const bool configure = m_coreStage == CoreStage::Configure;
-    page.drawPanel("LeaguePanel", PFF_Colors::MainBackgroundColor,
-        PFF_Colors::MainBorderColor, ObjectFactory::singleLineBorder());
-    page.writePanelTitle("LeaguePanel", configure ? " BUILD CORE DATABASE " : " REVIEW CORE DATABASE BUILD ",
-        PFF_Colors::TextHighlightColor, 3, 1);
+    page.drawPanel("LeaguePanel", panelFillStyle, panelBorderStyle, ObjectFactory::singleLineBorder());
+    page.writePanelTitle("LeaguePanel", configure ? " BUILD CORE DATABASE " : " REVIEW CORE DATABASE BUILD ", panelTitleStyle, 3, 1);
     const auto content = page.resolveRegion("LeagueContent");
     m_coreRoot.setBounds(page.resolveRegion("Body"));
     auto show = [](Widget* widget, bool visible) { widget->setVisible(visible); widget->setEnabled(visible); };
@@ -750,7 +832,7 @@ void CommissionersOfficeScreen::drawCoreBuild(PageComposer& page, const Rect& co
     m_coreBack->setLabel(configure ? "Cancel" : "Continue");
     show(m_buildMessages, !configure);
     show(m_packageList, configure && m_openDropdown != 0);
-    if (!m_coreRoot.focusedChild() || !m_coreRoot.focusedChild()->canReceiveFocus())
+    if (m_coreRoot.focusedChild() && !m_coreRoot.focusedChild()->canReceiveFocus())
         m_coreRoot.setFocusedChild(configure ? static_cast<Widget&>(*m_coreName) : static_cast<Widget&>(*m_buildMessages));
     auto field = [&](Widget* widget, int row, int height) {
         widget->setBounds(Rect{Point{content.position.x, content.position.y + row},
@@ -772,7 +854,7 @@ void CommissionersOfficeScreen::drawCoreBuild(PageComposer& page, const Rect& co
     {
         auto line = [&](int row, const std::string& text) {
             if (row < content.size.height) page.writeLine("LeagueContent", row,
-                TextClip::clipUtf8Text(text, content.size.width), PFF_Colors::TextHighlightColor);
+                TextClip::clipUtf8Text(text, content.size.width), labelStyle);
         };
         line(0, "Core Database Name");
         line(2, "Output: Data/" + m_coreName->text() + ".db");
@@ -806,7 +888,7 @@ void CommissionersOfficeScreen::beginLeagueSetup()
     }
     catch(const std::exception& ex){m_existingSaves->addItem(ex.what());}
     m_leagueName->setVisible(true);m_leagueName->setEnabled(true);
-    m_leagueRoot.setFocusedChild(*m_leagueName);
+    m_leagueRoot.resetFocus();
 }
 
 void CommissionersOfficeScreen::closeLeagueSetup()
@@ -851,9 +933,15 @@ void CommissionersOfficeScreen::createSelectedLeague()
 
 void CommissionersOfficeScreen::drawLeagueSetup(PageComposer& page,const Rect& controls)
 {
+    // Styles used by this method. Change these theme mappings to restyle it.
+    const Style& panelFillStyle = PFF_Colors::FormPanelColor; // Form panel background/fill.
+    const Style& panelBorderStyle = PFF_Colors::FormBorderColor; // Form panel border.
+    const Style& panelTitleStyle = PFF_Colors::FormPanelHeadingColor; // Form panel heading.
+    const Style& labelStyle = PFF_Colors::FormPanelColor; // Field labels, previews, instructions and status messages.
+
     const bool configure=m_leagueStage==LeagueStage::Configure;
-    page.drawPanel("LeaguePanel",PFF_Colors::MainBackgroundColor,PFF_Colors::MainBorderColor,ObjectFactory::singleLineBorder());
-    page.writePanelTitle("LeaguePanel",configure?" NEW LEAGUE ":" LEAGUE CREATION ",PFF_Colors::TextHighlightColor,3,1);
+    page.drawPanel("LeaguePanel",panelFillStyle, panelBorderStyle,ObjectFactory::singleLineBorder());
+    page.writePanelTitle("LeaguePanel",configure?" NEW LEAGUE ":" LEAGUE CREATION ",panelTitleStyle,3,1);
     const auto content=page.resolveRegion("LeagueContent");
     m_leagueRoot.setBounds(page.resolveRegion("Body"));
     auto show=[](Widget* widget,bool visible){widget->setVisible(visible);widget->setEnabled(visible);};
@@ -880,11 +968,11 @@ void CommissionersOfficeScreen::drawLeagueSetup(PageComposer& page,const Rect& c
         m_coreSelector->setLabel(available?m_installedCores.at(m_chosenCore).path.filename().u8string()+" v":"No Core databases found in Data");
         const auto error=LeagueSetup::nameError(WorldRoot,m_leagueName->text());
         m_createLeague->setEnabled(error.empty()&&available&&m_installedCores.at(m_chosenCore).error.empty());
-        auto line=[&](int row,const std::string& text){if(row<content.size.height) page.writeLine("LeagueContent",row,TextClip::clipUtf8Text(text,content.size.width),PFF_Colors::TextHighlightColor);};
-        line(0,"League Name (spaces allowed)");
+        auto line=[&](int row,const std::string& text){if(row<content.size.height) page.writeLine("LeagueContent",row,TextClip::clipUtf8Text(text,content.size.width),labelStyle);};
+        line(0,"League Name");
         line(2,"Save: "+LeagueSetup::destination(WorldRoot,m_leagueName->text()).u8string());
         line(3,error.empty()?"Save name is available.":error);
-        line(4,"Core Database");line(8,"Core Details (Tab to scroll)");line(saveStart-1,"Existing league/save folders (Tab to scroll)");
+        line(4,"Core Database");line(8,"Core Details (Up and Down Arrows Scroll)");line(saveStart-1,"Existing league/save folders");
         if(available)
         {
             details=m_installedCores.at(m_chosenCore).details;
@@ -909,7 +997,7 @@ void CommissionersOfficeScreen::drawLeagueSetup(PageComposer& page,const Rect& c
             m_leagueDetails->addItem(UnicodeConversion::u32ToUtf8(line));
         }
     }
-    if(!m_leagueRoot.focusedChild()||!m_leagueRoot.focusedChild()->canReceiveFocus())
+    if(m_leagueRoot.focusedChild() && !m_leagueRoot.focusedChild()->canReceiveFocus())
         m_leagueRoot.setFocusedChild(configure?static_cast<Widget&>(*m_leagueName):m_leagueStage==LeagueStage::Result?static_cast<Widget&>(*m_cancelLeague):static_cast<Widget&>(*m_leagueDetails));
 }
 
@@ -1103,16 +1191,23 @@ void CommissionersOfficeScreen::drawLeagueDetails(
     Composition::PageComposer& page,
     const LoadedWorldContext& worldContext) const
 {
+    // Styles used by this method. Change these theme mappings to restyle it.
+    const Style& panelFillStyle = PFF_Colors::MainBackgroundColor; // Loaded-league panel fill.
+    const Style& panelBorderStyle = PFF_Colors::MainBorderColor; // Loaded-league panel border.
+    const Style& panelTitleStyle = PFF_Colors::TextHighlightColor; // Loaded-league heading.
+    const Style& detailLabelStyle = PFF_Colors::TextHighlightColor; // Detail names (League, Status, etc.).
+    const Style& detailValueStyle = PFF_Colors::TextHighlightColor; // Recorded values beside detail names.
+
     page.drawPanel(
         "LeaguePanel",
-        PFF_Colors::MainBackgroundColor,
-        PFF_Colors::MainBorderColor,
+        panelFillStyle,
+        panelBorderStyle,
         ObjectFactory::singleLineBorder());
 
     page.writePanelTitle(
         "LeaguePanel",
         " LEAGUE DETAILS ",
-        PFF_Colors::TextHighlightColor,
+        panelTitleStyle,
         3,
         1);
 
@@ -1138,8 +1233,8 @@ void CommissionersOfficeScreen::drawLeagueDetails(
                 row,
                 label,
                 clippedValue,
-                PFF_Colors::TextHighlightColor,
-                PFF_Colors::TextHighlightColor,
+                detailLabelStyle,
+                detailValueStyle,
                 3);
         };
 
@@ -1161,16 +1256,23 @@ void CommissionersOfficeScreen::drawLeagueDetails(
 void CommissionersOfficeScreen::drawLoadLeagueSelection(
     Composition::PageComposer& page)
 {
+    // Styles used by this method. Change these theme mappings to restyle it.
+    const Style& panelFillStyle = PFF_Colors::FormPanelColor; // Load League chooser panel fill.
+    const Style& panelBorderStyle = PFF_Colors::FormBorderColor; // Chooser panel border.
+    const Style& panelTitleStyle = PFF_Colors::FormPanelHeadingColor; // Load League heading.
+    const Style& instructionStyle = PFF_Colors::FormPanelHeadingColor; // Selection/keyboard instructions.
+    const Style& messageStyle = PFF_Colors::InputFieldNormalColor; // Empty-list and load-error messages.
+
     page.drawPanel(
         "LeaguePanel",
-        PFF_Colors::MainBackgroundColor,
-        PFF_Colors::MainBorderColor,
+        panelFillStyle,
+        panelBorderStyle,
         ObjectFactory::singleLineBorder());
 
     page.writePanelTitle(
         "LeaguePanel",
         " LOAD LEAGUE ",
-        PFF_Colors::TextHighlightColor,
+        panelTitleStyle,
         3,
         1);
 
@@ -1178,7 +1280,7 @@ void CommissionersOfficeScreen::drawLoadLeagueSelection(
         "LeagueContent",
         0,
         "Select a saved league. Enter/Space opens it; Esc cancels.",
-        PFF_Colors::TextHighlightColor);
+        instructionStyle);
 
     if (!m_loadLeagueMessage.empty())
     {
@@ -1186,7 +1288,7 @@ void CommissionersOfficeScreen::drawLoadLeagueSelection(
             "LeagueContent",
             2,
             m_loadLeagueMessage,
-            PFF_Colors::TextHighlightColor);
+            messageStyle);
     }
 }
 
