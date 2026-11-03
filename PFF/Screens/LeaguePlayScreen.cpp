@@ -31,6 +31,7 @@ LeaguePlayScreen::~LeaguePlayScreen()
 
 void LeaguePlayScreen::onEnter()
 {
+    m_root.resetFocus();
     m_fontResult = m_assetLibrary.loadBannerFontAsset(m_TitleBannerFontKey);
 
     if (!m_fontResult.success || !m_fontResult.hasFont())
@@ -169,6 +170,9 @@ void LeaguePlayScreen::positionButtons(
     const Rect& rightBottomPane,
     const Rect& footer)
 {
+    // Keyboard-active buttons use the same visible highlight as mouse hover.
+    const Style& ButtonFocusedStyle = PFF_Colors::ButtonHoverColor;
+
     if (m_mainButton)
     {
         const Size buttonSize{ 28, 3 };
@@ -184,7 +188,7 @@ void LeaguePlayScreen::positionButtons(
         m_mainButton->setNormalStyle(PFF_Colors::ButtonNormalColor);
         m_mainButton->setHoverStyle(PFF_Colors::ButtonHoverColor);
         m_mainButton->setPressedStyle(PFF_Colors::ButtonPressedColor);
-        m_mainButton->setFocusedStyle(PFF_Colors::ButtonNormalColor);
+        m_mainButton->setFocusedStyle(ButtonFocusedStyle);
     }
 
     if (m_teamsAndStandingsButton)
@@ -202,7 +206,7 @@ void LeaguePlayScreen::positionButtons(
         m_teamsAndStandingsButton->setNormalStyle(PFF_Colors::ButtonNormalColor);
         m_teamsAndStandingsButton->setHoverStyle(PFF_Colors::ButtonHoverColor);
         m_teamsAndStandingsButton->setPressedStyle(PFF_Colors::ButtonPressedColor);
-        m_teamsAndStandingsButton->setFocusedStyle(PFF_Colors::ButtonNormalColor);
+        m_teamsAndStandingsButton->setFocusedStyle(ButtonFocusedStyle);
     }
 
     if (m_leagueScheduleButton)
@@ -220,7 +224,7 @@ void LeaguePlayScreen::positionButtons(
         m_leagueScheduleButton->setNormalStyle(PFF_Colors::ButtonNormalColor);
         m_leagueScheduleButton->setHoverStyle(PFF_Colors::ButtonHoverColor);
         m_leagueScheduleButton->setPressedStyle(PFF_Colors::ButtonPressedColor);
-        m_leagueScheduleButton->setFocusedStyle(PFF_Colors::ButtonNormalColor);
+        m_leagueScheduleButton->setFocusedStyle(ButtonFocusedStyle);
     }
 
     if (m_leagueLeadersButton)
@@ -238,7 +242,7 @@ void LeaguePlayScreen::positionButtons(
         m_leagueLeadersButton->setNormalStyle(PFF_Colors::ButtonNormalColor);
         m_leagueLeadersButton->setHoverStyle(PFF_Colors::ButtonHoverColor);
         m_leagueLeadersButton->setPressedStyle(PFF_Colors::ButtonPressedColor);
-        m_leagueLeadersButton->setFocusedStyle(PFF_Colors::ButtonNormalColor);
+        m_leagueLeadersButton->setFocusedStyle(ButtonFocusedStyle);
     }
 
     if (m_tradeDeskButton)
@@ -256,7 +260,7 @@ void LeaguePlayScreen::positionButtons(
         m_tradeDeskButton->setNormalStyle(PFF_Colors::ButtonNormalColor);
         m_tradeDeskButton->setHoverStyle(PFF_Colors::ButtonHoverColor);
         m_tradeDeskButton->setPressedStyle(PFF_Colors::ButtonPressedColor);
-        m_tradeDeskButton->setFocusedStyle(PFF_Colors::ButtonNormalColor);
+        m_tradeDeskButton->setFocusedStyle(ButtonFocusedStyle);
     }
 }
 

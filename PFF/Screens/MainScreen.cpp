@@ -41,6 +41,7 @@ MainScreen::~MainScreen()
 
 void MainScreen::onEnter()
 {
+    m_root.resetFocus();
 	updateLeaguePlayAvailability();
 	m_fontResult = m_assetLibrary.loadBannerFontAsset(m_TitleBannerFontKey);
 
@@ -154,6 +155,9 @@ void MainScreen::updateLeaguePlayAvailability()
 
 void MainScreen::positionButtons(const Rect& leftPane, const Rect& rightPane)
 {
+    // Keyboard-active buttons use the same visible highlight as mouse hover.
+    const Style& ButtonFocusedStyle = PFF_Colors::ButtonHoverColor;
+
     if (m_leaguePlayButton)
     {
         const Size buttonSize{ 34, 3 };
@@ -169,7 +173,7 @@ void MainScreen::positionButtons(const Rect& leftPane, const Rect& rightPane)
         m_leaguePlayButton->setNormalStyle(PFF_Colors::ButtonNormalColor);
         m_leaguePlayButton->setHoverStyle(PFF_Colors::ButtonHoverColor);
         m_leaguePlayButton->setPressedStyle(PFF_Colors::ButtonPressedColor);
-        m_leaguePlayButton->setFocusedStyle(PFF_Colors::ButtonNormalColor);
+        m_leaguePlayButton->setFocusedStyle(ButtonFocusedStyle);
     }
 
     if (m_commissionersOfficeButton)
@@ -187,7 +191,7 @@ void MainScreen::positionButtons(const Rect& leftPane, const Rect& rightPane)
         m_commissionersOfficeButton->setNormalStyle(PFF_Colors::ButtonNormalColor);
         m_commissionersOfficeButton->setHoverStyle(PFF_Colors::ButtonHoverColor);
         m_commissionersOfficeButton->setPressedStyle(PFF_Colors::ButtonPressedColor);
-        m_commissionersOfficeButton->setFocusedStyle(PFF_Colors::ButtonNormalColor);
+        m_commissionersOfficeButton->setFocusedStyle(ButtonFocusedStyle);
     }
 }
 

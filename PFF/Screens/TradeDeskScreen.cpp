@@ -31,6 +31,7 @@ TradeDeskScreen::~TradeDeskScreen()
 
 void TradeDeskScreen::onEnter()
 {
+    m_root.resetFocus();
     m_fontResult = m_assetLibrary.loadBannerFontAsset(m_TitleBannerFontKey);
 
     if (!m_fontResult.success || !m_fontResult.hasFont())
@@ -108,6 +109,9 @@ void TradeDeskScreen::buildButtons()
 
 void TradeDeskScreen::positionButtons(const Rect& footer)
 {
+    // Keyboard-active buttons use the same visible highlight as mouse hover.
+    const Style& ButtonFocusedStyle = PFF_Colors::ButtonHoverColor;
+
     if (m_leaguePlayButton)
     {
         const Size buttonSize{ 28, 3 };
@@ -123,7 +127,7 @@ void TradeDeskScreen::positionButtons(const Rect& footer)
         m_leaguePlayButton->setNormalStyle(PFF_Colors::ButtonNormalColor);
         m_leaguePlayButton->setHoverStyle(PFF_Colors::ButtonHoverColor);
         m_leaguePlayButton->setPressedStyle(PFF_Colors::ButtonPressedColor);
-        m_leaguePlayButton->setFocusedStyle(PFF_Colors::ButtonNormalColor);
+        m_leaguePlayButton->setFocusedStyle(ButtonFocusedStyle);
     }
 }
 
