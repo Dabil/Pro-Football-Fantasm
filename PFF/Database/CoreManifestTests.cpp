@@ -15,6 +15,8 @@ void check(bool passed, const std::string& message);
 #include "Input/InputManager.h"
 #include "Input/VtEditingKey.h"
 #include "Styles/PFF_Theme.h"
+#include "App/ScreenManager.h"
+#include "Screens/LeagueScheduleScreen.h"
 
 Input::Event normalizedKey(std::uint16_t vk, char32_t character)
 {
@@ -34,8 +36,108 @@ Input::Event normalizedKey(std::uint16_t vk, char32_t character)
     auto event=manager.popEvent(); check(event.has_value(), "Input normalization produced no event"); return *event;
 }
 
+void testScheduleCache(const fs::path& world,const WorldDatabaseLoadResult& loaded)
+{
+    LoadedWorldContext context;
+    context.loaded=true;context.databasePath=world;context.worldKey=loaded.world.worldKey;
+    context.worldName=loaded.world.worldName;context.currentTimeUtc=loaded.world.currentTimeUtc;
+    check(!loaded.competitionSeasons.empty(),"Schedule cache fixture has no season");
+    context.activeCompetitionSeasonId=loaded.competitionSeasons.front().competitionSeasonId;
+    Assets::AssetLibrary assets;
+    LeagueScheduleScreen screen(assets,[](std::string_view) {return true;},[&] {return context;});
+    Surface surface(160,32);
+    auto render=[&] {screen.draw(surface);return surface.buffer().renderToUtf8String();};
+    auto command=[&](Input::CommandCode code) {
+        screen.handleEvent(Input::Event::command(Input::Command{code}));return render();
+    };
+    auto click=[&](const std::string& label) {
+        Point position{-1,-1};
+        for(int y=0;y<surface.buffer().getHeight();++y)
+        {
+            std::string row;
+            for(int x=0;x<surface.buffer().getWidth();++x)
+                row+=static_cast<char>(surface.buffer().getDisplayGlyph(x,y));
+            const auto x=row.find(label);
+            if(x!=std::string::npos) position=Point{static_cast<int>(x),y};
+        }
+        check(position.x>=0,"Schedule cache missing button: "+label);
+        for(auto action : {Input::MouseAction::Pressed,Input::MouseAction::Released})
+        {
+            Input::MouseEvent event;event.position=position;event.action=action;event.button=Input::MouseButton::Left;
+            screen.handleEvent(Input::Event::mouse(event));
+        }
+        return render();
+    };
+    screen.onEnter();const auto first=render();const ScreenBuffer original=surface.buffer();
+    check(render()==first,"Schedule cache changed text on repeated draw");
+    for(int y=0;y<32;++y) for(int x=0;x<160;++x)
+        check(original.getDisplayStyle(x,y)==surface.buffer().getDisplayStyle(x,y),
+            "Schedule cache changed styles on repeated draw");
+    const auto scrolled=command(Input::CommandCode::MoveEnd);
+    check(scrolled!=first,"Schedule cache failed to invalidate for scrolling");
+    check(command(Input::CommandCode::MoveHome)==first,"Schedule cache failed to restore scroll position");
+    const auto weeks=loadWorldCompetitionSchedule(world,context.activeCompetitionSeasonId).regularSeasonWeeks;
+    check(weeks.size()>1,"Schedule cache test requires multiple weeks");
+    check(click("Look Ahead").find("WEEK "+std::to_string(weeks[1]))!=std::string::npos,
+        "Schedule cache failed to invalidate for Look Ahead");
+    check(click("Look Back").find("WEEK "+std::to_string(weeks[0]))!=std::string::npos,
+        "Schedule cache failed to invalidate for Look Back");
+    context.worldName="Cache test league";
+    check(render().find(context.worldName)!=std::string::npos,"Schedule cache ignored league context change");
+    context.currentTimeUtc="1990-02-01T17:00:00Z";
+    check(render().find("February 1, 1990")!=std::string::npos,"Schedule cache ignored game clock change");
+    surface.resize(120,48);
+    check(render().find("Enlarge the window")!=std::string::npos,"Schedule cache ignored resize");
+    context.clear();
+    check(render().find("Load a league")!=std::string::npos,"Schedule cache retained an unloaded league");
+    screen.onExit();screen.onEnter();
+    check(render().find("Load a league")!=std::string::npos,"Schedule cache retained data across re-entry");
+    std::cout<<"PASS: schedule cache text/styles, scroll, week navigation, league/clock changes, resize and re-entry.\n";
+}
+
 void testScreen(const fs::path& fixture)
 {
+    // Exercise real synchronous screen destruction through the Return button.
+    // Earlier UI tests used a dispatcher stub that never popped a screen.
+    for(bool keyboard : {false,true})
+    {
+        ScreenManager manager;
+        Assets::AssetLibrary navigationAssets;
+        bool returned=false;
+        manager.pushScreen(std::make_unique<CommissionersOfficeScreen>(navigationAssets,
+            [&](std::string_view command) {
+                check(command=="nav:back","Return dispatched the wrong command");
+                manager.popScreen();returned=true;return true;
+            }, [] {return LoadedWorldContext{};}, [](const fs::path&) {return false;}));
+        Surface navigationSurface(160,55);
+        manager.drawCurrentScreen(navigationSurface);
+        if(keyboard)
+        {
+            for(int tab=0;tab<4;++tab)
+                manager.dispatchEvent(Input::Event::command(Input::Command{Input::CommandCode::NextFocus}));
+            manager.dispatchEvent(Input::Event::command(Input::Command{Input::CommandCode::Confirm}));
+        }
+        else
+        {
+            Point returnPosition{-1,-1};
+            for(int y=0;y<navigationSurface.buffer().getHeight();++y)
+            {
+                std::string row;
+                for(int x=0;x<navigationSurface.buffer().getWidth();++x)
+                    row+=static_cast<char>(navigationSurface.buffer().getDisplayGlyph(x,y));
+                const auto label=row.find("Return");
+                if(label!=std::string::npos) returnPosition=Point{static_cast<int>(label),y};
+            }
+            check(returnPosition.x>=0,"Return button was not rendered");
+            for(auto action : {Input::MouseAction::Pressed,Input::MouseAction::Released})
+            {
+                Input::MouseEvent mouse;mouse.position=returnPosition;
+                mouse.button=Input::MouseButton::Left;mouse.action=action;
+                manager.dispatchEvent(Input::Event::mouse(mouse));
+            }
+        }
+        check(returned && !manager.hasScreens(),"Return did not safely remove the Commissioner screen");
+    }
     const auto previous = fs::current_path();
     const auto source = previous / "PFF/Data/Source";
     for (const auto& package : {
@@ -79,6 +181,9 @@ void testScreen(const fs::path& fixture)
     };
     render(); click(140,18);
     check(render().find("Core Database Name") != std::string::npos, "Build form did not open");
+    screen.handleEvent(normalizedKey(0,U'Z'));command(Input::CommandCode::Confirm);
+    check(render().find("Data/.db")!=std::string::npos,"New Core form accepted input before Tab/hover");
+    command(Input::CommandCode::NextFocus); // Newly opened forms start inactive.
     for (char32_t c : std::u32string(U"UI Test"))
     {
         screen.handleEvent(normalizedKey(0,c));
@@ -99,14 +204,29 @@ void testScreen(const fs::path& fixture)
     command(Input::CommandCode::MoveEnd);
     screen.handleEvent(normalizedKey(0,U's')); screen.handleEvent(normalizedKey(0,U't'));
     check(render().find("Data/UI Test.db") != std::string::npos, "Editing restoration failed");
+    auto move = [&](int x,int y) {
+        Input::MouseEvent mouse;mouse.position=Point{x,y};mouse.action=Input::MouseAction::Moved;
+        screen.handleEvent(Input::Event::mouse(mouse));render();
+    };
+    move(8,18);move(120,20);
+    command(Input::CommandCode::Confirm);screen.handleEvent(normalizedKey(0,U'X'));
+    check(render().find("Data/UI Test.db")!=std::string::npos,"Inactive field accepted typing");
+    command(Input::CommandCode::NextFocus);screen.handleEvent(normalizedKey(0,U'X'));
+    check(render().find("Data/UI TestX.db")!=std::string::npos,"First Tab did not restore last active input");
+    screen.handleEvent(normalizedKey(0x08,U'\b'));
     command(Input::CommandCode::NextFocus);
     command(Input::CommandCode::Confirm);
     check(render().find("PFF_CLASSIC_1989_BASE @ 0.1") != std::string::npos, "Ruleset dropdown did not open");
+    move(8,23);move(120,20);
+    command(Input::CommandCode::Confirm);
+    check(render().find("PFF_CLASSIC_1989_BASE @ 0.1")!=std::string::npos,"Inactive dropdown accepted Confirm");
+    command(Input::CommandCode::NextFocus);
+    check(render().find("PFF_CLASSIC_1989_BASE @ 0.1")!=std::string::npos,"First Tab closed inactive dropdown");
     command(Input::CommandCode::Confirm); render();
     command(Input::CommandCode::NextFocus);
     command(Input::CommandCode::Confirm); render();
-    command(Input::CommandCode::Cancel); render();
-    command(Input::CommandCode::NextFocus);
+    command(Input::CommandCode::NextFocus); render();
+    check(render().find("PFF_CLASSIC_1989_SEASON @ 0.1")==std::string::npos,"Tab did not close the season dropdown");
     command(Input::CommandCode::Confirm);
     const auto buildingView=render();
     check(buildingView.find("REVIEW CORE DATABASE BUILD")!=std::string::npos, "Build results heading changed");
@@ -137,6 +257,7 @@ void testScreen(const fs::path& fixture)
         "Continue did not restore the Commissioner office");
     click(140,18); render();
     check(render().find("Data/.db")!=std::string::npos, "Continue did not clear build state");
+    command(Input::CommandCode::NextFocus);
     for(char32_t c:std::u32string(U"UI Test23")) screen.handleEvent(normalizedKey(0,c));
     const fs::path brokenChart="Data/Source/RuleSets/FirstEdition/breakaway.pffdata";
     auto broken=CoreManifest::bytes(brokenChart);
@@ -166,10 +287,14 @@ void testScreen(const fs::path& fixture)
     check(render().find("Unknown / not recorded")!=std::string::npos,"Missing legacy metadata was invented");
     check(render().find("history not recorded")!=std::string::npos,"Unknown warning history was presented as clean");
     check(render().find("Taken League")!=std::string::npos,"Existing save folders are not shown");
+    command(Input::CommandCode::NextFocus);
     for(char32_t c:std::u32string(U"Taken League")) {screen.handleEvent(normalizedKey(0,c));if(c==U' ') command(Input::CommandCode::Confirm);}
     check(render().find("already exists")!=std::string::npos,"Existing name conflict was not shown");
     click(140,18);render();
     check(!fs::exists("Data/World/Taken League/World.db"),"Create overwrote an existing folder");
+    // The disabled Create button leaves nothing active; explicitly return to
+    // the name field before editing rather than relying on invisible focus.
+    click(8,18);render();
     command(Input::CommandCode::MoveHome);
     Input::KeyEvent erase;erase.code=Input::KeyCode::Delete;erase.pressed=true;erase.repeatCount=64;
     screen.handleEvent(Input::Event::key(erase));
@@ -177,7 +302,8 @@ void testScreen(const fs::path& fixture)
     check(render().find("My League")!=std::string::npos,"League name spaces failed");
     command(Input::CommandCode::NextFocus);command(Input::CommandCode::Confirm);
     check(render().find("UI Test.db")!=std::string::npos,"Core dropdown did not list built Core");
-    command(Input::CommandCode::MoveEnd);command(Input::CommandCode::Confirm);render();
+    command(Input::CommandCode::MoveEnd);command(Input::CommandCode::NextFocus);render();
+    check(render().find("00 Legacy.db")==std::string::npos,"Tab did not close the Core dropdown");
     check(render().find("FirstEdition")!=std::string::npos,"Selected Core details did not update");
     check(render().find("PFF_CLASSIC_1989_BASE")!=std::string::npos,"Package metadata missing from details");
     click(10,26);command(Input::CommandCode::MoveEnd);
@@ -188,6 +314,7 @@ void testScreen(const fs::path& fixture)
     const fs::path world="Data/World/My League/World.db";
     auto loaded=loadWorldDatabase(world);
     check(loaded.success && loaded.coreSnapshots.size()==1,"Created league snapshot did not load");
+    testScheduleCache(world,loaded);
     auto snapshot=loaded.coreSnapshots[0].snapshotPath;
     if(snapshot.is_relative()) snapshot=world.parent_path()/snapshot;
     check(CoreManifest::bytes(snapshot)==savedCore,"League did not preserve the selected Core bytes");
