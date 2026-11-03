@@ -120,4 +120,108 @@ namespace PFF_Colors
             Color::FromBasic(Color::Basic::BrightBlack),
             Color::FromIndexed(102),
             Color::FromRgb(139, 139, 139)));
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////
+    /// Forms
+    ///
+
+    inline const Style FormPanelColor =
+        style::Fg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::Black),
+            Color::FromIndexed(0),
+            Color::FromRgb(0, 0, 0)))
+        + style::Bg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::BrightBlack),
+            Color::FromIndexed(102),
+            Color::FromRgb(139, 139, 139)));
+
+    inline const Style FormBorderColor =
+        style::Fg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::Black),
+            Color::FromIndexed(0),
+            Color::FromRgb(0, 0, 0)))
+        + style::Bg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::BrightBlack),
+            Color::FromIndexed(102),
+            Color::FromRgb(139, 139, 139)));
+
+    inline const Style FormPanelHeadingColor =
+        style::Fg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::Black),
+            Color::FromIndexed(0),
+            Color::FromRgb(0, 0, 0)))
+        + style::Bg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::BrightBlack),
+            Color::FromIndexed(102),
+            Color::FromRgb(139, 139, 139)));
+
+    inline const Style InputFieldNormalColor =
+        style::Fg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::Yellow),
+            Color::FromIndexed(223),
+            Color::FromRgb(254, 235, 180)))
+        + style::Bg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::BrightBlack),
+            Color::FromIndexed(241),
+            Color::FromRgb(101, 101, 101)));
+
+    inline const Style InputFieldHighlightColor =
+        style::Fg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::Yellow),
+            Color::FromIndexed(223),
+            Color::FromRgb(254, 235, 180)))
+        + style::Bg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::BrightRed),
+            Color::FromIndexed(160),
+            Color::FromRgb(215, 0, 0)));
+
+    inline const Style InputFieldFocusedColor =
+        style::Fg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::BrightWhite),
+            Color::FromIndexed(255),
+            Color::FromRgb(255, 255, 255)))
+        + style::Bg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::BrightRed),
+            Color::FromIndexed(160),
+            Color::FromRgb(215, 0, 0)));
+
+    inline const Style InputFieldNormalHintColor =
+        style::Fg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::BrightBlack),
+            Color::FromIndexed(102),
+            Color::FromRgb(139, 139, 139)))
+    + style::Bg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::BrightBlack),
+            Color::FromIndexed(241),
+            Color::FromRgb(101, 101, 101)));
+
+    inline const Style InputFieldFocusedHintColor =
+        style::Fg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::Black),
+            Color::FromIndexed(0),
+            Color::FromRgb(0, 0, 0)))
+        + style::Bg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::BrightRed),
+            Color::FromIndexed(160),
+            Color::FromRgb(215, 0, 0)));
+
+    inline const Style PanelSliderColor =
+        style::Fg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::BrightBlack),
+            Color::FromIndexed(244),
+            Color::FromRgb(69, 69, 69)))
+        + style::Bg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::Black),
+            Color::FromIndexed(0),
+            Color::FromRgb(0, 0, 0)));
+
+    inline const Style PanelTrackColor =
+        style::Fg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::BrightBlack),
+            Color::FromIndexed(102),
+            Color::FromRgb(139, 139, 139)))
+        + style::Bg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::Black),
+            Color::FromIndexed(0),
+            Color::FromRgb(69, 69, 69)));
 }
