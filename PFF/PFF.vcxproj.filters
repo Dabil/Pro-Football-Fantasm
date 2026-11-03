@@ -21,6 +21,8 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Screens\TeamDataScreen.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="Screens\TeamScreen.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -80,6 +82,10 @@
     <ClInclude Include="Screens\GameScreen.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Screens\TeamDataScreen.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Screens\FormCheckBox.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Screens\TeamScreen.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Screens\TeamLink.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="App\PFFApplication.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -95,6 +101,8 @@
     <ClInclude Include="Screens\Developer\XpSequenceDiagnosticsScreen.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Database\CoreTeamDataSchema.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\CoreTeamDataImport.inl"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Database\PFFDatabase.h">
       <Filter>Header Files</Filter>
     </ClInclude>

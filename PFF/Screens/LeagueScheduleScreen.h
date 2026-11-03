@@ -28,7 +28,8 @@ public:
     explicit LeagueScheduleScreen(
         Assets::AssetLibrary& assetLibrary,
         std::function<bool(std::string_view)> commandDispatcher,
-        std::function<LoadedWorldContext()> loadedWorldContextProvider);
+        std::function<LoadedWorldContext()> loadedWorldContextProvider,
+        std::function<void(const LoadedWorldContext&,std::int64_t)> openTeam = {});
 
     ~LeagueScheduleScreen();
 
@@ -84,6 +85,8 @@ private:
     int m_visibleRows = 1;
     Rect m_scheduleBounds;
     // Static schedule/header/footer drawing; buttons remain live.
+    std::function<void(const LoadedWorldContext&,std::int64_t)> m_openTeam;
+    std::vector<Widget*> m_teamLinks;
     std::unique_ptr<Surface> m_scheduleCache;
 };
 

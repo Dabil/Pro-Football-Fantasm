@@ -131,9 +131,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Database\WorldTeamData.h" />
+    <ClInclude Include="Database\WorldTeamDataSchema.h" />
+    <ClInclude Include="Database\TeamDataSql.h" />
+    <ClInclude Include="Database\WorldTeamDataBuild.inl" />
     <ClInclude Include="Database\WorldDatabase.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Database\WorldTeamData.cpp" />
     <ClCompile Include="Database\WorldDatabase.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

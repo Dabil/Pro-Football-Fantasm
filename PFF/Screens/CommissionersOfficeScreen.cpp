@@ -10,6 +10,7 @@
 #include "Rendering/Composition/PageComposer.h"
 #include "Rendering/Objects/BannerFactory.h"
 #include "Utilities/Text/TextClip.h"
+#include "Utilities/Text/TextWrap.h"
 
 // C++ library includes
 #include <algorithm>
@@ -33,11 +34,13 @@ CommissionersOfficeScreen::CommissionersOfficeScreen(
     Assets::AssetLibrary& assetLibrary,
     std::function<bool(std::string_view)> commandDispatcher,
     std::function<LoadedWorldContext()> loadedWorldContextProvider,
-    std::function<bool(const std::filesystem::path&)> loadLeagueCallback)
+    std::function<bool(const std::filesystem::path&)> loadLeagueCallback,
+    std::function<void(const WorldEditCommit&)> commitCallback)
     : m_assetLibrary(assetLibrary)
     , m_commandDispatcher(std::move(commandDispatcher))
     , m_loadedWorldContextProvider(std::move(loadedWorldContextProvider))
     , m_loadLeagueCallback(std::move(loadLeagueCallback))
+    , m_commitCallback(std::move(commitCallback))
 {
     buildWidgets();
 }
@@ -52,6 +55,7 @@ void CommissionersOfficeScreen::onEnter()
     const Style& titleStyle = PFF_Colors::ProFootballTitleColor; // Commissioner banner lettering.
 
     m_root.resetFocus();
+    refreshEditState(true);
     m_fontResult = m_assetLibrary.loadBannerFontAsset(m_TitleBannerFontKey);
 
     if (!m_fontResult.success || !m_fontResult.hasFont())
@@ -137,28 +141,43 @@ bool CommissionersOfficeScreen::handleEvent(const Input::Event& event)
             }
         return m_coreRoot.handleEvent(event);
     }
-    // While the league list owns focus, Enter/Space means "load the selected
-    // league" rather than merely changing ListBox selection.
     if (m_loadLeagueSelectionActive)
     {
-        if (const Input::CommandEvent* commandEvent = event.asCommand())
+        if (const auto* command=event.asCommand())
         {
-            if (commandEvent->command.code == Input::CommandCode::Confirm &&
-                m_root.focusedChild() == m_leagueListBox)
+            const auto code=command->command.code;
+            if(code==Input::CommandCode::Cancel || code==Input::CommandCode::Close || code==Input::CommandCode::Back)
             {
-                return loadSelectedLeague();
+                if(m_savedLeaguesOpen) closeSavedLeagueDropdown(false);
+                else cancelLoadLeagueSelection();
+                return true;
             }
-
-            if (commandEvent->command.code == Input::CommandCode::Cancel ||
-                commandEvent->command.code == Input::CommandCode::Close)
+            if(m_savedLeaguesOpen && (code==Input::CommandCode::NextFocus || code==Input::CommandCode::PreviousFocus))
             {
-                cancelLoadLeagueSelection();
+                if(m_loadRoot.focusedChild()) closeSavedLeagueDropdown(true);
+                return m_loadRoot.handleEvent(event);
+            }
+            if(m_savedLeaguesOpen && code==Input::CommandCode::Confirm)
+            {
+                if(m_loadRoot.focusedChild()==m_leagueListBox) closeSavedLeagueDropdown(true);
                 return true;
             }
         }
+        const bool handled=m_loadRoot.handleEvent(event);
+        if(m_savedLeaguesOpen)
+            if(const auto* mouse=event.asMouse())
+                if(handled && m_loadRoot.focusedChild()==m_leagueListBox &&
+                    mouse->button==Input::MouseButton::Left && (mouse->isPress() || mouse->isClick()))
+                    closeSavedLeagueDropdown(true);
+        return handled;
     }
 
-    return m_root.handleEvent(event);
+    const bool handled=m_root.handleEvent(event);
+    const auto navigation=std::move(m_pendingNavigation);m_pendingNavigation.reset();
+    const auto dispatcher=m_commandDispatcher;
+    if(m_requestedGod){const bool enabled=*m_requestedGod;m_requestedGod.reset();toggleGodMode(enabled);}
+    if(navigation&&dispatcher)dispatcher(*navigation); // May destroy this screen; use only locals afterward.
+    return handled;
 }
 
 void CommissionersOfficeScreen::update(const Animation::TickEvent& event)
@@ -197,11 +216,13 @@ void CommissionersOfficeScreen::update(const Animation::TickEvent& event)
         }
     }
     if (m_coreStage != CoreStage::Closed) m_coreRoot.update(event);
+    else if(m_loadLeagueSelectionActive) m_loadRoot.update(event);
     else m_root.update(event);
 }
 
 void CommissionersOfficeScreen::draw(Surface& surface)
 {
+    const Style& officeModeStyle=PFF_Colors::TextHighlightColor; // God-mode state and errors.
     // Styles used by this method. Change these theme mappings to restyle it.
     const Style& backgroundStyle = PFF_Colors::MainBackgroundColor; // Screen background.
     const Style& headerFillStyle = PFF_Colors::HeaderOuterColor; // Outer header fill.
@@ -229,6 +250,7 @@ void CommissionersOfficeScreen::draw(Surface& surface)
         page.splitRight(body, controlWidth);
 
     m_root.setBounds(body);
+    refreshEditState();
     positionButtons(controlPane, footer);
 
     page.createRegion("Header", header);
@@ -282,8 +304,9 @@ void CommissionersOfficeScreen::draw(Surface& surface)
 
     if (m_loadLeagueSelectionActive)
     {
-        drawLoadLeagueSelection(page);
-        positionLoadLeagueList(page.resolveRegion("LeagueContent"));
+        drawLoadLeagueSelection(page,controlPane);
+        m_loadRoot.draw(surface);
+        return;
     }
     else
     {
@@ -305,14 +328,23 @@ void CommissionersOfficeScreen::draw(Surface& surface)
         }
     }
 
+    if(m_godMode->isVisible()){
+        const auto lines=wrapText(m_editMessage.empty()?std::string(m_editState.godMode?"God mode: ON. Supported league edits are unlocked.":"God mode: OFF. Controlled-role permissions apply."):m_editMessage,std::max(1,controlPane.size.width-4));
+        for(std::size_t i=0;i<lines.size()&&i<6;++i)page.writeLine(controlPane,25+static_cast<int>(i),"  "+lines[i],officeModeStyle);
+    }
     m_root.draw(surface);
 }
 
 void CommissionersOfficeScreen::buildWidgets()
 {
+    // Checkbox: independent appearance for World God-mode state.
+    const Style& checkboxNormal=PFF_Colors::InputFieldNormalColor;
+    const Style& checkboxActive=PFF_Colors::InputFieldFocusedColor;
+    const Style& checkboxPressed=PFF_Colors::ButtonPressedColor;
+    const Style checkboxDisabled=checkboxNormal.withDim(true);
     // Styles by COMPONENT TYPE. Instances of the same type share these mappings.
 
-    // Action buttons: Create, Build, Reload, Cancel and Continue.
+    // Action buttons: Create, Build, Open, Reload, Cancel and Continue.
     const Style& ButtonNormalStyle = PFF_Colors::ButtonNormalColor; // Idle button.
     const Style& ButtonFocusedStyle = PFF_Colors::ButtonHoverColor; // Keyboard-focused button.
     const Style& ButtonHoverStyle = PFF_Colors::ButtonHoverColor; // Mouse over a button.
@@ -326,7 +358,7 @@ void CommissionersOfficeScreen::buildWidgets()
     const Style& InputPlaceholderNormalStyle = PFF_Colors::InputFieldNormalHintColor; // Hint when the empty input is not focused.
     const Style& InputPlaceholderFocusedStyle = PFF_Colors::InputFieldFocusedHintColor; // Hint when the empty input has keyboard focus.
 
-    // Closed dropdown controls: Core Database, Ruleset and Season selectors.
+    // Closed dropdown controls: Core Database, Ruleset, Season and saved-league selectors.
     const Style& DropdownNormalStyle = PFF_Colors::InputFieldNormalColor; // Closed selector, idle.
     const Style& DropdownFocusedStyle = PFF_Colors::InputFieldFocusedColor; // Closed selector, keyboard focus.
     const Style& DropdownHoverStyle = PFF_Colors::ButtonHoverColor; // Mouse over the closed selector.
@@ -338,7 +370,7 @@ void CommissionersOfficeScreen::buildWidgets()
     const Style& DropdownListSelectedStyle = PFF_Colors::InputFieldFocusedColor; // Selected option, not focused.
     const Style& DropdownListSelectedFocusedStyle = PFF_Colors::ButtonHoverColor; // Selected option, list focused.
 
-    // General lists: Core Details, existing saves, Load League and build results.
+    // General lists: Core Details, existing saves and build results.
     const Style& ListNormalStyle = PFF_Colors::InputFieldNormalColor; // Unselected row, not focused.
     const Style& ListFocusedStyle = PFF_Colors::InputFieldNormalColor; // Unselected row, list focused.
     const Style& ListSelectedStyle = PFF_Colors::InputFieldNormalColor; // Selected row, not focused.
@@ -457,8 +489,19 @@ void CommissionersOfficeScreen::buildWidgets()
         "Return",
         "nav:back");
 
+    auto loadButton=[&](const std::string& label,auto callback) {
+        auto button=std::make_unique<Button>(label);
+        button->setActivationCallback([callback](const ButtonActivationResult& result){if(result.activated) callback();});
+        auto* ptr=button.get();m_loadRoot.addChild(std::move(button));return ptr;
+    };
+    m_savedLeagueSelector=loadButton("Select saved league v",[this]{openSavedLeagueDropdown();});
+    m_openLeague=loadButton("Open League",[this]{loadSelectedLeague();});
+    m_cancelLoadLeague=loadButton("Cancel",[this]{cancelLoadLeagueSelection();});
+    styleButton(*m_savedLeagueSelector,DropdownNormalStyle,DropdownFocusedStyle,DropdownHoverStyle,DropdownPressedStyle);
+    styleButton(*m_openLeague,ButtonNormalStyle,ButtonFocusedStyle,ButtonHoverStyle,ButtonPressedStyle);
+    styleButton(*m_cancelLoadLeague,ButtonNormalStyle,ButtonFocusedStyle,ButtonHoverStyle,ButtonPressedStyle);
     auto leagueListBox = std::make_unique<ListBox>();
-    styleList(*leagueListBox, ListNormalStyle, ListFocusedStyle, ListSelectedStyle, ListSelectedFocusedStyle);
+    styleList(*leagueListBox, DropdownListNormalStyle, DropdownListFocusedStyle, DropdownListSelectedStyle, DropdownListSelectedFocusedStyle);
     leagueListBox->setVisible(false);
     leagueListBox->setEnabled(false);
 
@@ -495,8 +538,11 @@ void CommissionersOfficeScreen::buildWidgets()
     m_root.addChild(std::move(buildCoreDbButton));
     m_root.addChild(std::move(newLeagueButton));
     m_root.addChild(std::move(loadLeagueButton));
+    auto god=std::make_unique<FormCheckBox>("God mode");
+    god->setNormalStyle(checkboxNormal);god->setFocusedStyle(checkboxActive);god->setHoverStyle(checkboxActive);god->setPressedStyle(checkboxPressed);god->setDisabledStyle(checkboxDisabled);
+    god->setChangeCallback([this](bool enabled){m_requestedGod=enabled;});m_godMode=god.get();m_root.addChild(std::move(god));
     m_root.addChild(std::move(mainButton));
-    m_root.addChild(std::move(leagueListBox));
+    m_loadRoot.addChild(std::move(leagueListBox));
 }
 
 void CommissionersOfficeScreen::positionButtons(
@@ -556,6 +602,8 @@ void CommissionersOfficeScreen::positionButtons(
         m_loadLeagueButton->setFocusedStyle(ButtonFocusedStyle);
     }
 
+    if(m_godMode)m_godMode->setBounds(Rect{Point{controlX,firstButtonY+buttonSpacing*3},controlButtonSize});
+
     if (m_mainButton)
     {
         const Size buttonSize{ 28, 3 };
@@ -573,28 +621,6 @@ void CommissionersOfficeScreen::positionButtons(
         m_mainButton->setPressedStyle(ButtonPressedStyle);
         m_mainButton->setFocusedStyle(ButtonFocusedStyle);
     }
-}
-
-void CommissionersOfficeScreen::positionLoadLeagueList(
-    const Rect& contentRect)
-{
-    if (!m_leagueListBox || !m_loadLeagueSelectionActive)
-    {
-        return;
-    }
-
-    const int topOffset = 4;
-
-    m_leagueListBox->setBounds(Rect{
-        Point{
-            contentRect.position.x,
-            contentRect.position.y + topOffset
-        },
-        Size{
-            std::max(0, contentRect.size.width),
-            std::max(0, contentRect.size.height - topOffset)
-        }
-        });
 }
 
 void CommissionersOfficeScreen::handleButtonActivation(
@@ -619,24 +645,12 @@ void CommissionersOfficeScreen::handleButtonActivation(
 
     if (result.commandId == LoadLeagueCommand)
     {
-        if (m_loadLeagueSelectionActive)
-        {
-            (void)loadSelectedLeague();
-        }
-        else
-        {
-            beginLoadLeagueSelection();
-        }
-
+        beginLoadLeagueSelection();
         return;
     }
 
-    // Navigation can destroy this screen, including its stored dispatcher.
-    const auto dispatcher = m_commandDispatcher;
-    if (dispatcher)
-    {
-        dispatcher(result.commandId);
-    }
+    // Defer navigation until widget dispatch and pending edit-mode handling end.
+    m_pendingNavigation=result.commandId;
 }
 
 void CommissionersOfficeScreen::buildCoreDatabase()
@@ -1004,47 +1018,44 @@ void CommissionersOfficeScreen::drawLeagueSetup(PageComposer& page,const Rect& c
 void CommissionersOfficeScreen::beginLoadLeagueSelection()
 {
     refreshLeagueSaveList();
-    m_loadLeagueSelectionActive = true;
+    m_loadLeagueSelectionActive=true;
+    m_savedLeaguesOpen=false;m_selectedLeague=0;
+    m_leagueListBox->setVisible(false);m_leagueListBox->setEnabled(false);
+    m_loadRoot.resetFocus();
+}
 
-    if (m_loadLeagueButton)
-    {
-        m_loadLeagueButton->setLabel("Open League");
-    }
+void CommissionersOfficeScreen::openSavedLeagueDropdown()
+{
+    if(m_availableLeagues.empty()) return;
+    m_savedLeaguesOpen=true;
+    m_leagueListBox->setVisible(true);m_leagueListBox->setEnabled(true);
+    m_leagueListBox->selectIndex(m_selectedLeague);
+    // The popup owns focus until the pointer moves to a new target.
+    m_loadRoot.clearPointerState();
+    m_loadRoot.setFocusedChild(*m_leagueListBox);
+}
 
-    if (m_leagueListBox)
-    {
-        m_leagueListBox->setVisible(true);
-        m_leagueListBox->setEnabled(true);
-
-        if (!m_leagueListBox->empty())
-        {
-            m_root.setFocusedChild(*m_leagueListBox);
-        }
-    }
+void CommissionersOfficeScreen::closeSavedLeagueDropdown(bool accept)
+{
+    if(accept)
+        if(const auto selected=m_leagueListBox->selectedIndex();selected && *selected<m_availableLeagues.size())
+            m_selectedLeague=*selected;
+    m_savedLeaguesOpen=false;
+    m_leagueListBox->setVisible(false);m_leagueListBox->setEnabled(false);
+    m_loadRoot.setFocusedChild(*m_savedLeagueSelector);
 }
 
 void CommissionersOfficeScreen::cancelLoadLeagueSelection()
 {
-    m_loadLeagueSelectionActive = false;
-    m_loadLeagueMessage.clear();
-    m_availableLeagues.clear();
-
-    if (m_leagueListBox)
+    m_loadLeagueSelectionActive=false;m_savedLeaguesOpen=false;m_selectedLeague=0;
+    m_loadLeagueMessage.clear();m_availableLeagues.clear();
+    m_loadRoot.resetFocus();
+    if(m_leagueListBox)
     {
         m_leagueListBox->clearItems();
-        m_leagueListBox->setVisible(false);
-        m_leagueListBox->setEnabled(false);
+        m_leagueListBox->setVisible(false);m_leagueListBox->setEnabled(false);
     }
-
-    if (m_loadLeagueButton)
-    {
-        m_loadLeagueButton->setLabel("Load League");
-
-        if (m_root.containsChild(*m_loadLeagueButton))
-        {
-            m_root.setFocusedChild(*m_loadLeagueButton);
-        }
-    }
+    if(m_loadLeagueButton) m_root.setFocusedChild(*m_loadLeagueButton);
 }
 
 void CommissionersOfficeScreen::refreshLeagueSaveList()
@@ -1163,18 +1174,12 @@ bool CommissionersOfficeScreen::loadSelectedLeague()
         return false;
     }
 
-    const std::optional<std::size_t> selectedIndex =
-        m_leagueListBox->selectedIndex();
-
-    if (!selectedIndex.has_value() ||
-        *selectedIndex >= m_availableLeagues.size())
+    if(m_selectedLeague>=m_availableLeagues.size())
     {
-        m_loadLeagueMessage = "Select a league first.";
+        m_loadLeagueMessage="Select a league first.";
         return false;
     }
-
-    const LeagueSaveEntry& selected =
-        m_availableLeagues[*selectedIndex];
+    const LeagueSaveEntry& selected=m_availableLeagues[m_selectedLeague];
 
     if (!m_loadLeagueCallback(selected.databasePath))
     {
@@ -1254,7 +1259,7 @@ void CommissionersOfficeScreen::drawLeagueDetails(
 }
 
 void CommissionersOfficeScreen::drawLoadLeagueSelection(
-    Composition::PageComposer& page)
+    Composition::PageComposer& page, const Rect& controls)
 {
     // Styles used by this method. Change these theme mappings to restyle it.
     const Style& panelFillStyle = PFF_Colors::FormPanelColor; // Load League chooser panel fill.
@@ -1276,19 +1281,45 @@ void CommissionersOfficeScreen::drawLoadLeagueSelection(
         3,
         1);
 
-    page.writeLine(
-        "LeagueContent",
-        0,
-        "Select a saved league. Enter/Space opens it; Esc cancels.",
-        instructionStyle);
-
-    if (!m_loadLeagueMessage.empty())
+    const Rect content=page.resolveRegion("LeagueContent");
+    m_loadRoot.setBounds(page.resolveRegion("Body"));
+    const bool available=m_selectedLeague<m_availableLeagues.size();
+    m_savedLeagueSelector->setLabel(available?m_availableLeagues[m_selectedLeague].displayName+" v":"No saved leagues found");
+    m_savedLeagueSelector->setEnabled(available);m_openLeague->setEnabled(available);
+    m_savedLeagueSelector->setBounds(Rect{Point{content.position.x,content.position.y+1},Size{std::max(0,content.size.width),3}});
+    m_leagueListBox->setBounds(Rect{Point{content.position.x,content.position.y+4},
+        Size{std::max(0,content.size.width),std::max(0,std::min(8,content.size.height-5))}});
+    m_leagueListBox->setVisible(m_savedLeaguesOpen);m_leagueListBox->setEnabled(m_savedLeaguesOpen);
+    auto action=[&](Button* button,int row) {
+        button->setBounds(Rect{Point{controls.position.x+1,controls.position.y+row},Size{std::max(0,controls.size.width-2),3}});
+    };
+    action(m_openLeague,5);action(m_cancelLoadLeague,10);
+    auto line=[&](int row,const std::string& text,const Style& style) {
+        if(row>=0 && row<content.size.height)
+            page.writeLine(content,row,TextClip::clipUtf8Text(text,content.size.width),style);
+    };
+    line(0,"Available Leagues",instructionStyle);
+    if(!m_savedLeaguesOpen)
     {
-        page.writeLine(
-            "LeagueContent",
-            2,
-            m_loadLeagueMessage,
-            messageStyle);
+        if(available) line(6,"World: "+m_availableLeagues[m_selectedLeague].databasePath.u8string(),messageStyle);
+        line(8,"Choose a league from the dropdown, then select Open League. Esc cancels.",instructionStyle);
+        if(!m_loadLeagueMessage.empty()) line(10,m_loadLeagueMessage,messageStyle);
     }
 }
 
+void CommissionersOfficeScreen::refreshEditState(bool force)
+{
+    const auto c=m_loadedWorldContextProvider?m_loadedWorldContextProvider():LoadedWorldContext{};
+    if(!force&&m_editChecked&&c.loaded==m_editContext.loaded&&c.databasePath==m_editContext.databasePath&&c.worldKey==m_editContext.worldKey&&c.dataRevision==m_editContext.dataRevision)return;
+    m_editChecked=true;m_editContext=c;m_editReady=false;m_editMessage.clear();m_editState={};
+    if(c.isLoaded()){const auto actor=openLocalWorldActor(c.databasePath);if(!actor.success)m_editMessage=actor.message;else{m_editActor=actor.value;auto state=loadWorldEditState(m_editActor);if(state.success){m_editState=state.value;m_editReady=true;}else m_editMessage=state.message;}}
+    m_godMode->setVisible(c.isLoaded());m_godMode->setEnabled(m_editReady&&m_editState.canEnableGodMode&&static_cast<bool>(m_commitCallback));m_godMode->setChecked(m_editState.godMode);
+}
+void CommissionersOfficeScreen::toggleGodMode(bool enabled)
+{
+    const auto c=m_loadedWorldContextProvider?m_loadedWorldContextProvider():LoadedWorldContext{};
+    if(!m_editReady||!c.isLoaded()||c.databasePath!=m_editContext.databasePath||c.worldKey!=m_editContext.worldKey){refreshEditState(true);return;}
+    const auto result=setWorldEditMode(m_editActor,enabled,m_editState.revision);
+    if(!result.success){m_godMode->setChecked(m_editState.godMode);m_editMessage=result.message;return;}
+    if(m_commitCallback)m_commitCallback(result.value);refreshEditState(true);
+}

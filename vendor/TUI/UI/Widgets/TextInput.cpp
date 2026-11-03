@@ -807,7 +807,7 @@ void TextInput::ensureCursorVisible()
 
     if (availableWidth <= 0)
     {
-        m_firstVisibleCluster = m_cursorCluster;
+        m_firstVisibleCluster = 0;
         return;
     }
 
@@ -835,11 +835,22 @@ void TextInput::ensureCursorVisible()
 
     // Keep one visible cell for the insertion cursor. This also handles the
     // end-of-text cursor, which otherwise lands exactly one cell past the edge.
-    while (m_firstVisibleCluster < m_cursorCluster &&
-           widthBeforeCursor() >= availableWidth)
+    int visibleWidth = widthBeforeCursor();
+    while (m_firstVisibleCluster < m_cursorCluster && visibleWidth >= availableWidth)
     {
+        visibleWidth -= clusterDisplayWidth(clusters[m_firstVisibleCluster]);
         ++m_firstVisibleCluster;
     }
+    // Layout may grow after setText, or deletion may shorten the value. Fill
+    // the newly available space instead of retaining an off-screen/end offset.
+    while (m_firstVisibleCluster > 0)
+    {
+        const int previousWidth = clusterDisplayWidth(clusters[m_firstVisibleCluster - 1]);
+        if (visibleWidth + previousWidth >= availableWidth) break;
+        --m_firstVisibleCluster;
+        visibleWidth += previousWidth;
+    }
+
 }
 
 void TextInput::notifyChanged()

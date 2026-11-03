@@ -52,6 +52,11 @@ namespace LeagueSetup
         result.details={"Core: "+path.filename().u8string(),"Ruleset: "+value("Ruleset"),
             "Season: "+value("Season"),"Core schema: "+value("CoreSchemaVersion")};
         if(result.season<=0) result.error="Core has no usable recorded season. Choose another Core or rebuild it.";
+        if(result.metadata["CoreSchemaVersion"]!="2" || result.metadata["TeamDataContractVersion"]!="1")
+            result.error="UNSUPPORTED_SCHEMA: rebuild a fresh compatible Core. Existing files are not migrated.";
+        result.details.push_back("Team data contract: "+value("TeamDataContractVersion"));
+        result.details.push_back("Person identity: "+value("PersonIdentityPolicy"));
+        result.details.push_back("Unresolved staff labels: "+value("StaffUnresolvedLabelCount"));
         std::map<std::string,std::map<std::string,std::string>> packages;
         for(const auto& entry:result.metadata)
             if(entry.first.rfind("ManifestPackage.",0)==0)

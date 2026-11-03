@@ -15,11 +15,16 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Database\WorldTeamData.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\WorldTeamDataSchema.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\TeamDataSql.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\WorldTeamDataBuild.inl"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Database\WorldDatabase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Database\WorldTeamData.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="Database\WorldDatabase.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

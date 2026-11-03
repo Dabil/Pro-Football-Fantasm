@@ -14,6 +14,8 @@
 #include "Screens/CommissionersOfficeScreen.h"
 #include "Screens/LeaguePlayScreen.h"
 #include "Screens/TeamsAndStandingsScreen.h"
+#include "Screens/TeamScreen.h"
+#include "Screens/TeamDataScreen.h"
 #include "Screens/LeagueScheduleScreen.h"
 #include "Screens/LeagueLeadersScreen.h"
 #include "Screens/TradeDeskScreen.h"
@@ -188,6 +190,15 @@ bool PFFApplication::createNewLeague()
     return loadWorldIntoContext(createResult.databasePath);
 }
 
+void PFFApplication::openTeamDataScreen(const LoadedWorldContext& selected,std::int64_t id)
+{
+    screenManager().pushScreen(std::make_unique<TeamDataScreen>(assetLibrary(),
+        [this](std::string_view command){return handlePffCommandId(command);},
+        [this]{return loadedWorldContext();},selected,id,
+        [this](const WorldEditCommit& committed){m_loadedWorldContext.applyCommittedEdit(committed);requestRender();}));
+    requestRender();
+}
+
 bool PFFApplication::loadWorldIntoContext(
     const std::filesystem::path& databasePath)
 {
@@ -225,6 +236,7 @@ bool PFFApplication::loadWorldIntoContext(
     context.databasePath = databasePath;
 
     context.worldId = loadResult.world.worldId;
+    context.dataRevision = loadResult.world.dataRevision;
     context.worldKey = loadResult.world.worldKey;
     context.worldName = loadResult.world.worldName;
 
@@ -301,7 +313,8 @@ bool PFFApplication::onInitialize()
                 [this](const std::filesystem::path& databasePath)
                 {
                     return loadWorldIntoContext(databasePath);
-                });
+                },
+                [this](const WorldEditCommit& committed){m_loadedWorldContext.applyCommittedEdit(committed);requestRender();});
         });
 
     registerScreenRoute(
@@ -317,6 +330,14 @@ bool PFFApplication::onInitialize()
                 [this]()
                 {
                     return loadedWorldContext();
+                },
+                [this](const LoadedWorldContext& world,std::int64_t teamId)
+                {
+                    screenManager().pushScreen(std::make_unique<TeamScreen>(assetLibrary(),
+                        [this](std::string_view command){return handlePffCommandId(command);},
+                        [this]{return loadedWorldContext();},world,teamId,
+                        [this](const LoadedWorldContext& selected,std::int64_t id){openTeamDataScreen(selected,id);}));
+                    requestRender();
                 });
         });
 
@@ -333,6 +354,14 @@ bool PFFApplication::onInitialize()
                 [this]()
                 {
                     return loadedWorldContext();
+                },
+                [this](const LoadedWorldContext& world,std::int64_t teamId)
+                {
+                    screenManager().pushScreen(std::make_unique<TeamScreen>(assetLibrary(),
+                        [this](std::string_view command){return handlePffCommandId(command);},
+                        [this]{return loadedWorldContext();},world,teamId,
+                        [this](const LoadedWorldContext& selected,std::int64_t id){openTeamDataScreen(selected,id);}));
+                    requestRender();
                 });
         });
 

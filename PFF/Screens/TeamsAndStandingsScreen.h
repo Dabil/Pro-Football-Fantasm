@@ -27,7 +27,8 @@ public:
 	explicit TeamsAndStandingsScreen(
 		Assets::AssetLibrary& assetLibrary,
 		std::function<bool(std::string_view)> commandDispatcher,
-		std::function<LoadedWorldContext()> loadedWorldContextProvider);
+		std::function<LoadedWorldContext()> loadedWorldContextProvider,
+        std::function<void(const LoadedWorldContext&,std::int64_t)> openTeam = {});
 
 	~TeamsAndStandingsScreen();
 
@@ -79,6 +80,8 @@ private:
 	std::vector<HeadingTooltip> m_headingTooltips;
 	Point m_mousePosition{ -1, -1 };
     // Static standings/header/footer drawing; controls and tooltips stay live.
+    std::function<void(const LoadedWorldContext&,std::int64_t)> m_openTeam;
+    std::vector<Widget*> m_teamLinks;
     std::unique_ptr<Surface> m_standingsCache;
 };
 

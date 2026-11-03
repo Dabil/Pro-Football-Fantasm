@@ -96,7 +96,19 @@ int main()
         check(surface.buffer().getDisplayStyle(20,0)==normal,"Disabled field used hover style");
         mouse.position=Point{40,0};root.handleEvent(Input::Event::mouse(mouse));hoverInput->setEnabled(true);hoverInput->draw(surface);
         check(surface.buffer().getDisplayStyle(20,0)==normal,"Disabled field retained stale hover state");
-        std::cout<<"PASS: hint backgrounds; shared mouse/keyboard focus, Tab handoff, stationary mouse suppression, disabled styling.\n";
+        // Existing values can be assigned before the first layout, including
+        // disabled/read-only TeamData fields. Resize/deletion must backfill.
+        TextInput late;
+        late.setText("Existing City");late.setBounds(Rect{Point{0,0},Size{24,1}});late.setEnabled(false);late.draw(surface);
+        check(surface.buffer().getDisplayGlyph(0,0)==U'E'&&surface.buffer().getDisplayGlyph(12,0)==U'y',"Pre-layout value appeared blank");
+        late.setEnabled(true);late.setBounds(Rect{Point{0,0},Size{5,1}});late.setText("0123456789ABCDEF");late.draw(surface);
+        late.setBounds(Rect{Point{0,0},Size{24,1}});late.draw(surface);
+        check(surface.buffer().getDisplayGlyph(0,0)==U'0',"Wider input retained its old horizontal scroll");
+        for(int i=0;i<15;++i)late.backspace();late.draw(surface);
+        check(surface.buffer().getDisplayGlyph(0,0)==U'0',"Deletion left remaining value off-screen");
+        TextInput longValue;longValue.setText(std::string(4096,'x'));longValue.setBounds(Rect{Point{0,0},Size{24,1}});longValue.draw(surface);
+        check(surface.buffer().getDisplayGlyph(0,0)==U'x',"Long pre-layout value did not render");
+        std::cout<<"PASS: hint backgrounds; shared mouse/keyboard focus, Tab handoff, stationary mouse suppression, disabled styling, pre-layout values and resize/deletion scrolling.\n";
         return 0;
     }
     catch(const std::exception& ex){std::cerr<<"FAIL: "<<ex.what()<<'\n';return 1;}

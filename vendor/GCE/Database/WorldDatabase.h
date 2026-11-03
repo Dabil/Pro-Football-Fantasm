@@ -56,8 +56,9 @@
 // Examples of World-owned change include injuries, development/practice effects,
 // roster movement, season statistics, game results, and later career history.
 //
-// This first API intentionally exposes only the operations required to create,
-// load, inspect, and navigate the initial PFF Classic World. Game-result,
+// This API exposes the operations required to create,
+// load, inspect, and navigate the initial PFF Classic World. WorldTeamData.h adds
+// the reviewed transactional editing/control services. Game-result,
 // statistics, injury, postseason, and other mutation APIs should be added only
 // with the domain services that own those rules.
 //
@@ -71,7 +72,7 @@
 // dependency that can later move into a generic GCE database header.
 // -----------------------------------------------------------------------------
 
-inline constexpr std::int32_t WorldDatabaseSchemaVersion = 1;
+inline constexpr std::int32_t WorldDatabaseSchemaVersion = 2;
 
 // -----------------------------------------------------------------------------
 // World creation
@@ -159,7 +160,7 @@ struct WorldDatabaseCreateResult
 //
 //   1. validate the selected Core database;
 //   2. create World.db.building;
-//   3. create the v1 World schema;
+//   3. create the baseline plus approved schema-2 TeamData extensions;
 //   4. copy the selected Core into the World's CoreSnapshots directory;
 //   5. hash the exact preserved snapshot and record its path/hash ownership;
 //   6. create the single World identity + Core provenance;
@@ -195,6 +196,7 @@ struct WorldRecord
     // dated injuries/transactions, and later cross-level activity are ordered
     // against this timeline.
     std::string currentTimeUtc;
+    std::int64_t dataRevision = 0;
 };
 
 struct WorldCoreSnapshotRecord
@@ -435,7 +437,7 @@ WorldScheduleLoadResult loadWorldCompetitionSchedule(
     std::int64_t competitionSeasonId);
 
 // -----------------------------------------------------------------------------
-// Intentional v1 boundary
+// Intentional domain boundary (TeamData writes live in WorldTeamData.h)
 // -----------------------------------------------------------------------------
 //
 // Do not add generic UI-facing mutation functions such as updateRow(),

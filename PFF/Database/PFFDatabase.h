@@ -55,6 +55,7 @@ private:
     // Transitional access for the generic GCE World database layer.
     // Database itself will eventually move into a GCE-owned header.
     friend struct WorldDatabaseAccess;
+    friend struct WorldEditingAccess;
 };
 
 // -----------------------------------------------------------------------------

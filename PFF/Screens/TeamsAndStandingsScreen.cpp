@@ -1,5 +1,6 @@
 // PFF includes
 #include "Screens/TeamsAndStandingsScreen.h"
+#include "Screens/TeamLink.h"
 #include "Styles/PFF_Theme.h"
 #include "Screens/GameTimeFormatting.h"
 
@@ -66,11 +67,13 @@ namespace
 TeamsAndStandingsScreen::TeamsAndStandingsScreen(
     Assets::AssetLibrary& assetLibrary,
     std::function<bool(std::string_view)> commandDispatcher,
-    std::function<LoadedWorldContext()> loadedWorldContextProvider)
+    std::function<LoadedWorldContext()> loadedWorldContextProvider,
+    std::function<void(const LoadedWorldContext&,std::int64_t)> openTeam)
     : m_assetLibrary(assetLibrary)
     , m_commandDispatcher(std::move(commandDispatcher))
     , m_loadedWorldContextProvider(std::move(loadedWorldContextProvider))
 {
+    m_openTeam=std::move(openTeam);
     buildButtons();
 }
 
@@ -141,6 +144,9 @@ void TeamsAndStandingsScreen::draw(Surface& surface)
         return;
     }
     m_headingTooltips.clear();
+    m_root.resetFocus();
+    for(auto* link:m_teamLinks) m_root.removeChild(*link);
+    m_teamLinks.clear();
     buffer.clear(PFF_Colors::MainBackgroundColor);
 
     PageComposer page(buffer);
@@ -262,6 +268,8 @@ void TeamsAndStandingsScreen::draw(Surface& surface)
     }
 
     drawFooter(page, footer);
+    auto returnButton=m_root.removeChild(*m_leaguePlayButton);
+    m_root.addChild(std::move(returnButton));
     // Cache before drawing interactive elements so hover, press and tooltip
     // changes cannot become baked into the next frame.
     m_standingsCache = std::make_unique<Surface>();
@@ -331,7 +339,8 @@ void TeamsAndStandingsScreen::refreshLeagueContext()
         context.worldKey != m_dataContext.worldKey ||
         context.worldName != m_dataContext.worldName ||
         context.activeCompetitionSeasonId != m_dataContext.activeCompetitionSeasonId ||
-        context.currentTimeUtc != m_dataContext.currentTimeUtc)
+        context.currentTimeUtc != m_dataContext.currentTimeUtc ||
+        context.dataRevision != m_dataContext.dataRevision)
     {
         loadTeams();
     }
@@ -440,6 +449,14 @@ void TeamsAndStandingsScreen::drawDivisionTeams(
             {
                 const int displayWidth = TextClip::measureDisplayWidth(UnicodeConversion::utf8ToU32(value));
                 value.insert(0, static_cast<std::size_t>(std::max(0, width - displayWidth)), ' ');
+            }
+            if(column==0 && !value.empty())
+            {
+                const auto id=team.teamSeasonId;const auto world=m_dataContext;const auto open=m_openTeam;
+                const int length=TextClip::measureDisplayWidth(UnicodeConversion::utf8ToU32(value));
+                auto link=std::make_unique<TeamLink>(std::vector<TeamLink::Span>{{Rect{Point{x,content.position.y+row},Size{length,1}},value}},
+                    [this,open,world,id] {m_root.clearPointerState();m_root.clearChildFocus();if(open) open(world,id);});
+                m_teamLinks.push_back(link.get());m_root.addChild(std::move(link));
             }
             page.writeLine(Rect{ Point{ x, content.position.y + row }, Size{ width, 1 } },
                 0, value, PFF_Colors::TextHighlightColor);

@@ -1,6 +1,9 @@
 #include "GCE/Database/WorldDatabase.h"
 
 #include <sqlite3.h>
+#include "GCE/Database/WorldTeamDataSchema.h"
+#include "GCE/Database/TeamDataSql.h"
+#include <map>
 
 #include <algorithm>
 #include <array>
@@ -2152,6 +2155,8 @@ VALUES(?, ?, ?, ?);
         }
     }
 
+    #include "GCE/Database/WorldTeamDataBuild.inl"
+
     void instantiatePlayers(
         CreationContext& context,
         std::int64_t coreCompetitionSeasonId,
@@ -2180,17 +2185,6 @@ ORDER BY p.PlayerID;
 )SQL");
 
         bindInt64(query.get(), 1, coreCompetitionSeasonId);
-
-        Statement personInsert(
-            context.world,
-            R"SQL(
-INSERT INTO People
-(
-    WorldID, PersonKey, CorePersonKey,
-    FirstName, LastName, DisplayName, BirthDate, DeathDate, Active
-)
-VALUES(?, ?, ?, ?, ?, ?, NULL, NULL, 1);
-)SQL");
 
         Statement playerInsert(
             context.world,
@@ -2265,22 +2259,12 @@ VALUES(?, 'HEALTHY', NULL, 1, NULL);
                     "Core Player references a TeamSeason that was not instantiated.");
             }
 
-            std::string displayName;
-            if (firstName.empty()) displayName = lastName;
-            else if (lastName.empty()) displayName = firstName;
-            else displayName = firstName + " " + lastName;
-
-            personInsert.reset();
-            bindInt64(personInsert.get(), 1, context.worldId);
-            bindText(personInsert.get(), 2, sourceKey);
-            bindText(personInsert.get(), 3, sourceKey);
-            bindOptionalText(personInsert.get(), 4, firstName);
-            bindOptionalText(personInsert.get(), 5, lastName);
-            bindText(personInsert.get(), 6, displayName);
-            personInsert.stepDone(context.world);
-
-            const std::int64_t personId = lastInsertId(context.world);
-            ++context.result->peopleCreated;
+            const auto corePlayerId = sqlite3_column_int64(query.get(), 0);
+            TeamDataSql::Query identity(context.core, "SELECT CorePersonKey FROM CorePlayerPeople WHERE PlayerID=?", {static_cast<std::int64_t>(corePlayerId)});
+            if (!identity.row()) throw WorldDatabaseException("Core player has no explicit identity mapping");
+            const std::int64_t personId = TeamDataSql::scalar(context.world,
+                "SELECT PersonID FROM WorldPersonSourceAliases WHERE WorldID=? AND WorldCoreSnapshotID=? AND CorePersonKey=?",
+                {context.worldId,context.worldCoreSnapshotId,identity.text()});
 
             playerInsert.reset();
             bindInt64(playerInsert.get(), 1, personId);
@@ -2812,10 +2796,10 @@ WorldDatabaseCreateResult createWorldDatabase(
             const std::string scheduleClockZoneId =
                 readCoreMetadata(core, "ScheduleClockZoneId");
 
-            if (schemaVersion != "1")
+            if (schemaVersion != "2" || readCoreMetadata(core, "TeamDataContractVersion") != "1")
             {
                 throw WorldDatabaseException(
-                    "Unsupported CoreSchemaVersion '" + schemaVersion + "'.");
+                    "UNSUPPORTED_SCHEMA: Core schema '" + schemaVersion + "'. Rebuild a fresh compatible Core; existing files are never migrated.");
             }
 
             if (ruleset.empty())
@@ -2942,6 +2926,7 @@ WorldDatabaseCreateResult createWorldDatabase(
         try
         {
             createWorldSchema(world);
+            exec(world, WorldTeamDataSchema);
 
             Statement schemaInsert(
                 world,
@@ -2952,7 +2937,7 @@ INSERT INTO WorldSchemaInfo
     CreatedByEngineBuild, LastMigratedByBuild,
     CreatedUtc, LastMigratedUtc
 )
-VALUES(1, ?, 'GCE_WORLD', NULL, NULL, ?, NULL);
+VALUES(1, ?, 'GCE_WORLD', 'TEAMDATA-STAGE2-2026-11-03', NULL, ?, NULL);
 )SQL");
             bindInt(schemaInsert.get(), 1, WorldDatabaseSchemaVersion);
             bindText(schemaInsert.get(), 2, createdUtc);
@@ -3013,6 +2998,8 @@ VALUES(1, NULL, NULL, NULL, ?, NULL, ?, 'SHA256', ?, ?);
             instantiateGroups(context, competition.coreCompetitionSeasonId);
             instantiateVenues(context);
             instantiateTeams(context, competition.coreCompetitionSeasonId);
+            instantiateCorePeople(context);
+            instantiateTeamData(context, competition.coreCompetitionSeasonId, worldStartUtc);
             instantiatePlayers(
                 context,
                 competition.coreCompetitionSeasonId,
@@ -3150,7 +3137,7 @@ WHERE SchemaInfoID = 1;
             if (result.schemaVersion != WorldDatabaseSchemaVersion)
             {
                 throw WorldDatabaseException(
-                    "Unsupported World schema version: " +
+                    "UNSUPPORTED_SCHEMA: create a fresh compatible World; existing saves are not migrated. Found version " +
                     std::to_string(result.schemaVersion));
             }
         }
@@ -3183,6 +3170,8 @@ FROM Worlds;
                     "World.db single-World invariant requires WorldID = 1.");
             }
         }
+
+        result.world.dataRevision = TeamDataSql::scalar(db,"SELECT Revision FROM WorldDataRevisions WHERE WorldID=1");
 
         {
             Statement statement(
@@ -3472,7 +3461,7 @@ SELECT
     g.HomeScore,
     COALESCE(away.Nickname, ''),
     COALESCE(home.Nickname, ''),
-    COALESCE(venue.VenueName, '')
+    COALESCE(CASE WHEN evidence.GameID IS NOT NULL AND evidence.CapturedUtc <= (SELECT CurrentTimeUtc FROM Worlds WHERE WorldID=1) THEN evidence.VenueName ELSE venue.VenueName END, '')
 FROM WorldScheduledGames sg
 JOIN TeamSeasons away
     ON away.TeamSeasonID = sg.AwayTeamSeasonID
@@ -3481,6 +3470,7 @@ JOIN TeamSeasons home
 LEFT JOIN Games g
     ON g.WorldScheduledGameID = sg.WorldScheduledGameID
    AND g.GameStatus <> 'VOID'
+LEFT JOIN GameVenueEvidence evidence ON evidence.GameID=g.GameID AND evidence.WorldID=g.WorldID
 LEFT JOIN WorldVenues venue
     ON venue.WorldVenueID = sg.WorldVenueID
 WHERE sg.CompetitionSeasonID = ?

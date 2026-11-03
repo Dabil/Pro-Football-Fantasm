@@ -1,5 +1,7 @@
 #include "Database/PFFDatabase.h"
 #include "Database/CoreManifest.h"
+#include "Database/CoreTeamDataSchema.h"
+#include "GCE/Database/TeamDataSql.h"
 
 #include <sqlite3.h>
 
@@ -2471,6 +2473,8 @@ VALUES(?, ?, ?, ?, ?, ?, ?, ?);
 
         std::filesystem::remove(backup, ec);
     }
+    #include "Database/CoreTeamDataImport.inl"
+
 }
 
 struct CoreDatabaseQueryAccess
@@ -2690,7 +2694,8 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
                 {
                     const auto name = file.filename().u8string();
                     if (!(i == 0 ? rulesetFiles : seasonFiles).count(name) &&
-                        !(i == 0 && chartFormats().count(name)))
+                        !(i == 0 && chartFormats().count(name)) &&
+                        !(i == 1 && (name == "people.pffdata" || name == "staff_assignments.pffdata" || name == "game_week_periods.pffdata")))
                     {
                         result.diagnostics.push_back({ DatabaseDiagnosticSeverity::Error,
                             "No importer is available for this source. Install an importer before building.", file, 0 });
@@ -2835,10 +2840,11 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
         {
             createSchema(db);
             createChartSchema(db);
+            exec(db, CoreTeamDataSchema);
             insertMetadata(db, context, "ChartImportSchemaVersion", "1");
             insertMetadata(db, context, "ChartExecutionReadiness", "NOT_CERTIFIED");
 
-            insertMetadata(db, context, "CoreSchemaVersion", "1");
+            insertMetadata(db, context, "CoreSchemaVersion", "2");
             insertMetadata(db, context, "Ruleset", request.ruleSet);
             for (std::size_t i = 0; i < packages.size(); ++i)
             {
@@ -3117,6 +3123,7 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
                 seasonDirectory,
                 supportedSeasonFiles);
 
+            buildCoreTeamData(context, selectedFiles, league);
             validateDatabase(db);
             context.diagnostic(DatabaseDiagnosticSeverity::Info,
                 "foreign_key_check and integrity_check passed. Historical package counts are not enforced.");

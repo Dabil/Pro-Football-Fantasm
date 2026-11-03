@@ -21,6 +21,8 @@
 [FILE] basic_offensive_unit_ratings.pffdata
 [FILE] basic_defensive_unit_ratings.pffdata
 [FILE] schedule.pffdata
+[FILE] people.pffdata
+[FILE] staff_assignments.pffdata
 [FILES_END]
 
 [SEASON_END]

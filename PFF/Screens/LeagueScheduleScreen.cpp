@@ -1,5 +1,6 @@
 // PFF includes
 #include "Screens/LeagueScheduleScreen.h"
+#include "Screens/TeamLink.h"
 #include "Styles/PFF_Theme.h"
 #include "Screens/GameTimeFormatting.h"
 
@@ -40,11 +41,13 @@ namespace
 LeagueScheduleScreen::LeagueScheduleScreen(
     Assets::AssetLibrary& assetLibrary,
     std::function<bool(std::string_view)> commandDispatcher,
-    std::function<LoadedWorldContext()> loadedWorldContextProvider)
+    std::function<LoadedWorldContext()> loadedWorldContextProvider,
+    std::function<void(const LoadedWorldContext&,std::int64_t)> openTeam)
     : m_assetLibrary(assetLibrary)
     , m_commandDispatcher(std::move(commandDispatcher))
     , m_loadedWorldContextProvider(std::move(loadedWorldContextProvider))
 {
+    m_openTeam=std::move(openTeam);
     buildButtons();
 }
 
@@ -139,6 +142,9 @@ void LeagueScheduleScreen::draw(Surface& surface)
         m_root.draw(surface);
         return;
     }
+    m_root.resetFocus();
+    for(auto* link:m_teamLinks) m_root.removeChild(*link);
+    m_teamLinks.clear();
     buffer.clear(PFF_Colors::MainBackgroundColor);
 
     PageComposer page(buffer);
@@ -203,6 +209,8 @@ void LeagueScheduleScreen::draw(Surface& surface)
     }
 
     drawFooter(page,footer);
+    for(auto* button:{m_leaguePlayButton,m_lookAheadButton,m_lookBackButton})
+    {auto child=m_root.removeChild(*button);m_root.addChild(std::move(child));}
     // Save the static page before drawing interactive button states.
     m_scheduleCache = std::make_unique<Surface>();
     m_scheduleCache->buffer() = buffer;
@@ -370,7 +378,8 @@ void LeagueScheduleScreen::refreshLeagueContext()
         context.worldKey != m_dataContext.worldKey ||
         context.worldName != m_dataContext.worldName ||
         context.activeCompetitionSeasonId != m_dataContext.activeCompetitionSeasonId ||
-        context.currentTimeUtc != m_dataContext.currentTimeUtc)
+        context.currentTimeUtc != m_dataContext.currentTimeUtc ||
+        context.dataRevision != m_dataContext.dataRevision)
     {
         loadSchedule();
     }
@@ -518,17 +527,31 @@ void LeagueScheduleScreen::drawCurrentWeek(
         m_maxScrollOffset=0;
         return;
     }
-    const int extra=content.size.width-102;
-    const std::array<int,5> widths{{24+extra/3,15,11,18+extra/3,26+extra-2*(extra/3)}};
+    int matchupWidth=24;
+    for(const auto& game:m_scheduleGames)
+        if(game.stage=="REGULAR" && game.weekNumber==week)
+            matchupWidth=std::max(matchupWidth,TextClip::measureDisplayWidth(UnicodeConversion::utf8ToU32(game.matchupDisplayName())));
+    // Keep the full matchup on one line. Other columns may wrap within their
+    // own cells; reserve enough space for both complete, independently linked names.
+    const int requiredWidth=matchupWidth+64;
+    if(content.size.width<requiredWidth)
+    {
+        page.writeLine(content,2,TextClip::clipUtf8Text("Enlarge the window to show all five schedule columns.",content.size.width),PFF_Colors::TextHighlightColor);
+        m_maxScrollOffset=0;
+        return;
+    }
+    const int extra=content.size.width-requiredWidth;
+    const std::array<int,5> widths{{matchupWidth,15,11,12+extra/2,18+extra-extra/2}};
     const std::array<std::string,5> headings{{"MatchUp","Day and Date","Time","Location","Result"}};
     std::vector<std::string> rows;
-    auto appendRow=[&](const std::array<std::string,5>& values)
+    std::vector<const WorldScheduleGameRecord*> linkRows;
+    auto appendRow=[&](const std::array<std::string,5>& values,const WorldScheduleGameRecord* game=nullptr)
     {
         std::array<std::vector<std::string>,5> wrapped;
         std::size_t height=1;
         for (std::size_t column=0;column<5;++column)
         {
-            wrapped[column]=wrapText(values[column],widths[column]);
+            wrapped[column]=column==0 ? std::vector<std::string>{values[column]} : wrapText(values[column],widths[column]);
             height=std::max(height,wrapped[column].size());
         }
         for (std::size_t line=0;line<height;++line)
@@ -543,6 +566,7 @@ void LeagueScheduleScreen::drawCurrentWeek(
                 if (column<4) text+="  ";
             }
             rows.push_back(std::move(text));
+            linkRows.push_back(line==0?game:nullptr);
         }
     };
     std::string previousGroup;
@@ -559,7 +583,7 @@ void LeagueScheduleScreen::drawCurrentWeek(
             ? "unknown:"+game.gameDate+" "+game.timeLabel : game.scheduledKickoffUtc;
         if (first || group!=previousGroup)
         {
-            if (!first) rows.emplace_back();
+            if (!first) {rows.emplace_back();linkRows.push_back(nullptr);}
             appendRow(headings);
             previousGroup=group;
             first=false;
@@ -570,7 +594,7 @@ void LeagueScheduleScreen::drawCurrentWeek(
         const std::string time=kickoff ? PffGameTime::clock(*kickoff) :
             (game.timeLabel.empty()?"Unavailable":game.timeLabel);
         appendRow({{game.matchupDisplayName(),date,time,
-            game.venueName.empty()?"Venue unavailable":game.venueName,displayResult(game)}});
+            game.venueName.empty()?"Venue unavailable":game.venueName,displayResult(game)}},&game);
     }
 
     m_visibleRows=std::max(1,content.size.height-4);
@@ -578,6 +602,26 @@ void LeagueScheduleScreen::drawCurrentWeek(
     m_scrollOffset=std::clamp(m_scrollOffset,0,m_maxScrollOffset);
     for (int row=0;row<m_visibleRows && m_scrollOffset+row<static_cast<int>(rows.size());++row)
         page.writeLine(content,2+row,rows[static_cast<std::size_t>(m_scrollOffset+row)],PFF_Colors::TextHighlightColor);
+    for(int row=0;row<m_visibleRows && m_scrollOffset+row<static_cast<int>(linkRows.size());++row)
+    {
+        const auto* game=linkRows[static_cast<std::size_t>(m_scrollOffset+row)];
+        if(!game) continue;
+        int x=content.position.x;
+        for(bool home:{false,true})
+        {
+            const auto& name=home?game->homeDisplayName:game->awayDisplayName;
+            const auto id=home?game->homeTeamSeasonId:game->awayTeamSeasonId;
+            const int width=TextClip::measureDisplayWidth(UnicodeConversion::utf8ToU32(name));
+            if(width>0)
+            {
+                const auto open=m_openTeam;const auto world=m_dataContext;
+                auto link=std::make_unique<TeamLink>(std::vector<TeamLink::Span>{{Rect{Point{x,content.position.y+2+row},Size{width,1}},name}},
+                    [this,open,world,id] {m_root.clearPointerState();m_root.clearChildFocus();if(open) open(world,id);});
+                m_teamLinks.push_back(link.get());m_root.addChild(std::move(link));
+            }
+            x+=width+4; // The unlinked separator is exactly " at ".
+        }
+    }
     if (m_maxScrollOffset>0)
         page.writeLine(content,content.size.height-1,TextClip::clipUtf8Text(
             "Scroll: mouse wheel / arrows / Page Up / Page Down",content.size.width),PFF_Colors::TextHighlightColor);

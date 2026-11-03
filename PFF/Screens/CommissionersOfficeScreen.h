@@ -4,6 +4,7 @@
 #include "Assets/AssetLibrary.h"
 #include "App/LoadedWorldContext.h"
 #include "UI/Widgets/Button.h"
+#include "Screens/FormCheckBox.h"
 #include "UI/Widgets/ContainerWidget.h"
 #include "UI/Widgets/ListBox.h"
 #include "UI/Widgets/TextInput.h"
@@ -14,6 +15,7 @@
 #include <filesystem>
 #include <functional>
 #include <future>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -32,7 +34,8 @@ public:
         Assets::AssetLibrary& assetLibrary,
         std::function<bool(std::string_view)> commandDispatcher,
         std::function<LoadedWorldContext()> loadedWorldContextProvider,
-        std::function<bool(const std::filesystem::path&)> loadLeagueCallback);
+        std::function<bool(const std::filesystem::path&)> loadLeagueCallback,
+        std::function<void(const WorldEditCommit&)> commitCallback = {});
 
     ~CommissionersOfficeScreen();
 
@@ -50,8 +53,9 @@ private:
     };
 
     void buildWidgets();
+    void refreshEditState(bool force=false);
+    void toggleGodMode(bool enabled);
     void positionButtons(const Rect& controlPane, const Rect& footer);
-    void positionLoadLeagueList(const Rect& contentRect);
 
     void handleButtonActivation(const ButtonActivationResult& result);
     void buildCoreDatabase();
@@ -73,6 +77,8 @@ private:
     void drawLeagueSetup(Composition::PageComposer& page, const Rect& controls);
 
     void beginLoadLeagueSelection();
+    void openSavedLeagueDropdown();
+    void closeSavedLeagueDropdown(bool accept);
     void cancelLoadLeagueSelection();
     void refreshLeagueSaveList();
     bool loadSelectedLeague();
@@ -82,7 +88,7 @@ private:
         const LoadedWorldContext& worldContext) const;
 
     void drawLoadLeagueSelection(
-        Composition::PageComposer& page);
+        Composition::PageComposer& page, const Rect& controls);
 
 private:
     Assets::AssetLibrary& m_assetLibrary;
@@ -105,6 +111,12 @@ private:
 
     // Load League selection state
     bool m_loadLeagueSelectionActive = false;
+    bool m_savedLeaguesOpen = false;
+    std::size_t m_selectedLeague = 0;
+    ContainerWidget m_loadRoot;
+    Button* m_savedLeagueSelector = nullptr;
+    Button* m_openLeague = nullptr;
+    Button* m_cancelLoadLeague = nullptr;
     std::vector<LeagueSaveEntry> m_availableLeagues;
     std::string m_loadLeagueMessage;
 
@@ -116,6 +128,15 @@ private:
     Button* m_newLeagueButton = nullptr;
     Button* m_loadLeagueButton = nullptr;
     Button* m_mainButton = nullptr;
+    FormCheckBox* m_godMode=nullptr;
+    std::function<void(const WorldEditCommit&)> m_commitCallback;
+    WorldActor m_editActor;
+    WorldEditState m_editState;
+    LoadedWorldContext m_editContext;
+    bool m_editChecked=false,m_editReady=false;
+    std::optional<bool> m_requestedGod;
+    std::optional<std::string> m_pendingNavigation;
+    std::string m_editMessage;
 
     enum class CoreStage { Closed, Configure, Building, Result };
     CoreStage m_coreStage = CoreStage::Closed;

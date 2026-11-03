@@ -154,11 +154,15 @@
     <ClCompile Include="Screens\MainScreen.cpp" />
     <ClCompile Include="Screens\GameScreen.cpp" />
     <ClCompile Include="Screens\TeamsAndStandingsScreen.cpp" />
+    <ClCompile Include="Screens\TeamDataScreen.cpp" />
+    <ClCompile Include="Screens\TeamScreen.cpp" />
     <ClCompile Include="Screens\TradeDeskScreen.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App\LoadedWorldContext.h" />
     <ClInclude Include="App\PFFApplication.h" />
+    <ClInclude Include="Database\CoreTeamDataSchema.h" />
+    <ClInclude Include="Database\CoreTeamDataImport.inl" />
     <ClInclude Include="Database\PFFDatabase.h" />
     <ClInclude Include="Database\CoreManifest.h" />
     <ClInclude Include="Database\LeagueSetup.h" />
@@ -177,11 +181,19 @@
     <ClInclude Include="Screens\GameScreen.h" />
     <ClInclude Include="Screens\GameTimeFormatting.h" />
     <ClInclude Include="Screens\TeamsAndStandingsScreen.h" />
+    <ClInclude Include="Screens\TeamDataScreen.h" />
+    <ClInclude Include="Screens\FormCheckBox.h" />
+    <ClInclude Include="Screens\TeamScreen.h" />
+    <ClInclude Include="Screens\TeamLink.h" />
     <ClInclude Include="Screens\TradeDeskScreen.h" />
     <ClInclude Include="Styles\PFF_Theme.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="startup.config" />
+    <None Include="Database\TeamDataUiTests.cpp" />
+    <None Include="Database\RunTeamDataUiTests.cmd" />
+    <None Include="Database\TeamDataTests.cpp" />
+    <None Include="Database\RunTeamDataTests.cmd" />
     <None Include="Database\CoreManifestTests.cpp" />
     <None Include="Database\RunCoreManifestTests.cmd" />
     <None Include="Assets\XP\Field.xp" />

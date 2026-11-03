@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include "GCE/Database/WorldTeamData.h"
 #include <filesystem>
 #include <string>
 
@@ -52,6 +53,9 @@ struct LoadedWorldContext
     // after World advancement rather than treated as an independent clock.
     std::string currentTimeUtc;
 
+    // Refresh/invalidation generation, independent of simulation clock.
+    std::int64_t dataRevision = 0;
+
     [[nodiscard]] bool isLoaded() const noexcept
     {
         return loaded;
@@ -60,6 +64,15 @@ struct LoadedWorldContext
     [[nodiscard]] bool hasActiveCompetitionSeason() const noexcept
     {
         return loaded && activeCompetitionSeasonId != 0;
+    }
+
+    // Called by the application/controller only after a successful service commit.
+    bool applyCommittedEdit(const WorldEditCommit& edit)
+    {
+        if (!loaded || edit.worldId != worldId || edit.worldKey != worldKey || edit.revision < dataRevision) return false;
+        dataRevision = edit.revision;
+        currentTimeUtc = edit.currentTimeUtc;
+        return true;
     }
 
     // Returns this object to the application's "no World loaded" state.
@@ -74,6 +87,7 @@ struct LoadedWorldContext
 
         activeCompetitionSeasonId = 0;
         currentTimeUtc.clear();
+        dataRevision = 0;
     }
 };
 
