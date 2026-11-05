@@ -11,6 +11,7 @@
 // PFF Screen Includes
 #include "Screens/IntroScreen.h"
 #include "Screens/GameScreen.h"
+#include "Screens/GameTimeScreen.h"
 #include "Screens/CommissionersOfficeScreen.h"
 #include "Screens/LeaguePlayScreen.h"
 #include "Screens/TeamsAndStandingsScreen.h"
@@ -361,6 +362,14 @@ bool PFFApplication::onInitialize()
                         [this](std::string_view command){return handlePffCommandId(command);},
                         [this]{return loadedWorldContext();},world,teamId,
                         [this](const LoadedWorldContext& selected,std::int64_t id){openTeamDataScreen(selected,id);}));
+                    requestRender();
+                },
+                [this](const WorldEditCommit& edit){m_loadedWorldContext.applyCommittedEdit(edit);requestRender();},
+                [this](std::unique_ptr<PffTest::GenericTestGame> game,WorldActor actor)
+                {
+                    screenManager().pushScreen(std::make_unique<GameTimeScreen>(std::move(game),std::move(actor),
+                        [this](const WorldEditCommit& edit){m_loadedWorldContext.applyCommittedEdit(edit);requestRender();},
+                        [this]{screenManager().popScreen();requestRender();}));
                     requestRender();
                 });
         });
