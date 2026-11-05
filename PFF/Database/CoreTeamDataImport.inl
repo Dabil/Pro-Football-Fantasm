@@ -211,12 +211,8 @@ void buildCoreTeamData(BuildContext& context, const std::map<std::string, std::f
         context.diagnostic(DatabaseDiagnosticSeverity::Warning,
                            "CORE_IDENTITY_UNRESOLVED: " + std::to_string(unresolved) +
                                " leadership labels preserved without invented People.");
-    if (!S::scalar(db, "SELECT count(*) FROM CoreLeagueGameWeekPeriods"))
-        context.diagnostic(DatabaseDiagnosticSeverity::Warning,
-                           "PERIOD_UNAVAILABLE: no explicit league game-week calendar; venue history editing "
-                           "is unavailable until calendar data is installed.");
     insertMetadata(db, context, "TeamDataContractVersion", "1");
-    insertMetadata(db, context, "CompilerBuildId", "TEAMDATA-STAGE2-2026-11-03");
+    insertMetadata(db, context, "CompilerBuildId", "CLOCK-SCHEDULER-STAGE1-2026-11-04");
     insertMetadata(db, context, "PersonIdentityPolicy", "EXPLICIT_OR_LEGACY_PLAYER_BRIDGE_V1");
     insertMetadata(db, context, "StaffUnresolvedLabelCount", std::to_string(unresolved));
     insertMetadata(db, context, "StaffAssignmentCount",

@@ -62,6 +62,18 @@ private:
 // Core database build API
 // -----------------------------------------------------------------------------
 
+// Explicit authored build configuration. No default quarter length or inferred zone.
+struct CoreClockProfileInput
+{
+    std::string key, overtimePolicyKey, timingPolicyKey, policyContentHash;
+    std::int32_t version = 1, quarterSeconds = 0, timingPolicyVersion = 1;
+};
+struct CoreTeamHomeZoneInput
+{
+    std::string teamSeasonKey, ianaZoneId, zoneDatabaseVersion;
+    std::filesystem::path sourceFile;
+    std::size_t sourceLine = 0;
+};
 struct CoreDatabaseBuildRequest
 {
     // Canonical source root, normally:
@@ -91,6 +103,9 @@ struct CoreDatabaseBuildRequest
     std::filesystem::path rulesetManifest;
     std::filesystem::path seasonManifest;
     bool validateOnly = false;
+    std::vector<CoreClockProfileInput> clockProfiles;
+    // Source evidence is mandatory; venue UTC offsets never imply home-city zones.
+    std::vector<CoreTeamHomeZoneInput> teamHomeTimeZones;
 };
 
 enum class DatabaseDiagnosticSeverity

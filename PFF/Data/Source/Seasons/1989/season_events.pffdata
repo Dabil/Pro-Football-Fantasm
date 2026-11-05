@@ -1,0 +1,251 @@
+// PFF Classic - 1989 season event definitions (data revision 2).
+// Owner-supplied dates/times; league-wide fixed times are Eastern (America/New_York).
+// Training Camp overrides that default: 10:00 AM in each team home-city timezone.
+// Tagged source contract v0.1, DATA_VERSION 2. Core3 storage importer installed.
+// Included in 1989Season.pffseason. Typed execution depends on scheduler/handler readiness.
+// Priority: smaller number runs first among events at the SAME historical instant.
+// Chronological due time always comes first; priority never moves Feb 1 before Jan 23.
+// League-year maintenance=0 (highest), deadline=10, ordinary=100, media-only end=900.
+// REQUIRES_EVENT_KEY means successful completion, not merely earlier queue order.
+// Unsupported handlers/dependencies must block/report unavailable, never fake success.
+// Persist effects exactly once; announcements/deliveries do not repeat effects.
+// Local time + zone are source evidence; SCHEDULED_UTC is their checked normalization.
+// Past events are not instructions to replay maintenance over an already prepared Core.
+// AFTER_MATCHUP_FINALIZED is a source template, not an undated runtime queue row.
+// Materialize its dated media occurrence at the actual historical game completion.
+// AT_TEAM_LOCAL_DATETIME is also a template: resolve per-team named timezone first.
+// Missing/ambiguous home-city timezone blocks that expansion; never assume Eastern.
+// Generated leagues may derive dates from these references only through a separately
+// specified versioned calendar policy; do not blindly copy 1989/1990 timestamps.
+
+[SEASON_EVENTS_BEGIN]
+[FORMAT_VERSION]0.1
+[DATA_VERSION]2
+[LEAGUE]NFL
+[SEASON]1989
+[TIME_ZONE]America/New_York
+[PROVENANCE]OWNER_SUPPLIED
+[GENERATED_LEAGUE_DATE_POLICY]HISTORICAL_REFERENCE_ONLY
+
+[EVENT_BEGIN]
+[EVENT_KEY]PFF_NFL_1989_TRADING_PERIOD_BEGINS
+[DISPLAY_NAME]NFL Trading Period Begins
+[EVENT_TYPE]TRADING_PERIOD_BEGINS
+[TRIGGER]AT_DATETIME
+[LOCAL_DATETIME]1989-01-23T09:00:00
+[SCHEDULED_UTC]1989-01-23T14:00:00Z
+[PRIORITY]100
+[ACTION]OPEN_TRADING
+[DESCRIPTION]Opens trading for the 1989 NFL season. Plan B free agency does not reopen trading.
+[EVENT_END]
+
+[EVENT_BEGIN]
+[EVENT_KEY]PFF_NFL_1989_LEAGUE_YEAR_BEGINS
+[DISPLAY_NAME]NFL League Year Begins
+[EVENT_TYPE]LEAGUE_YEAR_BEGINS
+[TRIGGER]AT_DATETIME
+[LOCAL_DATETIME]1989-02-01T00:00:00
+[SCHEDULED_UTC]1989-02-01T05:00:00Z
+[PRIORITY]0
+[ACTION]PROCESS_LEAGUE_YEAR_MAINTENANCE
+[TARGET_LEAGUE_YEAR]1989
+[DESCRIPTION]Begins the 1989 NFL league year. Process retirement decisions and advance applicable player/staff contract terms once; expired player contracts may produce free agents under the applicable rules. Staff availability follows staff policy. Complete maintenance before dependent same-time events.
+[EVENT_END]
+
+[EVENT_BEGIN]
+[EVENT_KEY]PFF_NFL_1989_PLAN_B_FREE_AGENCY_BEGINS
+[DISPLAY_NAME]Plan B Free Agency Begins
+[EVENT_TYPE]PLAN_B_FREE_AGENCY_BEGINS
+[TRIGGER]AT_DATETIME
+[LOCAL_DATETIME]1989-02-01T00:00:00
+[SCHEDULED_UTC]1989-02-01T05:00:00Z
+[PRIORITY]100
+[ACTION]OPEN_PLAN_B_FREE_AGENCY
+[REQUIRES_EVENT_KEY]PFF_NFL_1989_LEAGUE_YEAR_BEGINS
+[DESCRIPTION]Opens Plan B free agency only after league-year maintenance succeeds. Does not open or reopen trading.
+[EVENT_END]
+
+[EVENT_BEGIN]
+[EVENT_KEY]PFF_NFL_1989_SCOUTING_COMBINE_BEGINS
+[DISPLAY_NAME]NFL Scouting Combine Begins
+[EVENT_TYPE]SCOUTING_COMBINE_BEGINS
+[TRIGGER]AT_DATETIME
+[LOCAL_DATETIME]1989-02-08T08:00:00
+[SCHEDULED_UTC]1989-02-08T13:00:00Z
+[PRIORITY]100
+[ACTION]BEGIN_SCOUTING_COMBINE
+[ACTIVITY_KEY]PFF_NFL_1989_SCOUTING_COMBINE
+[BOUNDARY]BEGIN
+[EVENT_END]
+
+[EVENT_BEGIN]
+[EVENT_KEY]PFF_NFL_1989_SCOUTING_COMBINE_ENDS
+[DISPLAY_NAME]NFL Scouting Combine Ends
+[EVENT_TYPE]SCOUTING_COMBINE_ENDS
+[TRIGGER]AT_DATETIME
+[LOCAL_DATETIME]1989-02-14T18:00:00
+[SCHEDULED_UTC]1989-02-14T23:00:00Z
+[PRIORITY]100
+[ACTION]END_SCOUTING_COMBINE
+[ACTIVITY_KEY]PFF_NFL_1989_SCOUTING_COMBINE
+[BOUNDARY]END
+[RELATED_EVENT_KEY]PFF_NFL_1989_SCOUTING_COMBINE_BEGINS
+[EVENT_END]
+
+[EVENT_BEGIN]
+[EVENT_KEY]PFF_NFL_1989_DRAFT_DAY_1_BEGINS
+[DISPLAY_NAME]NFL Draft Day 1
+[EVENT_TYPE]DRAFT_SESSION_BEGINS
+[TRIGGER]AT_DATETIME
+[LOCAL_DATETIME]1989-04-23T12:04:00
+[SCHEDULED_UTC]1989-04-23T16:04:00Z
+[PRIORITY]100
+[ACTION]BEGIN_DRAFT_SESSION
+[ACTIVITY_KEY]PFF_NFL_1989_DRAFT
+[SESSION_NUMBER]1
+[FIRST_ROUND]1
+[LAST_ROUND]5
+[EVENT_END]
+
+[EVENT_BEGIN]
+[EVENT_KEY]PFF_NFL_1989_DRAFT_DAY_2_BEGINS
+[DISPLAY_NAME]NFL Draft Day 2
+[EVENT_TYPE]DRAFT_SESSION_BEGINS
+[TRIGGER]AT_DATETIME
+[LOCAL_DATETIME]1989-04-24T10:00:00
+[SCHEDULED_UTC]1989-04-24T14:00:00Z
+[PRIORITY]100
+[ACTION]BEGIN_DRAFT_SESSION
+[ACTIVITY_KEY]PFF_NFL_1989_DRAFT
+[SESSION_NUMBER]2
+[FIRST_ROUND]6
+[LAST_ROUND]12
+[EVENT_END]
+
+[EVENT_BEGIN]
+[EVENT_KEY]PFF_NFL_1989_SUPPLEMENTAL_DRAFT_BEGINS
+[DISPLAY_NAME]NFL Supplemental Draft
+[EVENT_TYPE]SUPPLEMENTAL_DRAFT_BEGINS
+[TRIGGER]AT_DATETIME
+[LOCAL_DATETIME]1989-07-07T13:00:00
+[SCHEDULED_UTC]1989-07-07T17:00:00Z
+[PRIORITY]100
+[ACTION]BEGIN_SUPPLEMENTAL_DRAFT
+[EVENT_END]
+
+[EVENT_BEGIN]
+[EVENT_KEY]PFF_NFL_1989_TRAINING_CAMP_BEGINS
+[DISPLAY_NAME]Training Camp Begins
+[EVENT_TYPE]TRAINING_CAMP_BEGINS
+[TRIGGER]AT_TEAM_LOCAL_DATETIME
+[LOCAL_DATETIME]1989-07-13T10:00:00
+[TIME_BASIS]TEAM_HOME_CITY_LOCAL
+[EXPAND_PER]ACTIVE_TEAM_SEASON
+[TIME_ZONE_SOURCE]TEAM_HOME_CITY
+[PRIORITY]100
+[ACTION]BEGIN_TRAINING_CAMP
+[DESCRIPTION]Create one dated occurrence per active team at 10:00 AM in that team's home-city timezone, not the training-camp venue timezone or the header's Eastern default. Resolve historical timezone rules separately per team; no single shared SCHEDULED_UTC applies. No camp end is inferred.
+[EVENT_END]
+
+[EVENT_BEGIN]
+[EVENT_KEY]PFF_NFL_1989_HALL_OF_FAME_GAME
+[DISPLAY_NAME]Pro Football Hall of Fame Game
+[EVENT_TYPE]HALL_OF_FAME_GAME
+[TRIGGER]AT_DATETIME
+[LOCAL_DATETIME]1989-08-05T14:30:00
+[SCHEDULED_UTC]1989-08-05T18:30:00Z
+[PRIORITY]100
+[ACTION]DISPATCH_MATCHUP_EVENT
+[MATCHUP_ROLE]HALL_OF_FAME_GAME
+[DESCRIPTION]Bind to the matching supported World fixture when available. This definition does not invent participants or create a second kickoff occurrence.
+[EVENT_END]
+
+[EVENT_BEGIN]
+[EVENT_KEY]PFF_NFL_1989_TRADE_DEADLINE
+[DISPLAY_NAME]NFL Trade Deadline
+[EVENT_TYPE]TRADE_DEADLINE
+[TRIGGER]AT_DATETIME
+[LOCAL_DATETIME]1989-10-17T16:00:00
+[SCHEDULED_UTC]1989-10-17T20:00:00Z
+[PRIORITY]10
+[ACTION]CLOSE_TRADING
+[CLOSE_SCOPE]REMAINDER_OF_COMPETITION_SEASON
+[DESCRIPTION]Closes trading for the remainder of the 1989 NFL season. Trade completion at or after the cutoff must be rejected even if the queue occurrence has not yet been processed.
+[EVENT_END]
+
+[EVENT_BEGIN]
+[EVENT_KEY]PFF_NFL_1989_PRO_BOWL_VOTING_BEGINS
+[DISPLAY_NAME]Pro Bowl Selection Voting Begins
+[EVENT_TYPE]PRO_BOWL_VOTING_BEGINS
+[TRIGGER]AT_DATETIME
+[LOCAL_DATETIME]1989-11-29T07:00:00
+[SCHEDULED_UTC]1989-11-29T12:00:00Z
+[PRIORITY]100
+[ACTION]OPEN_PRO_BOWL_VOTING
+[ACTIVITY_KEY]PFF_NFL_1989_PRO_BOWL_SELECTION
+[BOUNDARY]BEGIN
+[ELIGIBLE_PLAYER_STATUS]ACTIVE_ROSTER
+[ELIGIBLE_STAFF_CATEGORY]TEAM_COACHING_STAFF
+[INCLUDED_COACH_ROLES]HEAD_COACH,COORDINATOR,POSITION_COACH
+[VOTER_ENTITY]PERSON
+[DESCRIPTION]Allows players assigned to an NFL team's active roster and the team's entire coaching staff to vote. Coaching eligibility includes head coaches, all coordinators and position coaches, not just the leadership slots currently implemented. Administrative roles alone do not grant coaching eligibility. Ballot, weighting and selection mechanics are not invented by this source definition.
+[EVENT_END]
+
+[EVENT_BEGIN]
+[EVENT_KEY]PFF_NFL_1989_PRO_BOWL_VOTING_ENDS
+[DISPLAY_NAME]Pro Bowl Selection Voting Ends
+[EVENT_TYPE]PRO_BOWL_VOTING_ENDS
+[TRIGGER]AT_DATETIME
+[LOCAL_DATETIME]1989-12-18T23:59:00
+[SCHEDULED_UTC]1989-12-19T04:59:00Z
+[PRIORITY]10
+[ACTION]CLOSE_PRO_BOWL_VOTING
+[ACTIVITY_KEY]PFF_NFL_1989_PRO_BOWL_SELECTION
+[BOUNDARY]END
+[RELATED_EVENT_KEY]PFF_NFL_1989_PRO_BOWL_VOTING_BEGINS
+[DESCRIPTION]Closes the 1989 Pro Bowl selection voting period at the supplied 11:59 PM Eastern timestamp. Do not silently move this cutoff to midnight or invent additional seconds.
+[EVENT_END]
+
+[EVENT_BEGIN]
+[EVENT_KEY]PFF_NFL_1989_PRO_BOWL_ANNOUNCEMENT
+[DISPLAY_NAME]Pro Bowl Announcement
+[EVENT_TYPE]PRO_BOWL_SELECTION_ANNOUNCEMENT
+[TRIGGER]AT_DATETIME
+[LOCAL_DATETIME]1989-12-29T07:00:00
+[SCHEDULED_UTC]1989-12-29T12:00:00Z
+[PRIORITY]900
+[ACTION]ANNOUNCE_PRO_BOWL_SELECTIONS
+[ACTIVITY_KEY]PFF_NFL_1989_PRO_BOWL_SELECTION
+[REQUIRES_EVENT_KEY]PFF_NFL_1989_PRO_BOWL_VOTING_ENDS
+[DESCRIPTION]Announce valid completed selection results after voting closes. Requires a supported selection policy/result; do not fabricate selections, ballot totals, weighting, roster sizes or a fan-voting constituency. Announcement does not reopen voting or repeat selection effects.
+[EVENT_END]
+
+[EVENT_BEGIN]
+[EVENT_KEY]PFF_NFL_1989_PRO_BOWL_GAME
+[DISPLAY_NAME]Pro Bowl Game
+[EVENT_TYPE]PRO_BOWL_GAME
+[TRIGGER]AT_DATETIME
+[LOCAL_DATETIME]1990-02-04T16:00:00
+[SCHEDULED_UTC]1990-02-04T21:00:00Z
+[PRIORITY]100
+[ACTION]DISPATCH_MATCHUP_EVENT
+[MATCHUP_ROLE]PRO_BOWL
+[MATCHUP_SEASON]1989
+[DESCRIPTION]The February 1990 Pro Bowl belongs to the 1989 season. Bind to a supported actual Pro Bowl fixture/selected rosters; do not create a duplicate kickoff or hardcode participants. The media-only Super Bowl league-end notice does not cancel this later event.
+[EVENT_END]
+
+[EVENT_BEGIN]
+[EVENT_KEY]PFF_NFL_1989_LEAGUE_END
+[DISPLAY_NAME]NFL League End
+[EVENT_TYPE]LEAGUE_SEASON_ENDED
+[TRIGGER]AFTER_MATCHUP_FINALIZED
+[PRIORITY]900
+[ACTION]ANNOUNCE_LEAGUE_SEASON_ENDED
+[MATCHUP_ROLE]SUPER_BOWL
+[MATCHUP_SEASON]1989
+[EFFECTIVE_TIME_SOURCE]MATCHUP_HISTORICAL_COMPLETED_UTC
+[MEDIA_ONLY]TRUE
+[DESCRIPTION]Media-only notice after the actual 1989-season Super Bowl finalization succeeds. Use that game's recorded historical completion time; do not guess its ending time or bind predetermined teams. Does not run next-year maintenance or alter league policy.
+[EVENT_END]
+
+[SEASON_EVENTS_END]

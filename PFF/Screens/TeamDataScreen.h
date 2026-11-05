@@ -31,6 +31,7 @@ class TeamDataScreen final : public Screen
         Staff,
         NewPerson,
         History,
+        PendingVenue,
         Leave
     };
     enum class Action
@@ -48,7 +49,11 @@ class TeamDataScreen final : public Screen
         PreviousPage,
         NextPage,
         SaveLeave,
-        DiscardLeave
+        DiscardLeave,
+        ReviseStadium,
+        ReviseSurface,
+        CancelStadiumRequest,
+        CancelSurfaceRequest
     };
     void buildWidgets();
     void synchronizeModal();
@@ -61,6 +66,10 @@ class TeamDataScreen final : public Screen
     void toggleManagement(bool);
     void openStaff(std::size_t);
     void openHistory();
+    void openPendingVenue();
+    void reviseVenue(std::size_t);
+    void cancelVenueRequest(std::size_t);
+    std::string venueBaseline(std::size_t) const;
     void loadPeoplePage();
     void closeModal();
     void processAction();
@@ -84,6 +93,9 @@ class TeamDataScreen final : public Screen
     WorldTeamData m_saved, m_permissions;
     bool m_available = false, m_filling = false, m_stale = false, m_management = false;
     std::string m_message;
+    std::string m_venueCommandKey, m_cancelVenueCommandKey;
+    std::int64_t m_cancelVenueEventId = 0;
+    std::array<bool, 2> m_editPendingVenue{};
     TextObject m_banner;
     ContainerWidget m_root, m_modalRoot;
     std::array<TextInput*, 4> m_inputs{}; // City, team, stadium, surface.
@@ -93,6 +105,8 @@ class TeamDataScreen final : public Screen
     Button* m_save = nullptr;
     Button* m_cancel = nullptr;
     Button* m_history = nullptr;
+    Button* m_pendingVenue = nullptr;
+    std::array<Button*, 2> m_reviseVenue{}, m_cancelVenue{};
     Button* m_return = nullptr;
     Modal m_modal = Modal::None;
     Action m_action = Action::None;

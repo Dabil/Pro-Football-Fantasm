@@ -22,8 +22,8 @@ void instantiateTeamData(CreationContext& c, std::int64_t coreSeason, const std:
     auto* db = c.world;
     S::run(db, "INSERT INTO WorldDataRevisions VALUES(?,0)", {c.worldId});
     S::run(db,
-           "INSERT INTO WorldUsers(WorldID,UserKey,DisplayName,CanManageTeams,CanEnableGodMode) "
-           "VALUES(?,'LOCAL_PRIMARY','Local player',1,1)",
+           "INSERT INTO WorldUsers(WorldID,UserKey,DisplayName,CanManageTeams,CanEnableGodMode,CanAdvanceWorld) "
+           "VALUES(?,'LOCAL_PRIMARY','Local player',1,1,1)",
            {c.worldId});
     const auto user = S::inserted(db);
     S::run(db, "INSERT INTO WorldUserEditModes VALUES(?,?,0,?,0)", {c.worldId, user, utc});
@@ -87,57 +87,13 @@ void instantiateTeamData(CreationContext& c, std::int64_t coreSeason, const std:
             }
         }
     }
-    S::run(db,
-           "INSERT INTO VenueHistoryBaselines SELECT WorldID,WorldVenueID,VenueName,TurfType,?,0 FROM "
-           "WorldVenues WHERE WorldID=?",
-           {utc, c.worldId});
-    const auto comp =
-        S::scalar(db, "SELECT WorldCompetitionID FROM CompetitionSeasons WHERE CompetitionSeasonID=?",
-                  {c.competitionSeasonId});
-    S::Query periods(
-        c.core,
-        "SELECT PeriodKey,CalendarKey,CalendarPolicyVersion,PhaseCode,DisplayWeekNumber,StartsUtc,EndsUtc "
-        "FROM CoreLeagueGameWeekPeriods WHERE CompetitionSeasonID=? ORDER BY StartsUtc",
-        {coreSeason});
-    std::int64_t calendar = 0;
-    std::string calendarKey, policy;
-    while (periods.row())
-    {
-        if (!S::utc(periods.text(5)) || !S::utc(periods.text(6)) || periods.text(5) >= periods.text(6))
-            throw WorldDatabaseException("Invalid canonical calendar UTC range in Core");
-        if (!calendar)
-        {
-            calendarKey = periods.text(1);
-            policy = periods.text(2);
-            S::run(db,
-                   "INSERT INTO LeagueGameCalendars(WorldID,WorldCompetitionID,CalendarKey,PolicyVersion) "
-                   "VALUES(?,?,?,?)",
-                   {c.worldId, comp, calendarKey, policy});
-            calendar = S::inserted(db);
-        }
-        if (calendarKey != periods.text(1) || policy != periods.text(2))
-            throw WorldDatabaseException(
-                "CALENDAR_CONFLICT: selected season must identify one venue-history calendar/policy");
-        S::Value week = periods.null(4) ? S::Value(nullptr) : S::Value(periods.integer(4));
-        S::run(
-            db,
-            "INSERT INTO "
-            "GameWeekPeriods(WorldID,CalendarID,WorldCompetitionID,CompetitionSeasonID,PeriodKey,PhaseCode,"
-            "DisplayWeekNumber,StartsUtc,EndsUtc,WorldCoreSnapshotID) VALUES(?,?,?,?,?,?,?,?,?,?)",
-            {c.worldId, calendar, comp, c.competitionSeasonId, periods.text(0), periods.text(3), week,
-             periods.text(5), periods.text(6), c.worldCoreSnapshotId});
-    }
-    if (calendar)
-        S::run(db,
-               "INSERT INTO VenueCalendarBindings SELECT WorldID,WorldVenueID,? FROM WorldVenues WHERE "
-               "WorldID=?",
-               {calendar, c.worldId});
-    else
-        c.result->diagnostics.push_back(
-            {DatabaseDiagnosticSeverity::Warning,
-             "PERIOD_UNAVAILABLE: explicit calendar absent; unrelated team edits remain available.",
-             {},
-             0});
+    S::run(db, "INSERT INTO WorldFeatureVersions VALUES(?,'VENUE_EVENTS',2)", {c.worldId});
+    S::run(db, "INSERT INTO WorldFeatureVersions VALUES(?,'LEAGUE_WEEKS',1)", {c.worldId});
+    S::run(db, "INSERT INTO WorldFeatureVersions VALUES(?,'WORLD_SCHEDULER',1)", {c.worldId});
+    S::run(db, "INSERT INTO WorldEventKinds VALUES(?,'GAME_KICKOFF',1,3)", {c.worldId});
+    S::run(db, "INSERT INTO WorldEventKinds VALUES(?,'VENUE_APPLY',1,1)", {c.worldId});
+    S::run(db, "INSERT INTO WorldTimingPolicies VALUES(?,'VENUE_SEVEN_DAYS_V1',1,604800)", {c.worldId});
+    (void)coreSeason;
     const auto vacant =
         S::scalar(db, "SELECT count(*) FROM RolePositions p WHERE NOT EXISTS(SELECT 1 FROM RoleAssignments a "
                       "WHERE a.PositionID=p.PositionID AND a.EndsUtc IS NULL)");
@@ -148,4 +104,102 @@ void instantiateTeamData(CreationContext& c, std::int64_t coreSeason, const std:
                  " unassigned staff positions; source labels remain in the preserved Core.",
              {},
              0});
+}
+
+// The source schedule defines required fixtures, not fixed date-based closing periods.
+void instantiateLeagueWeeks(CreationContext& c, const std::string& utc)
+{
+    namespace S = TeamDataSql;
+    std::map<std::int64_t, std::vector<std::int64_t>> games;
+    std::map<std::int64_t, std::pair<std::string, std::string>> times;
+    S::Query source(c.world,
+                    "SELECT WorldScheduledGameID,StageCode,WeekNumber,ScheduledUtc FROM WorldScheduledGames "
+                    "WHERE CompetitionSeasonID=? ORDER BY WeekNumber,ScheduledUtc,WorldScheduledGameID",
+                    {c.competitionSeasonId});
+    bool ready = true;
+    while (source.row())
+    {
+        const auto week = source.integer(2);
+        if (source.text(1) != "REGULAR" || week <= 0 || !S::utc(source.text(3)))
+        {
+            ready = false;
+            continue;
+        }
+        games[week].push_back(source.integer());
+        auto& range = times[week];
+        if (range.first.empty() || source.text(3) < range.first)
+            range.first = source.text(3);
+        if (range.second.empty() || source.text(3) > range.second)
+            range.second = source.text(3);
+    }
+    std::int64_t previous = 0;
+    std::string lastKickoff;
+    for (const auto& entry : games)
+    {
+        if (previous && (entry.first != previous + 1 || times[entry.first].first <= lastKickoff))
+            ready = false;
+        previous = entry.first;
+        lastKickoff = times[entry.first].second;
+    }
+    if (!ready || games.empty())
+    {
+        c.result->diagnostics.push_back(
+            {DatabaseDiagnosticSeverity::Warning,
+             "WEEK_STATE_UNAVAILABLE: schedule needs supported phase/week ordering and canonical kickoffs. "
+             "God-mode and unrelated team edits remain available.",
+             {},
+             0});
+        return;
+    }
+    const auto competition =
+        S::scalar(c.world, "SELECT WorldCompetitionID FROM CompetitionSeasons WHERE CompetitionSeasonID=?",
+                  {c.competitionSeasonId});
+    std::vector<std::int64_t> ids;
+    for (const auto& entry : games)
+    {
+        S::run(c.world,
+               "INSERT INTO "
+               "LeagueWeeks(WorldID,WorldCompetitionID,CompetitionSeasonID,WeekKey,PhaseCode,SequenceNo,"
+               "DisplayWeekNumber,State) VALUES(?,?,?,?,'REGULAR',?,?,'FUTURE')",
+               {c.worldId, competition, c.competitionSeasonId, "REGULAR:" + std::to_string(entry.first),
+                static_cast<std::int64_t>(ids.size() + 1), entry.first});
+        const auto id = S::inserted(c.world);
+        ids.push_back(id);
+        for (const auto game : entry.second)
+            S::run(c.world, "INSERT INTO LeagueWeekGames VALUES(?,?,?,?)",
+                   {c.worldId, c.competitionSeasonId, id, game});
+    }
+    for (std::size_t i = 1; i < ids.size(); ++i)
+        S::run(c.world, "UPDATE LeagueWeeks SET NextLeagueWeekID=? WHERE WorldID=? AND LeagueWeekID=?",
+               {ids[i], c.worldId, ids[i - 1]});
+    S::run(
+        c.world,
+        "UPDATE LeagueWeeks SET State='OPEN',OpenedUtc=?,OpenedRevision=0 WHERE WorldID=? AND LeagueWeekID=?",
+        {utc, c.worldId, ids.front()});
+}
+
+// Source fixture identity/time stays in WorldScheduledGames and its preserved Core.
+void instantiateKickoffEvents(CreationContext &c, const std::string &utc)
+{
+    namespace S = TeamDataSql;
+    S::Query games(c.world,
+                   "SELECT WorldScheduledGameID,CompetitionSeasonID,ScheduledUtc FROM WorldScheduledGames "
+                   "WHERE CompetitionSeasonID=? ORDER BY WorldScheduledGameID",
+                   {c.competitionSeasonId});
+    while (games.row())
+    {
+        if (!S::utc(games.text(2)) || games.text(2) < utc)
+            throw WorldDatabaseException(
+                "INVALID_TIME: fixture kickoff is missing, invalid or precedes the World start");
+        S::run(c.world,
+               "INSERT INTO ScheduledWorldEvents(WorldID,EventKey,KindKey,StartsUtc,EndMode,CreatedUtc,"
+               "CreatedRevision,Visibility,State) VALUES(?,?,'GAME_KICKOFF',?,'DOMAIN',?,0,'PUBLIC','DRAFT')",
+               {c.worldId, "kickoff:" + std::to_string(games.integer()), games.text(2), utc});
+        const auto occurrence = S::inserted(c.world);
+        S::run(c.world, "INSERT INTO GameKickoffOccurrences VALUES(?,?,?,?,1)",
+               {c.worldId, occurrence, games.integer(1), games.integer()});
+        S::run(c.world,
+               "UPDATE ScheduledWorldEvents SET State='PENDING' WHERE WorldID=? AND ScheduledWorldEventID=?",
+               {c.worldId, occurrence});
+    }
 }

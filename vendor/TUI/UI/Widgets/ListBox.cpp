@@ -106,6 +106,7 @@ const ListBoxItem* ListBox::itemAt(std::size_t index) const
 
 void ListBox::setItems(std::vector<ListBoxItem> items)
 {
+    m_hoveredIndex.reset();
     m_items = std::move(items);
     normalizeSelection();
     updateViewport();
@@ -135,6 +136,7 @@ void ListBox::addItem(const ListBoxItem& item)
 
 void ListBox::clearItems()
 {
+    m_hoveredIndex.reset();
     m_items.clear();
     m_selectedIndex.reset();
     updateViewport();
@@ -448,6 +450,11 @@ bool ListBox::canReceivePointerFocus(Point position) const
     return canReceiveFocus() && itemIndexFromMousePosition(position).has_value();
 }
 
+void ListBox::clearPointerState()
+{
+    m_hoveredIndex.reset();
+}
+
 bool ListBox::handleEvent(const Input::Event& event)
 {
     if (!isVisible() || !isEnabled())
@@ -457,13 +464,15 @@ bool ListBox::handleEvent(const Input::Event& event)
 
     if (const Input::MouseEvent* mouseEvent = event.asMouse())
     {
-        if (mouseEvent->isMove())
+        if (mouseEvent->isMove() || mouseEvent->isDrag())
         {
             const auto index = itemIndexFromMousePosition(mouseEvent->position);
-            return index.has_value() ? selectIndex(*index) : false;
+            m_hoveredIndex = index;
+            return index.has_value();
         }
         if (mouseEvent->isWheel())
         {
+            m_hoveredIndex.reset();
             updateViewport();
 
             return UI::Scrolling::handleMouseWheelScrollEvent(
@@ -497,7 +506,9 @@ bool ListBox::handleEvent(const Input::Event& event)
             return false;
         }
 
-        return selectIndex(*index);
+        m_hoveredIndex = index;
+        selectIndex(*index);
+        return true;
     }
 
     const Input::CommandEvent* commandEvent = event.asCommand();
@@ -506,6 +517,7 @@ bool ListBox::handleEvent(const Input::Event& event)
         return false;
     }
 
+    m_hoveredIndex.reset();
     switch (commandEvent->command.code)
     {
     case Input::CommandCode::MoveUp:
@@ -690,8 +702,12 @@ std::optional<std::size_t> ListBox::lastEnabledIndex() const
 const Style& ListBox::resolveItemStyle(std::size_t index) const
 {
     const bool selected = m_selectedIndex.has_value() && *m_selectedIndex == index;
+    // Hover is transient feedback; it never changes the committed selection.
+    if (isEnabled() && isItemEnabled(index) && isFocused() && m_hoveredIndex == index)
+        return m_styleSet.selectedFocused;
 
     return WidgetStyles::resolve(
         m_styleSet,
-        WidgetStyles::stateFor(isEnabled() && isItemEnabled(index), isFocused(), selected));
+        WidgetStyles::stateFor(isEnabled() && isItemEnabled(index),
+                               isFocused() && !m_hoveredIndex.has_value(), selected));
 }

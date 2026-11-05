@@ -34,6 +34,8 @@ int main()
         auto* disabled=makeButton(45,"Disabled");disabled->setEnabled(false);
         auto choices=std::make_unique<ListBox>(Rect{Point{0,2},Size{25,3}});
         auto* list=choices.get();list->addItem("First");list->addItem("Second");
+        list->setNormalStyle(normal);list->setFocusedStyle(normal);
+        list->setSelectedStyle(hover);list->setSelectedFocusedStyle(focused);
         root.addChild(std::move(choices));
         int activationsA=0,activationsB=0;
         a->setActivationCallback([&](const ButtonActivationResult&){++activationsA;});
@@ -86,7 +88,18 @@ int main()
         check(activationsB==1 && surface.buffer().getDisplayStyle(31,0)==normal,
             "Release after Tab restored stale hover or activated the old button");
         mouse(1,3);active(list);
-        check(list->selectedIndex()==std::optional<std::size_t>(1),"Hover did not select the list row under the pointer");
+        check(list->selectedIndex()==std::optional<std::size_t>(0),"Hover changed list selection");
+        check(surface.buffer().getDisplayStyle(1,3)==focused && surface.buffer().getDisplayStyle(1,2)==hover,
+              "Hover feedback and persistent selection did not draw separately");
+        mouse(1,3,Input::MouseAction::Pressed);
+        mouse(1,3,Input::MouseAction::Released);
+        check(list->selectedIndex()==std::optional<std::size_t>(1),"Click did not select list row");
+        mouse(1,2);active(list);
+        check(list->selectedIndex()==std::optional<std::size_t>(1),"Crossing another row changed selection");
+        mouse(31,0);active(b);
+        check(list->selectedIndex()==std::optional<std::size_t>(1),"Leaving list lost selection");
+        mouse(1,2,Input::MouseAction::Clicked);active(list);
+        check(list->selectedIndex()==std::optional<std::size_t>(0),"Second click did not replace selection");
         command(Input::CommandCode::Confirm);
         check(activationsA==0 && activationsB==1,"Unhandled list Confirm activated an unrelated button");
         mouse(1,0,Input::MouseAction::Pressed);active(a);

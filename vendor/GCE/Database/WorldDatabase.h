@@ -72,7 +72,8 @@
 // dependency that can later move into a generic GCE database header.
 // -----------------------------------------------------------------------------
 
-inline constexpr std::int32_t WorldDatabaseSchemaVersion = 2;
+inline constexpr std::int32_t WorldDatabaseSchemaVersion = 5;
+enum class WorldInitializationPolicy { PreparedSeason, Offseason };
 
 // -----------------------------------------------------------------------------
 // World creation
@@ -118,6 +119,8 @@ struct WorldDatabaseCreateRequest
 
     // False by default so an existing save is never destroyed accidentally.
     bool overwriteExisting = false;
+    // Prepared Core state is adopted, never aged again by replaying past events.
+    WorldInitializationPolicy initializationPolicy = WorldInitializationPolicy::PreparedSeason;
 };
 
 struct WorldDatabaseCreateResult
@@ -160,7 +163,7 @@ struct WorldDatabaseCreateResult
 //
 //   1. validate the selected Core database;
 //   2. create World.db.building;
-//   3. create the baseline plus approved schema-2 TeamData extensions;
+//   3. create the baseline plus schema-5 clock/scheduler/TeamData extensions;
 //   4. copy the selected Core into the World's CoreSnapshots directory;
 //   5. hash the exact preserved snapshot and record its path/hash ownership;
 //   6. create the single World identity + Core provenance;

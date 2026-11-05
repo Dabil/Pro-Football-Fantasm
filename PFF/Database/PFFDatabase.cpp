@@ -1,6 +1,8 @@
 #include "Database/PFFDatabase.h"
 #include "Database/CoreManifest.h"
 #include "Database/CoreTeamDataSchema.h"
+#include "Database/CoreClockSchema.h"
+#include "GCE/Database/ClockTime.h"
 #include "GCE/Database/TeamDataSql.h"
 
 #include <sqlite3.h>
@@ -2474,6 +2476,7 @@ VALUES(?, ?, ?, ?, ?, ?, ?, ?);
         std::filesystem::remove(backup, ec);
     }
     #include "Database/CoreTeamDataImport.inl"
+    #include "Database/CoreClockImport.inl"
 
 }
 
@@ -2695,7 +2698,7 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
                     const auto name = file.filename().u8string();
                     if (!(i == 0 ? rulesetFiles : seasonFiles).count(name) &&
                         !(i == 0 && chartFormats().count(name)) &&
-                        !(i == 1 && (name == "people.pffdata" || name == "staff_assignments.pffdata" || name == "game_week_periods.pffdata")))
+                        !(i == 1 && (name == "people.pffdata" || name == "staff_assignments.pffdata" || name == "game_week_periods.pffdata" || name == "season_events.pffdata")))
                     {
                         result.diagnostics.push_back({ DatabaseDiagnosticSeverity::Error,
                             "No importer is available for this source. Install an importer before building.", file, 0 });
@@ -2786,12 +2789,24 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
                 pathUtf8(seasonDirectory));
         }
 
+        if(!manifestMode && std::filesystem::is_regular_file(seasonDirectory / "season_events.pffdata")) {
+            const auto file=std::filesystem::canonical(seasonDirectory / "season_events.pffdata");
+            selectedFiles.emplace("season_events.pffdata",file);
+            sourceBytes.emplace_back(file,CoreManifest::bytes(file));
+        }
+
         if (std::filesystem::exists(request.outputDatabase) &&
             !request.overwriteExisting)
         {
             throw BuildException(
                 "Output database already exists and overwriteExisting is false: " +
                 pathUtf8(request.outputDatabase));
+        }
+
+        for (const auto& zone : request.teamHomeTimeZones) {
+            const auto evidence=std::filesystem::canonical(zone.sourceFile);
+            if (!CoreManifest::inside(std::filesystem::canonical(request.sourceRoot),evidence)) throw BuildException("Timezone evidence outside source root",evidence);
+            sourceBytes.emplace_back(evidence,CoreManifest::bytes(evidence));
         }
 
         const std::filesystem::path parent =
@@ -2841,10 +2856,11 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
             createSchema(db);
             createChartSchema(db);
             exec(db, CoreTeamDataSchema);
+            exec(db, CoreClockSchema);
             insertMetadata(db, context, "ChartImportSchemaVersion", "1");
             insertMetadata(db, context, "ChartExecutionReadiness", "NOT_CERTIFIED");
 
-            insertMetadata(db, context, "CoreSchemaVersion", "2");
+            insertMetadata(db, context, "CoreSchemaVersion", "3");
             insertMetadata(db, context, "Ruleset", request.ruleSet);
             for (std::size_t i = 0; i < packages.size(); ++i)
             {
@@ -3076,7 +3092,8 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
                 { "players.pffdata", true },
                 { "basic_offensive_unit_ratings.pffdata", true },
                 { "basic_defensive_unit_ratings.pffdata", true },
-                { "schedule.pffdata", true }
+                { "schedule.pffdata", true },
+                { "season_events.pffdata", true }
             };
 
             auto discoverUnsupported =
@@ -3124,6 +3141,7 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
                 supportedSeasonFiles);
 
             buildCoreTeamData(context, selectedFiles, league);
+            buildCoreClockData(context, request, selectedFiles);
             validateDatabase(db);
             context.diagnostic(DatabaseDiagnosticSeverity::Info,
                 "foreign_key_check and integrity_check passed. Historical package counts are not enforced.");

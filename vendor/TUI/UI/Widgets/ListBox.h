@@ -94,6 +94,7 @@ public:
     void draw(Surface& surface) override;
     bool handleEvent(const Input::Event& event) override;
     bool canReceivePointerFocus(Point position) const override;
+    void clearPointerState() override;
 
 private:
     void normalizeSelection();
@@ -118,6 +119,7 @@ private:
 private:
     std::vector<ListBoxItem> m_items;
     std::optional<std::size_t> m_selectedIndex;
+    std::optional<std::size_t> m_hoveredIndex;
     Viewport m_viewport;
 
     bool m_verticalScrollbarVisible = false;

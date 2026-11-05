@@ -9,6 +9,7 @@
 #include "Utilities/Text/TextClip.h"
 #include "Utilities/Text/TextWrap.h"
 #include <algorithm>
+#include <random>
 
 namespace
 {
@@ -16,6 +17,38 @@ namespace
                                                  "OFFENSIVE_COORDINATOR", "DEFENSIVE_COORDINATOR"};
     const std::array<const char*, 5> RoleLabels = {"Owner", "General Manager", "Head Coach",
                                                    "Offensive Coordinator", "Defensive Coordinator"};
+    std::string venueCommandKey()
+    {
+        std::random_device random;
+        const char* hex = "0123456789abcdef";
+        std::string key = "team-venue:";
+        for (int i = 0; i < 16; ++i)
+        {
+            const auto b = static_cast<unsigned char>(random());
+            key += hex[b >> 4];
+            key += hex[b & 15];
+        }
+        return key;
+    }
+    const WorldVenueEvent* pendingVenue(const WorldTeamData& model, std::size_t field)
+    {
+        const auto code = field == 0 ? "NAME" : "SURFACE";
+        const auto p = std::find_if(model.pendingVenueChanges.begin(), model.pendingVenueChanges.end(),
+                                    [&](const auto& e) { return e.field == code; });
+        return p == model.pendingVenueChanges.end() ? nullptr : &*p;
+    }
+    std::string venueWeek(const std::string& key)
+    {
+        const std::string prefix = "REGULAR:";
+        if (key.rfind(prefix, 0) == 0 && key.size() > prefix.size() &&
+            key.substr(prefix.size()).find_first_not_of("0123456789") == std::string::npos)
+            return "Week " + key.substr(prefix.size());
+        return key.empty() ? "Unknown league week" : key;
+    }
+    std::string venueValue(const std::optional<std::string>& value)
+    {
+        return value.value_or("Unknown");
+    }
     void orderStaff(WorldTeamData& model)
     {
         const auto original = model.staff;
@@ -123,7 +156,10 @@ void TeamDataScreen::buildWidgets()
     for (auto* p : m_inputs)
         p->setChangeCallback([this](const std::string&) {
             if (!m_filling)
+            {
+                m_venueCommandKey.clear();
                 synchronize();
+            }
         });
     auto management = std::make_unique<FormCheckBox>("Manage Team");
     management->setNormalStyle(checkbox);
@@ -136,6 +172,11 @@ void TeamDataScreen::buildWidgets()
     m_root.addChild(std::move(management));
     m_save = actionButton(m_root, "Save Changes", Action::Save);
     m_cancel = actionButton(m_root, "Cancel Changes", Action::Cancel);
+    m_pendingVenue = actionButton(m_root, "Pending Venue Changes", Action::None);
+    m_pendingVenue->setActivationCallback([this](const ButtonActivationResult& r) {
+        if (r.activated)
+            openPendingVenue();
+    });
     m_history = actionButton(m_root, "Venue History", Action::None);
     m_history->setActivationCallback([this](const ButtonActivationResult& r) {
         if (r.activated)
@@ -169,6 +210,10 @@ void TeamDataScreen::buildWidgets()
                                                      : i == 1 ? "First name (optional)"
                                                               : "Last name (optional)");
     m_create = actionButton(m_modalRoot, "Use New Person", Action::CreatePerson);
+    m_reviseVenue[0] = actionButton(m_modalRoot, "Revise Stadium", Action::ReviseStadium);
+    m_cancelVenue[0] = actionButton(m_modalRoot, "Cancel Stadium Change", Action::CancelStadiumRequest);
+    m_reviseVenue[1] = actionButton(m_modalRoot, "Revise Surface", Action::ReviseSurface);
+    m_cancelVenue[1] = actionButton(m_modalRoot, "Cancel Surface Change", Action::CancelSurfaceRequest);
     m_modalCancel = actionButton(m_modalRoot, "Cancel", Action::CloseModal);
     m_saveLeave = actionButton(m_modalRoot, "Save and Return", Action::SaveLeave);
     m_discardLeave = actionButton(m_modalRoot, "Discard and Return", Action::DiscardLeave);
@@ -204,6 +249,10 @@ void TeamDataScreen::reload()
     m_available = false;
     m_stale = false;
     m_message.clear();
+    m_venueCommandKey.clear();
+    m_cancelVenueCommandKey.clear();
+    m_cancelVenueEventId = 0;
+    m_editPendingVenue = {false, false};
     m_staffDraft.clear();
     m_draftNames.clear();
     m_saved = {};
@@ -254,15 +303,27 @@ WorldTeamDataDraft TeamDataScreen::draft() const
         d.city = m_inputs[0]->text();
     if (m_inputs[1]->text() != m_saved.nickname)
         d.nickname = m_inputs[1]->text();
-    if (m_inputs[2]->text() != m_saved.venueName)
+    if (m_inputs[2]->text() != venueBaseline(0))
         d.venueName = m_inputs[2]->text();
-    if (m_inputs[3]->text() != m_saved.surface.value_or(""))
+    if (m_inputs[3]->text() != venueBaseline(1))
         d.surface.emplace(m_inputs[3]->text().empty() ? std::nullopt
                                                       : std::optional<std::string>(m_inputs[3]->text()));
     if (m_management != m_saved.managed)
         d.managed = m_management;
     d.staff = m_staffDraft;
+    d.venueCommandKey = m_venueCommandKey;
+    const auto* name = pendingVenue(m_saved, 0);
+    const auto* surface = pendingVenue(m_saved, 1);
+    d.expectedVenueNameEventId = name ? name->eventId : 0;
+    d.expectedVenueSurfaceEventId = surface ? surface->eventId : 0;
     return d;
+}
+std::string TeamDataScreen::venueBaseline(std::size_t field) const
+{
+    const auto* event = pendingVenue(m_saved, field);
+    if (m_editPendingVenue[field] && !m_saved.godMode && event)
+        return event->desiredValue.value_or("");
+    return field == 0 ? m_saved.venueName : m_saved.surface.value_or("");
 }
 bool TeamDataScreen::dirty() const
 {
@@ -310,8 +371,13 @@ void TeamDataScreen::synchronize()
     const bool modified = dirty();
     m_save->setVisible(modified);
     m_save->setEnabled(active && modified);
-    m_cancel->setVisible(modified);
-    m_cancel->setEnabled(modified);
+    m_cancel->setLabel(m_stale && !modified ? "Reload" : "Cancel Changes");
+    m_cancel->setVisible(modified || m_stale);
+    m_cancel->setEnabled(modified || m_stale);
+    m_pendingVenue->setLabel("Pending Venue Changes (" + std::to_string(m_saved.pendingVenueChanges.size()) +
+                             ")");
+    m_pendingVenue->setVisible(m_available && !m_saved.pendingVenueChanges.empty());
+    m_pendingVenue->setEnabled(active && !m_saved.pendingVenueChanges.empty());
     m_history->setEnabled(active && m_saved.venueId != 0);
     if (auto* p = m_root.focusedChild())
         if (!p->canReceiveFocus())
@@ -335,6 +401,7 @@ void TeamDataScreen::toggleManagement(bool enabled)
         m_message = "The league changed. Cancel Changes to reload before saving.";
         return;
     }
+    m_venueCommandKey.clear();
     m_management = enabled;
     m_permissions = projected.value;
     orderStaff(m_permissions);
@@ -400,45 +467,123 @@ void TeamDataScreen::loadPeoplePage()
 }
 void TeamDataScreen::openHistory()
 {
-    m_historyLines.clear();
+    m_choices->clearItems();
+    m_message.clear();
+    m_historyLines = {"Current stadium: " + m_saved.venueName,
+                      "Current surface: " + venueValue(m_saved.surface), ""};
     m_historyWrapWidth = -1;
     std::size_t offset = 0;
     for (;;)
     {
-        auto history = listVenueHistory(m_actor, m_saved.venueId, offset, 100);
+        const auto history = listVenueEvents(m_actor, m_saved.venueId, offset, 100);
         if (!history.success)
         {
             m_message = history.message;
             return;
         }
-        std::size_t weeks = 0;
         for (const auto& e : history.value)
         {
-            if (!e.baseline)
-                ++weeks;
-            const auto label = e.baseline ? std::string("Original venue")
-                                          : std::string("Game week: ") +
-                                                PffGameTime::formatGameTimeEastern(e.startsUtc) + " to " +
-                                                PffGameTime::formatGameTimeEastern(e.endsUtc) +
-                                                (e.closed ? " (closed)" : " (current)");
-            m_historyLines.push_back(label);
-            m_historyLines.push_back(e.openingName + " / " + e.openingSurface.value_or("Unknown surface") +
-                                     " -> " + e.finalName + " / " +
-                                     e.finalSurface.value_or("Unknown surface"));
-            if (!e.baseline && !e.hasNetChange)
-                m_historyLines.push_back("No net change this game week.");
+            const auto field = e.field == "NAME" ? "Stadium" : "Surface";
+            const auto state = e.state == "PENDING"    ? "Announced"
+                               : e.state == "APPLIED"  ? "Applied"
+                               : e.state == "CANCELED" ? "Canceled"
+                                                       : "Superseded";
+            m_historyLines.push_back(std::string(field) + " change - " + state);
+            m_historyLines.push_back("Requested: " + venueValue(e.desiredValue) + "; effective " +
+                                     venueWeek(e.targetWeekKey));
+            m_historyLines.push_back("Announced: " + PffGameTime::formatGameTimeEastern(e.announcedUtc));
+            if (e.state == "APPLIED")
+                m_historyLines.push_back("Before: " + venueValue(e.appliedBeforeValue));
+            if (!e.resolvedUtc.empty())
+                m_historyLines.push_back(
+                    std::string(e.reason == "GOD_OVERRIDE" ? "Canceled by God mode" : state) + ": " +
+                    PffGameTime::formatGameTimeEastern(e.resolvedUtc));
+            m_historyLines.push_back("");
         }
-        if (weeks < 100)
+        if (history.value.size() < 100)
             break;
-        offset += weeks;
+        offset += history.value.size();
     }
-    m_choices->clearItems();
-    for (const auto& line : m_historyLines)
-        m_choices->addItem(line);
+    if (offset == 0 && m_historyLines.size() == 3)
+        m_historyLines.push_back("No venue events recorded.");
     m_modal = Modal::History;
     m_root.clearPointerState();
     m_root.clearChildFocus();
     m_modalRoot.resetFocus();
+}
+void TeamDataScreen::openPendingVenue()
+{
+    if (!m_available || m_saved.pendingVenueChanges.empty() || m_stale || !sameWorld())
+        return;
+    m_choices->clearItems();
+    m_message.clear();
+    m_historyLines = {"Current stadium: " + m_saved.venueName,
+                      "Current surface: " + venueValue(m_saved.surface), ""};
+    for (std::size_t i = 0; i < 2; ++i)
+        if (const auto* e = pendingVenue(m_saved, i))
+        {
+            m_historyLines.push_back(std::string(i == 0 ? "Pending stadium: " : "Pending surface: ") +
+                                     venueValue(e->desiredValue));
+            m_historyLines.push_back("Effective: " + venueWeek(e->targetWeekKey) +
+                                     " (after all current-week results are finalized)");
+            m_historyLines.push_back("");
+        }
+    m_historyLines.push_back(
+        "Revise loads the saved request into its field. Save Changes announces the revision.");
+    m_historyLines.push_back("Cancel Stadium/Surface Change cancels that saved request immediately.");
+    if (dirty())
+        m_historyLines.push_back("Save or cancel unsaved form edits before changing a saved request.");
+    if (m_saved.godMode)
+        m_historyLines.push_back(
+            "God mode applies edits immediately; unrelated pending fields remain scheduled.");
+    m_historyWrapWidth = -1;
+    m_modal = Modal::PendingVenue;
+    m_root.clearPointerState();
+    m_root.clearChildFocus();
+    m_modalRoot.resetFocus();
+}
+void TeamDataScreen::reviseVenue(std::size_t field)
+{
+    const auto* e = pendingVenue(m_saved, field);
+    if (!e || dirty() || m_stale || !sameWorld() || !m_permissions.canEditVenue)
+        return;
+    // God-mode fields always edit effective values, rather than a scheduled draft.
+    const auto value = m_saved.godMode ? venueBaseline(field) : e->desiredValue.value_or("");
+    m_editPendingVenue[field] = !m_saved.godMode;
+    m_venueCommandKey.clear();
+    m_filling = true;
+    m_inputs[field + 2]->setText(value);
+    m_filling = false;
+    closeModal();
+    synchronize();
+    m_root.setFocusedChild(*m_inputs[field + 2]);
+    m_message = m_saved.godMode ? "God mode: this field applies immediately when saved."
+                                : "Editing the saved venue request.";
+}
+void TeamDataScreen::cancelVenueRequest(std::size_t field)
+{
+    const auto* e = pendingVenue(m_saved, field);
+    if (!e || dirty() || m_stale || !sameWorld() || !m_permissions.canEditVenue)
+        return;
+    if (m_cancelVenueCommandKey.empty() || m_cancelVenueEventId != e->eventId)
+    {
+        m_cancelVenueCommandKey = venueCommandKey();
+        m_cancelVenueEventId = e->eventId;
+    }
+    const auto canceled =
+        cancelVenueChanges(m_actor, m_teamSeasonId, {e->eventId}, m_cancelVenueCommandKey, m_saved.revision);
+    if (!canceled.success)
+    {
+        m_stale = canceled.error == WorldEditError::StaleRevision ||
+                  canceled.error == WorldEditError::StalePendingEvent;
+        m_message = canceled.message + (m_stale ? " Close this view and reload before trying again." : "");
+        return;
+    }
+    if (m_commit)
+        m_commit(canceled.value);
+    reload();
+    m_message = std::string(field == 0 ? "Stadium" : "Surface") +
+                " change canceled. Current venue values were preserved.";
 }
 void TeamDataScreen::closeModal()
 {
@@ -458,9 +603,15 @@ bool TeamDataScreen::save()
         m_message = "The league changed. Cancel Changes to reload; your draft is retained.";
         return false;
     }
-    const auto saved = saveTeamData(m_actor, draft());
+    if (m_venueCommandKey.empty())
+        m_venueCommandKey = venueCommandKey();
+    const auto pendingBefore = m_saved.pendingVenueChanges;
+    const auto request = draft();
+    const auto saved = saveTeamData(m_actor, request);
     if (!saved.success)
     {
+        m_stale =
+            saved.error == WorldEditError::StaleRevision || saved.error == WorldEditError::StalePendingEvent;
         m_message = saved.message;
         return false;
     }
@@ -468,6 +619,24 @@ bool TeamDataScreen::save()
         m_commit(saved.value);
     reload();
     m_message = "Changes saved.";
+    if (!saved.value.changed)
+        m_message = "No changes to save.";
+    else if (request.venueName || request.surface)
+    {
+        if (m_saved.godMode)
+            m_message = "Venue changes applied immediately.";
+        else
+        {
+            const auto announced = std::find_if(
+                m_saved.pendingVenueChanges.begin(), m_saved.pendingVenueChanges.end(), [&](const auto& e) {
+                    return std::none_of(pendingBefore.begin(), pendingBefore.end(),
+                                        [&](const auto& old) { return old.eventId == e.eventId; });
+                });
+            m_message = announced != m_saved.pendingVenueChanges.end()
+                            ? "Venue changes announced for " + venueWeek(announced->targetWeekKey) + "."
+                            : "Pending venue change canceled. Current values were preserved.";
+        }
+    }
     return true;
 }
 void TeamDataScreen::leave()
@@ -518,6 +687,16 @@ void TeamDataScreen::processAction()
         closeModal();
         return;
     }
+    if (action == Action::ReviseStadium || action == Action::ReviseSurface)
+    {
+        reviseVenue(action == Action::ReviseStadium ? 0 : 1);
+        return;
+    }
+    if (action == Action::CancelStadiumRequest || action == Action::CancelSurfaceRequest)
+    {
+        cancelVenueRequest(action == Action::CancelStadiumRequest ? 0 : 1);
+        return;
+    }
     if (action == Action::PreviousPage)
     {
         if (m_page)
@@ -551,6 +730,7 @@ void TeamDataScreen::processAction()
     }
     if (action == Action::KeepPerson)
     {
+        m_venueCommandKey.clear();
         const auto pos = m_saved.staff[m_role].positionId;
         m_staffDraft.erase(std::remove_if(m_staffDraft.begin(), m_staffDraft.end(),
                                           [&](const auto& a) { return a.positionId == pos; }),
@@ -562,6 +742,7 @@ void TeamDataScreen::processAction()
     }
     if (action == Action::UsePerson || action == Action::RemovePerson || action == Action::CreatePerson)
     {
+        m_venueCommandKey.clear();
         WorldStaffAction choice;
         choice.positionId = m_saved.staff[m_role].positionId;
         choice.expectedAssignmentId = m_saved.staff[m_role].assignmentId;
@@ -690,8 +871,8 @@ std::array<int, 9> TeamDataScreen::formRows() const
     const int height = m_borderedForms ? 17 : 12 + 2 * gap;
     const int top = std::max(0, (m_contentBounds.size.height - height) / 2);
     auto rows = m_borderedForms ? std::array<int, 9>{1, 2, 6, 7, 8, 9, 10, 14, 15}
-                               : std::array<int, 9>{1, 2, 4 + gap, 5 + gap, 6 + gap,
-                                                    7 + gap, 8 + gap, 10 + 2 * gap, 11 + 2 * gap};
+                                : std::array<int, 9>{1,       2,       4 + gap,      5 + gap,     6 + gap,
+                                                     7 + gap, 8 + gap, 10 + 2 * gap, 11 + 2 * gap};
     for (auto& row : rows)
         row += top;
     return rows;
@@ -758,32 +939,58 @@ void TeamDataScreen::layout(const Rect& screen, const Rect& content, const Rect&
     }
     // Keep the established controls at their original positions when space allows.
     // Short panes use the same controls with tighter vertical spacing.
-    const int buttonHeight = controls.size.height >= 17 ? 3 : 1;
-    const std::array<int, 4> controlRows = controls.size.height >= 22 ? std::array<int, 4>{2, 7, 11, 15}
-                                           : buttonHeight == 3        ? std::array<int, 4>{1, 4, 7, 10}
-                                                                      : std::array<int, 4>{1, 2, 3, 4};
-    const std::array<Widget*, 4> buttons = {m_manage, m_save, m_cancel, m_history};
-    for (std::size_t i = 0; i < buttons.size(); ++i)
-        buttons[i]->setBounds(Rect{Point{controls.position.x + 2, controls.position.y + controlRows[i]},
-                                   Size{std::max(1, controls.size.width - 4), buttonHeight}});
+    if (m_pendingVenue->isVisible())
+    {
+        const int buttonHeight = controls.size.height >= 22 ? 3 : 1;
+        const std::array<int, 5> rows = controls.size.height >= 22   ? std::array<int, 5>{1, 5, 9, 13, 17}
+                                        : controls.size.height >= 12 ? std::array<int, 5>{1, 3, 5, 7, 9}
+                                        : controls.size.height >= 7  ? std::array<int, 5>{1, 2, 3, 4, 5}
+                                                                     : std::array<int, 5>{0, 1, 2, 3, 4};
+        const std::array<Widget*, 5> buttons = {m_manage, m_save, m_cancel, m_pendingVenue, m_history};
+        for (std::size_t i = 0; i < buttons.size(); ++i)
+            buttons[i]->setBounds(Rect{Point{controls.position.x + 2, controls.position.y + rows[i]},
+                                       Size{std::max(1, controls.size.width - 4), buttonHeight}});
+    }
+    else
+    {
+        const int buttonHeight = controls.size.height >= 17 ? 3 : 1;
+        const std::array<int, 4> controlRows = controls.size.height >= 22 ? std::array<int, 4>{2, 7, 11, 15}
+                                               : buttonHeight == 3        ? std::array<int, 4>{1, 4, 7, 10}
+                                                                          : std::array<int, 4>{1, 2, 3, 4};
+        const std::array<Widget*, 4> buttons = {m_manage, m_save, m_cancel, m_history};
+        for (std::size_t i = 0; i < buttons.size(); ++i)
+            buttons[i]->setBounds(Rect{Point{controls.position.x + 2, controls.position.y + controlRows[i]},
+                                       Size{std::max(1, controls.size.width - 4), buttonHeight}});
+    }
     m_return->setBounds(Rect{
         Point{footer.position.x + std::max(0, footer.size.width - 38), footer.position.y + 1}, Size{28, 3}});
-
 }
 void TeamDataScreen::synchronizeModal()
 {
     const bool staff = m_modal == Modal::Staff, person = m_modal == Modal::NewPerson,
-               history = m_modal == Modal::History, leave = m_modal == Modal::Leave;
-    m_choices->setVisible(staff || history);
-    m_choices->setEnabled(staff || history);
+               history = m_modal == Modal::History, pending = m_modal == Modal::PendingVenue,
+               leave = m_modal == Modal::Leave;
+    m_choices->setVisible(staff || history || pending);
+    m_choices->setEnabled(staff || history || pending);
     for (auto* p : {m_use, m_remove, m_new, m_keep, m_previous, m_next})
         p->setVisible(staff);
     m_remove->setEnabled(staff && m_available && m_saved.staff[m_role].assignmentId != 0);
     for (auto* p : m_personInputs)
         p->setVisible(person);
     m_create->setVisible(person);
-    m_modalCancel->setVisible(staff || person || history);
-    m_modalCancel->setLabel(history ? "Close" : "Cancel");
+    m_modalCancel->setVisible(staff || person || history || pending);
+    m_modalCancel->setLabel((history || pending) ? "Close" : "Cancel");
+    for (std::size_t i = 0; i < 2; ++i)
+    {
+        m_reviseVenue[i]->setVisible(pending);
+        m_cancelVenue[i]->setVisible(pending);
+        m_reviseVenue[i]->setLabel(m_saved.godMode ? (i == 0 ? "Edit Stadium Now" : "Edit Surface Now")
+                                                   : (i == 0 ? "Revise Stadium" : "Revise Surface"));
+        const bool allowed = pending && pendingVenue(m_saved, i) && m_available && !m_stale && sameWorld() &&
+                             !dirty() && m_permissions.canEditVenue;
+        m_reviseVenue[i]->setEnabled(allowed);
+        m_cancelVenue[i]->setEnabled(allowed);
+    }
     for (auto* p : {m_saveLeave, m_discardLeave, m_stay})
         p->setVisible(leave);
     if (auto* focused = m_modalRoot.focusedChild())
@@ -865,31 +1072,66 @@ void TeamDataScreen::draw(Surface& surface)
         const int labelWidth = std::min(24, std::max(1, content.size.width - 12));
         const Rect labels{Point{content.position.x + 4, content.position.y},
                           Size{labelWidth, content.size.height}};
-        const std::array<const char*, 9> captions = {"City",        "Team",        RoleLabels[0],
-                                                     RoleLabels[1], RoleLabels[2], RoleLabels[3],
-                                                     RoleLabels[4], "Stadium",     "Surface"};
+        std::array<std::string, 9> captions = {"City",        "Team",        RoleLabels[0],
+                                               RoleLabels[1], RoleLabels[2], RoleLabels[3],
+                                               RoleLabels[4], "Stadium",     "Surface"};
+        if (m_editPendingVenue[0])
+            captions[7] = "Stadium request";
+        if (m_editPendingVenue[1])
+            captions[8] = "Surface request";
         const auto rows = formRows();
         for (std::size_t i = 0; i < rows.size(); ++i)
             page.writeLine(labels, rows[i] - m_formOffset, TextClip::clipUtf8Text(captions[i], labelWidth),
                            label);
-        page.writeLine(
-            controls, 0,
-            m_available ? (m_saved.godMode ? "God mode: ON" : "") : "Team unavailable", heading);
+        int previewRow = rows[8] + (m_borderedForms ? 2 : 1) - m_formOffset;
+        if (!m_saved.pendingVenueChanges.empty() && previewRow >= 0 && previewRow < content.size.height)
+        {
+            const int space = content.size.height - previewRow;
+            if (space < static_cast<int>(m_saved.pendingVenueChanges.size()))
+                page.writeLine(content, previewRow,
+                               TextClip::clipUtf8Text(
+                                   "  " + std::to_string(m_saved.pendingVenueChanges.size()) +
+                                       " pending venue changes; open Pending Venue Changes for details.",
+                                   content.size.width),
+                               text);
+            else
+                for (std::size_t i = 0; i < 2; ++i)
+                    if (const auto* e = pendingVenue(m_saved, i))
+                    {
+                        const auto current = i == 0 ? m_saved.venueName : venueValue(m_saved.surface);
+                        const auto line = std::string("  Current ") + (i == 0 ? "stadium: " : "surface: ") +
+                                          current + " | Pending: " + venueValue(e->desiredValue) + " (" +
+                                          venueWeek(e->targetWeekKey) + ")";
+                        page.writeLine(content, previewRow++,
+                                       TextClip::clipUtf8Text(line, content.size.width), text);
+                    }
+        }
+        page.writeLine(controls, 0,
+                       m_available ? (m_saved.godMode ? "God mode: ON" : "") : "Team unavailable", heading);
         std::string status = m_message;
         if (status.empty())
         {
             if (m_available && !m_permissions.calendarReady)
-                status = "Venue edits need an installed league calendar.";
+                status = "Venue requests need a supported following league week.";
             else if (m_available && m_permissions.otherVenueUsers && !m_saved.godMode)
                 status = "Shared Stadium and Surface are read-only.";
             else if (dirty() && m_management && !m_permissions.canEditIdentity && !m_saved.godMode)
                 status = "No controlled owner authority. Use Commissioner God mode to assign staff.";
             else if (!dirty())
-                status = "Changes are saved to this league.";
+                status = m_saved.pendingVenueChanges.empty()
+                             ? "Changes are saved to this league."
+                             : std::to_string(m_saved.pendingVenueChanges.size()) +
+                                   " venue changes pending for " +
+                                   venueWeek(m_saved.pendingVenueChanges.front().targetWeekKey) + ".";
             if (dirty())
                 status += " Unsaved changes.";
         }
-        int row = controls.size.height >= 22 ? 20 : controls.size.height >= 17 ? 14 : 6;
+        int row = m_pendingVenue->isVisible()  ? (controls.size.height >= 22   ? 21
+                                                  : controls.size.height >= 12 ? 11
+                                                                               : 6)
+                  : controls.size.height >= 22 ? 20
+                  : controls.size.height >= 17 ? 14
+                                               : 6;
         if (content.size.height < 12)
             status = "PgUp/PgDn scrolls fields. " + status;
         for (const auto& line : wrapText(status, std::max(1, controls.size.width - 4)))
@@ -911,13 +1153,15 @@ void TeamDataScreen::draw(Surface& surface)
     std::string caption = m_modal == Modal::Staff       ? std::string(" Change ") + RoleLabels[m_role] + " "
                           : m_modal == Modal::NewPerson ? " Create Person "
                           : m_modal == Modal::History   ? " Venue History "
-                                                        : " Unsaved Changes ";
+                          : m_modal == Modal::PendingVenue ? " Pending Venue Changes "
+                                                           : " Unsaved Changes ";
     page.writePanelTitle("Dialog", caption, heading, 3, 0);
     m_modalRoot.setBounds(screen);
     const auto rect = [&](int x, int y, int width, int height) {
         return Rect{Point{modal.position.x + x, modal.position.y + y},
                     Size{std::max(1, width), std::max(1, height)}};
     };
+    int modalMessageRow = 20;
     if (m_modal == Modal::Staff || m_modal == Modal::History)
     {
         m_choices->setBounds(rect(3, 4, w - 6, m_modal == Modal::Staff ? h - 22 : h - 10));
@@ -953,10 +1197,35 @@ void TeamDataScreen::draw(Surface& surface)
         else
         {
             page.writeLine(modal, 2,
-                           "   Original venue and weekly summaries; unknown surface values are preserved.",
-                           text);
+                           "   Current values and announced, revised, canceled and applied changes.", text);
             m_modalCancel->setBounds(rect(w - 29, h - 5, 26, 3));
         }
+    }
+    else if (m_modal == Modal::PendingVenue)
+    {
+        const int bh = h >= 30 ? 3 : 1, closeY = h - bh - 2, surfaceY = closeY - bh - 1,
+                  nameY = surfaceY - bh - 1;
+        modalMessageRow = std::max(3, nameY - 3);
+        m_choices->setBounds(rect(3, 3, w - 6, std::max(1, modalMessageRow - 4)));
+        if (m_historyWrapWidth != m_choices->width())
+        {
+            m_historyWrapWidth = m_choices->width();
+            std::vector<ListBoxItem> lines;
+            for (const auto& line : m_historyLines)
+                for (const auto& part : wrapText(line, std::max(1, m_choices->width() - 1)))
+                    lines.push_back({part, true});
+            m_choices->setItems(std::move(lines));
+        }
+        m_reviseVenue[0]->setBounds(rect(3, nameY, (w - 9) / 2, bh));
+        m_cancelVenue[0]->setBounds(rect(w / 2, nameY, w / 2 - 3, bh));
+        m_reviseVenue[1]->setBounds(rect(3, surfaceY, (w - 9) / 2, bh));
+        m_cancelVenue[1]->setBounds(rect(w / 2, surfaceY, w / 2 - 3, bh));
+        m_modalCancel->setBounds(rect(w - 29, closeY, 26, bh));
+        if (dirty())
+            page.writeLine(modal, 2,
+                           TextClip::clipUtf8Text(
+                               "   Save or cancel unsaved form edits before changing saved requests.", w - 2),
+                           message);
     }
     else if (m_modal == Modal::NewPerson)
     {
@@ -985,7 +1254,7 @@ void TeamDataScreen::draw(Surface& surface)
             page.writeLine(modal,
                            (m_modal == Modal::Staff   ? h - 18
                             : m_modal == Modal::Leave ? 20
-                                                      : 20) +
+                                                      : modalMessageRow) +
                                static_cast<int>(i),
                            "   " + lines[i], message);
     }

@@ -23,6 +23,7 @@
 [FILE] schedule.pffdata
 [FILE] people.pffdata
 [FILE] staff_assignments.pffdata
+[FILE] season_events.pffdata
 [FILES_END]
 
 [SEASON_END]

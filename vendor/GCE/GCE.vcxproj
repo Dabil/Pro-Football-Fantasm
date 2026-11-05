@@ -131,7 +131,26 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Database\ClockTime.h" />
+    <ClInclude Include="Database\WorldTestGame.h" />
+    <ClInclude Include="Database\WorldTestGameState.h" />
+    <ClInclude Include="Database\WorldGameProgress.inl" />
+    <ClInclude Include="Database\WorldGameInterruption.inl" />
+    <ClInclude Include="Database\WorldTestGame.inl" />
+    <ClInclude Include="Database\ClockStateSql.h" />
+    <ClInclude Include="Database\ClockSchedulerBuild.inl" />
+    <ClInclude Include="Database\WorldClockServices.h" />
+    <ClInclude Include="Database\WorldClockServices.inl" />
+    <ClInclude Include="Database\WorldVenueEvents.inl" />
+    <ClInclude Include="Database\WorldWeekTransaction.inl" />
+    <ClInclude Include="Database\WorldWeekTransaction.h" />
     <ClInclude Include="Database\WorldTeamData.h" />
+    <ClInclude Include="Database\WorldScheduler.h" />
+    <ClInclude Include="Database\WorldScheduler.inl" />
+    <ClInclude Include="Database\WorldClockAdvance.inl" />
+    <ClInclude Include="Database\WorldGameAdmission.inl" />
+    <ClInclude Include="Database\WorldStorageHash.h" />
+    <ClInclude Include="Database\WorldEventReadiness.h" />
     <ClInclude Include="Database\WorldTeamDataSchema.h" />
     <ClInclude Include="Database\TeamDataSql.h" />
     <ClInclude Include="Database\WorldTeamDataBuild.inl" />

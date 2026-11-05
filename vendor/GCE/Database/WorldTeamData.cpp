@@ -1,8 +1,16 @@
 #include "GCE/Database/WorldTeamData.h"
+#include "GCE/Database/WorldScheduler.h"
 #include "GCE/Database/WorldDatabase.h"
+#include "GCE/Database/WorldWeekTransaction.h"
 #include "GCE/Database/TeamDataSql.h"
+#include "GCE/Database/WorldEventReadiness.h"
+#include "GCE/Database/WorldClockServices.h"
+#include "GCE/Database/WorldTestGame.h"
+#include <fstream>
+#include <iterator>
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <limits>
 #include <random>
 #include <set>
@@ -62,6 +70,7 @@ namespace
         {
             r.error = e.code;
             r.message = e.what();
+            if(r.message.find("CAUSAL_FENCE")!=std::string::npos) r.error=WorldEditError::CausalFence;
         }
         catch (const S::Error& e)
         {
@@ -71,6 +80,7 @@ namespace
                           ? WorldEditError::IoError
                           : WorldEditError::IntegrityFailure;
             r.message = e.what();
+            if(r.message.find("CAUSAL_FENCE")!=std::string::npos) r.error=WorldEditError::CausalFence;
         }
         catch (const std::exception& e)
         {
@@ -84,6 +94,8 @@ namespace
         Database connection;
         sqlite3* db = nullptr;
         std::int64_t world = 0, user = 0, revision = 0;
+        std::int64_t context = 0, contextOrder = 0;
+        bool clockModel = false;
         bool manage = false, enableGod = false, god = false;
         std::string now;
         Session(const WorldActor& actor, bool write)
@@ -103,11 +115,19 @@ namespace
                     1,
                 WorldEditError::UnsupportedSchema, "UNSUPPORTED_SCHEMA: create a fresh compatible World");
             require(S::scalar(db, "SELECT count(*) FROM WorldSchemaInfo WHERE SchemaInfoID=1 AND "
-                                  "SchemaFamily='GCE_WORLD' AND SchemaVersion=2") == 1,
+                                  "SchemaFamily='GCE_WORLD' AND SchemaVersion IN (4,5)") == 1,
                     WorldEditError::UnsupportedSchema,
                     "UNSUPPORTED_SCHEMA: create a fresh compatible World; existing saves are not migrated");
+            require(S::scalar(db, "SELECT count(*) FROM sqlite_master WHERE type='table' AND "
+                                  "name='WorldFeatureVersions'") == 1,
+                    WorldEditError::UnsupportedSchema, "Unsupported venue/week feature contracts");
             world = WorldEditingAccess::world(actor);
+            clockModel = ClockStateSql::enabled(db);
             user = WorldEditingAccess::user(actor);
+            require(worldEventContractsReady(db, world),
+                    WorldEditError::UnsupportedSchema, "Unsupported venue/week feature contracts");
+            require(worldEventPublicationReady(db, world), WorldEditError::IntegrityFailure,
+                    "Incomplete dated-event publication");
             S::Query q(
                 db,
                 "SELECT w.CurrentTimeUtc,r.Revision,u.CanManageTeams,u.CanEnableGodMode,m.GodModeEnabled "
@@ -118,6 +138,7 @@ namespace
                 {world, WorldEditingAccess::worldKey(actor), user, WorldEditingAccess::userKey(actor)});
             require(q.row(), WorldEditError::NotAuthorized, "World session identity is no longer available");
             now = q.text(0);
+            require(S::utc(now),WorldEditError::IntegrityFailure,"Invalid World calendar clock");
             revision = q.integer(1);
             manage = q.integer(2) != 0;
             enableGod = q.integer(3) != 0;
@@ -145,7 +166,7 @@ namespace
     };
     struct Team
     {
-        std::int64_t id = 0, org = 0, competition = 0, venue = 0;
+        std::int64_t id = 0, org = 0, competition = 0, venue = 0, season = 0;
         std::string city, nickname, name, venueName;
         std::optional<std::string> surface;
     };
@@ -156,7 +177,8 @@ namespace
             "SELECT "
             "t.TeamSeasonID,t.WorldOrganizationID,c.WorldCompetitionID,t.WorldVenueID,t.MarketName,t."
             "Nickname,t."
-            "DisplayName,v.VenueName,v.TurfType FROM TeamSeasons t JOIN WorldOrganizations o ON "
+            "DisplayName,v.VenueName,v.TurfType,t.CompetitionSeasonID FROM TeamSeasons t JOIN "
+            "WorldOrganizations o ON "
             "o.WorldOrganizationID=t.WorldOrganizationID JOIN CompetitionSeasons c ON "
             "c.CompetitionSeasonID=t.CompetitionSeasonID JOIN WorldCompetitions wc ON "
             "wc.WorldCompetitionID=c.WorldCompetitionID LEFT JOIN WorldVenues v ON "
@@ -175,6 +197,12 @@ namespace
         t.name = q.text(6);
         t.venueName = q.text(7);
         t.surface = q.optionalText(8);
+        t.season = q.integer(9);
+        if(s.clockModel && t.venue)
+        {
+            const auto v=ClockStateSql::venueAt(s.db,s.world,t.venue,s.now);
+            t.venueName=v.name;t.surface=v.surface;
+        }
         return t;
     }
     bool capability(Session& s, const Team& t, const std::string& cap, std::int64_t targetRole = 0,
@@ -222,19 +250,10 @@ namespace
                          {s.world, t.venue, t.org})
                    : 0;
     }
-    std::int64_t period(Session& s, std::int64_t venue)
+    void protectTeamInputs(Session& s,const Team& t)
     {
-        S::Query q(
-            s.db,
-            "SELECT p.HistoryWeekPeriodID FROM VenueCalendarBindings b JOIN GameWeekPeriods p ON "
-            "p.WorldID=b.WorldID AND p.CalendarID=b.CalendarID WHERE b.WorldID=? AND b.WorldVenueID=? AND "
-            "p.StartsUtc<=? AND ?<p.EndsUtc",
-            {s.world, venue, s.now, s.now});
-        if (!q.row())
-            return 0;
-        auto id = q.integer();
-        require(!q.row(), WorldEditError::CalendarConflict, "Ambiguous venue calendar period");
-        return id;
+        if(!s.clockModel)return;
+        require(S::scalar(s.db,"SELECT count(*) FROM CausalReadFences f JOIN Games g ON g.WorldID=f.WorldID AND CAST(g.GameID AS TEXT)=f.ResourceKey WHERE f.WorldID=? AND f.ResourceKind='GAME_INPUTS' AND f.ContextID<>? AND (g.AwayTeamSeasonID=? OR g.HomeTeamSeasonID=?) AND (f.AsOfUtc>? OR (f.AsOfUtc=? AND f.AsOfOrder>=?))",{s.world,s.context,t.id,t.id,s.now,s.now,s.contextOrder})==0,WorldEditError::CausalFence,"CAUSAL_FENCE: team changes conflict with already resolved game inputs");
     }
     // Validate UTF-8 code points rather than bytes/display cells. Reject malformed
     // sequences, controls, surrogates and overlong encodings; retain internal spaces.
@@ -412,13 +431,26 @@ namespace
         }
         (void)rev;
     }
+#include "GCE/Database/WorldVenueEvents.inl"
+
     template <class F>
-    WorldEditResult<WorldEditCommit> write(const WorldActor& actor, std::int64_t expected, F&& fn)
+    WorldEditResult<WorldEditCommit> write(const WorldActor& actor, std::int64_t expected, F&& fn,
+                                           const std::string& commandKey = {},
+                                           const std::string& fingerprint = {})
     {
         return attempt<WorldEditCommit>([&] {
             Session s(actor, true);
             S::Transaction transaction(s.db);
             s.refresh();
+            require(worldEventContractsReady(s.db, s.world), WorldEditError::UnsupportedSchema,
+                    "Unsupported dated-event contracts");
+            require(S::utc(s.now) && worldEventPublicationReady(s.db, s.world), WorldEditError::IntegrityFailure,
+                    "Invalid World clock or incomplete dated-event publication");
+            if (auto replay = replayVenueCommand(s, actor, commandKey, fingerprint))
+            {
+                transaction.commit();
+                return *replay;
+            }
             require(s.revision == expected, WorldEditError::StaleRevision,
                     "The World changed. Reload this form before saving");
             require(s.revision < std::numeric_limits<std::int64_t>::max(), WorldEditError::IntegrityFailure,
@@ -428,7 +460,15 @@ namespace
             result.worldKey = WorldEditingAccess::worldKey(actor);
             result.revision = s.revision;
             result.currentTimeUtc = s.now;
+            if(s.clockModel)
+            {
+                S::exec(s.db,"SAVEPOINT clock_edit");
+                s.context=ClockStateSql::editContext(s.db,s.world,s.user,s.now,s.revision+1,s.god);
+                s.contextOrder=S::scalar(s.db,"SELECT OrderInInstant FROM WorldExecutionContexts WHERE WorldID=? AND ContextID=?",{s.world,s.context});
+            }
             fn(s, s.revision + 1, result);
+            if(s.clockModel && !result.changed) S::exec(s.db,"ROLLBACK TO clock_edit");
+            if(s.clockModel) S::exec(s.db,"RELEASE clock_edit");
             if (result.changed)
             {
                 S::run(s.db, "UPDATE WorldDataRevisions SET Revision=? WHERE WorldID=? AND Revision=?",
@@ -436,6 +476,9 @@ namespace
                 require(sqlite3_changes(s.db) == 1, WorldEditError::StaleRevision, "World revision changed");
                 result.revision = s.revision + 1;
             }
+            require(worldEventPublicationReady(s.db, s.world), WorldEditError::IntegrityFailure,
+                    "Incomplete dated-event publication");
+            if (result.changed) result.committedRevision = result.revision;
             transaction.commit();
             return result;
         });
@@ -446,8 +489,10 @@ WorldEditResult<WorldActor> openLocalWorldActor(const std::filesystem::path& pat
     return attempt<WorldActor>([&] {
         auto loaded = loadWorldDatabase(path);
         require(loaded.success,
-                loaded.schemaVersion != 2 ? WorldEditError::UnsupportedSchema
-                                          : WorldEditError::IntegrityFailure,
+                (loaded.schemaVersion != WorldDatabaseSchemaVersion ||
+                 loaded.errorMessage.rfind("UNSUPPORTED_SCHEMA", 0) == 0)
+                    ? WorldEditError::UnsupportedSchema
+                    : WorldEditError::IntegrityFailure,
                 loaded.errorMessage.c_str());
         Database d;
         require(d.open(path), WorldEditError::IoError, "Cannot open World");
@@ -491,7 +536,10 @@ static WorldEditResult<WorldTeamData> readTeamData(const WorldActor& actor, std:
                               "WorldOrganizationID=? AND WorldUserID=? AND EndsUtc IS NULL",
                               {s.world, t.org, s.user}) > 0;
         r.otherVenueUsers = shared(s, t);
-        r.calendarReady = t.venue && period(s, t.venue) != 0;
+        r.leagueWeek = weekProgress(s, t.season);
+        r.calendarReady = true; // Dated requests do not require week membership or a successor.
+        if (t.venue)
+            r.pendingVenueChanges = venueEvents(s, t.venue, 0, 500, true);
         if (preview)
         {
             require(s.manage, WorldEditError::NotAuthorized, "This user cannot change team management");
@@ -569,7 +617,7 @@ static WorldEditResult<WorldTeamData> readTeamData(const WorldActor& actor, std:
         }
         if (!r.calendarReady)
             r.warnings.push_back(
-                "PERIOD_UNAVAILABLE: venue edits require an explicit current league game-week period");
+                "DATED_EVENTS_UNAVAILABLE: venue scheduling is unavailable");
         if (r.otherVenueUsers && !s.god)
             r.warnings.push_back("Shared venue: name and surface are read-only");
         S::exec(s.db, "COMMIT");
@@ -622,202 +670,188 @@ WorldEditResult<std::vector<WorldPersonChoice>> listAvailablePeople(const WorldA
 }
 WorldEditResult<WorldEditCommit> saveTeamData(const WorldActor& actor, const WorldTeamDataDraft& draft)
 {
-    return write(actor, draft.expectedRevision, [&](Session& s, std::int64_t rev, WorldEditCommit& result) {
-        auto t = team(s, draft.teamSeasonId);
-        require(draft.worldId == s.world && draft.organizationId == t.org, WorldEditError::InvalidValue,
-                "Draft scope does not match the selected team");
-        if (draft.managed && *draft.managed)
-            management(s, t, true, rev, result);
-        auto city = draft.city ? text(*draft.city, 128, true) : t.city,
-             nickname = draft.nickname ? text(*draft.nickname, 128, true) : t.nickname;
-        auto venueName = draft.venueName ? text(*draft.venueName, 256, true) : t.venueName;
-        auto surface = draft.surface ? optionalText(*draft.surface, 128) : t.surface;
-        const bool identityChange = city != t.city || nickname != t.nickname,
-                   venueChange = venueName != t.venueName || surface != t.surface;
-        if (identityChange)
-            require(capability(s, t, "TEAM_IDENTITY_EDIT"), WorldEditError::NotAuthorized,
-                    "Team identity requires controlled owner authority or God mode");
-        std::int64_t currentPeriod = 0;
-        if (venueChange)
-        {
-            require(t.venue != 0, WorldEditError::UnsupportedFeature, "This team has no editable venue");
-            require(capability(s, t, "VENUE_EDIT"), WorldEditError::NotAuthorized,
-                    "Venue editing requires owner authority or God mode");
-            require(s.god || shared(s, t) == 0, WorldEditError::SharedVenueReadOnly,
-                    "Shared venue name and surface are read-only outside God mode");
-            currentPeriod = period(s, t.venue);
-            require(currentPeriod != 0, WorldEditError::PeriodUnavailable,
-                    "Install an explicit current league game-week period before editing this venue");
-        }
-        struct Pending
-        {
-            WorldStaffAction action;
-            std::int64_t role = 0, oldPerson = 0, newPerson = 0;
-        };
-        std::vector<Pending> pending;
-        std::set<std::int64_t> seen, chosen;
-        // Validate every choice and permission against the same pre-save state.
-        for (const auto& a : draft.staff)
-        {
-            require(seen.insert(a.positionId).second, WorldEditError::InvalidValue,
-                    "Duplicate staff position in draft");
-            S::Query q(s.db,
-                       "SELECT p.RoleID,a.RoleAssignmentID,a.PersonID,r.RoleKey FROM RolePositions p JOIN "
-                       "RoleDefinitions r ON r.WorldID=p.WorldID AND r.RoleID=p.RoleID LEFT JOIN "
-                       "RoleAssignments a ON a.PositionID=p.PositionID AND a.EndsUtc IS NULL WHERE "
-                       "p.WorldID=? AND p.WorldOrganizationID=? AND p.PositionID=? AND p.Active=1 AND "
-                       "(p.TeamSeasonID IS NULL OR p.TeamSeasonID=?)",
-                       {s.world, t.org, a.positionId, t.id});
-            require(q.row(), WorldEditError::InvalidValue, "Staff position is outside this team");
-            require(q.integer(1) == a.expectedAssignmentId, WorldEditError::StaleRoleHolder,
-                    "Staff holder changed; reload the form");
-            if (a.kind == WorldStaffActionKind::Keep)
-            {
-                require(!a.personId && !a.newPerson, WorldEditError::InvalidValue,
-                        "KEEP cannot replace a person");
-                continue;
-            }
-            const auto role = q.integer();
-            const auto key = q.text(3);
-            require(key == "OWNER" || key == "GENERAL_MANAGER" || key == "HEAD_COACH" ||
-                        key == "OFFENSIVE_COORDINATOR" || key == "DEFENSIVE_COORDINATOR",
-                    WorldEditError::UnsupportedFeature,
-                    "This role is not supported by the initial team editor");
-            require(capability(s, t, "STAFF_ASSIGN", role), WorldEditError::NotAuthorized,
-                    "This controlled role cannot edit the selected staff position");
-            if (a.kind == WorldStaffActionKind::Remove)
-            {
-                require(!a.personId && !a.newPerson, WorldEditError::InvalidValue,
-                        "REMOVE cannot select a replacement");
-                if (a.expectedAssignmentId)
-                    pending.push_back({a, role, q.integer(2), 0});
-                continue;
-            }
-            require(a.kind == WorldStaffActionKind::Replace &&
-                        (a.personId.has_value() != a.newPerson.has_value()),
-                    WorldEditError::InvalidValue, "Select one existing person or create one new person");
-            if (a.personId)
-            {
-                require(chosen.insert(*a.personId).second, WorldEditError::PersonUnavailable,
-                        "A replacement cannot fill multiple jobs in this workflow");
-                require(S::scalar(s.db,
-                                  "SELECT count(*) FROM People p WHERE p.WorldID=? AND p.PersonID=? AND "
-                                  "p.Active=1 AND NOT EXISTS(SELECT 1 FROM RoleAssignments a WHERE "
-                                  "a.WorldID=p.WorldID AND a.PersonID=p.PersonID AND a.EndsUtc IS NULL) "
-                                  "AND NOT EXISTS(SELECT 1 FROM WorldPlayers wp WHERE wp.PersonID=p.PersonID)",
-                                  {s.world, *a.personId}) == 1,
-                        WorldEditError::PersonUnavailable,
-                        "Replacement must be an available staff person without a player identity or active job");
-            }
-            pending.push_back({a, role, q.integer(2), a.personId.value_or(0)});
-        }
-        for (auto& p : pending)
-        {
-            if (p.action.newPerson)
-            {
-                const auto& n = *p.action.newPerson;
-                const auto name = text(n.displayName, 256, true);
-                const auto first = optionalText(n.firstName, 128), last = optionalText(n.lastName, 128);
-                S::run(
-                    s.db,
-                    "INSERT INTO People(WorldID,PersonKey,DisplayName,FirstName,LastName) VALUES(?,?,?,?,?)",
-                    {s.world, personKey(), name, S::nullable(first), S::nullable(last)});
-                p.newPerson = S::inserted(s.db);
-                result.people.push_back(p.newPerson);
-            }
-            if (p.action.expectedAssignmentId)
-            {
-                S::run(s.db,
-                       "UPDATE CharacterRoleControls SET EndsUtc=? WHERE WorldID=? AND RoleAssignmentID=? "
-                       "AND EndsUtc IS NULL",
-                       {s.now, s.world, p.action.expectedAssignmentId});
-                S::run(s.db,
-                       "UPDATE RoleAssignments SET EndsUtc=?,EndsRevision=?,EndReasonCode='TEAM_DATA_EDIT' "
-                       "WHERE WorldID=? AND RoleAssignmentID=? AND EndsUtc IS NULL",
-                       {s.now, rev, s.world, p.action.expectedAssignmentId});
-                result.people.push_back(p.oldPerson);
-            }
-            if (p.newPerson)
-            {
-                S::run(s.db,
-                       "INSERT INTO RoleAssignments(WorldID,PositionID,PersonID,StartsUtc,StartsRevision) "
-                       "VALUES(?,?,?,?,?)",
-                       {s.world, p.action.positionId, p.newPerson, s.now, rev});
-                result.people.push_back(p.newPerson);
-            }
-            result.changed = true;
-        }
-        if (identityChange)
-        {
-            const auto name = city + " " + nickname;
-            S::run(s.db, "UPDATE TeamSeasons SET MarketName=?,Nickname=?,DisplayName=? WHERE TeamSeasonID=?",
-                   {city, nickname, name, t.id});
-            S::run(s.db,
-                   "UPDATE WorldOrganizations SET CanonicalName=? WHERE WorldID=? AND WorldOrganizationID=?",
-                   {name, s.world, t.org});
-            S::run(s.db,
-                   "INSERT INTO OrganizationIdentityOverrides VALUES(?,?,?,?,?,?,?) ON "
-                   "CONFLICT(WorldID,WorldOrganizationID) DO UPDATE SET "
-                   "MarketName=excluded.MarketName,Nickname=excluded.Nickname,DisplayName=excluded."
-                   "DisplayName,ChangedUtc=excluded.ChangedUtc,ChangedRevision=excluded.ChangedRevision",
-                   {s.world, t.org, city, nickname, name, s.now, rev});
-            result.changed = true;
-        }
-        if (venueChange)
-        {
-            const auto calendar = S::scalar(
-                s.db, "SELECT CalendarID FROM VenueCalendarBindings WHERE WorldID=? AND WorldVenueID=?",
-                {s.world, t.venue});
-            // UPDATE existing summary instead of INSERT/UPSERT: the INSERT trigger
-            // deliberately rejects closing/backdated evidence before conflict handling.
-            if (S::scalar(s.db,
-                          "SELECT count(*) FROM VenueWeekHistory WHERE WorldID=? AND WorldVenueID=? AND "
-                          "HistoryWeekPeriodID=?",
-                          {s.world, t.venue, currentPeriod}))
-                S::run(
-                    s.db,
-                    "UPDATE VenueWeekHistory SET FinalName=?,FinalTurfType=?,LastEditedUtc=?,LastRevision=? "
-                    "WHERE WorldID=? AND WorldVenueID=? AND HistoryWeekPeriodID=?",
-                    {venueName, S::nullable(surface), s.now, rev, s.world, t.venue, currentPeriod});
-            else
-                S::run(s.db,
-                       "INSERT INTO "
-                       "VenueWeekHistory(WorldID,WorldVenueID,CalendarID,HistoryWeekPeriodID,OpeningName,"
-                       "OpeningTurfType,FinalName,FinalTurfType,FirstChangedUtc,LastEditedUtc,FirstRevision,"
-                       "LastRevision) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
-                       {s.world, t.venue, calendar, currentPeriod, t.venueName, S::nullable(t.surface),
-                        venueName, S::nullable(surface), s.now, s.now, rev, rev});
-            S::run(s.db, "UPDATE WorldVenues SET VenueName=?,TurfType=? WHERE WorldID=? AND WorldVenueID=?",
-                   {venueName, S::nullable(surface), s.world, t.venue});
-            result.venues.push_back(t.venue);
-            result.changed = true;
-        }
-        if (draft.managed && !*draft.managed)
-            management(s, t, false, rev, result);
-        else if (!pending.empty())
-        {
-            // Staff turnover preserves the intent owner's control, including when
-            // a different Commissioner makes the authorized edit.
-            S::Query owner(s.db,
-                           "SELECT WorldUserID FROM TeamManagementIntents WHERE WorldID=? AND "
-                           "WorldOrganizationID=? AND EndsUtc IS NULL",
-                           {s.world, t.org});
-            if (owner.row())
-            {
-                const auto actorUser = s.user;
-                const bool actorManage = s.manage;
-                s.user = owner.integer();
-                s.manage = true;
-                management(s, t, true, rev, result);
-                s.user = actorUser;
-                s.manage = actorManage;
-            }
-        }
-        if (result.changed)
-        {
-            result.organizations.push_back(t.org);
-            result.teamSeasons.push_back(t.id);
-        }
+    return attempt<WorldEditCommit>([&] {
+        const auto fingerprint = saveFingerprint(draft);
+        auto saved = write(
+            actor, draft.expectedRevision,
+            [&](Session& s, std::int64_t rev, WorldEditCommit& result) {
+                auto t = team(s, draft.teamSeasonId);
+                require(draft.worldId == s.world && draft.organizationId == t.org,
+                        WorldEditError::InvalidValue, "Draft scope does not match the selected team");
+                if(draft.managed && s.clockModel)
+                {
+                    const bool current=S::scalar(s.db,"SELECT count(*) FROM TeamManagementIntents WHERE WorldID=? AND WorldOrganizationID=? AND EndsUtc IS NULL",{s.world,t.org})>0;
+                    if(current!=*draft.managed)protectTeamInputs(s,t);
+                }
+                if (draft.managed && *draft.managed)
+                    management(s, t, true, rev, result);
+                auto city = draft.city ? text(*draft.city, 128, true) : t.city,
+                     nickname = draft.nickname ? text(*draft.nickname, 128, true) : t.nickname;
+                const bool identityChange = city != t.city || nickname != t.nickname;
+                if(identityChange)protectTeamInputs(s,t);
+                saveVenue(s, t, draft, fingerprint, rev, result);
+                if (identityChange)
+                    require(capability(s, t, "TEAM_IDENTITY_EDIT"), WorldEditError::NotAuthorized,
+                            "Team identity requires controlled owner authority or God mode");
+                struct Pending
+                {
+                    WorldStaffAction action;
+                    std::int64_t role = 0, oldPerson = 0, newPerson = 0;
+                };
+                std::vector<Pending> pending;
+                std::set<std::int64_t> seen, chosen;
+                // Validate every choice and permission against the same pre-save state.
+                for (const auto& a : draft.staff)
+                {
+                    require(seen.insert(a.positionId).second, WorldEditError::InvalidValue,
+                            "Duplicate staff position in draft");
+                    S::Query q(
+                        s.db,
+                        "SELECT p.RoleID,a.RoleAssignmentID,a.PersonID,r.RoleKey FROM RolePositions p JOIN "
+                        "RoleDefinitions r ON r.WorldID=p.WorldID AND r.RoleID=p.RoleID LEFT JOIN "
+                        "RoleAssignments a ON a.PositionID=p.PositionID AND a.EndsUtc IS NULL WHERE "
+                        "p.WorldID=? AND p.WorldOrganizationID=? AND p.PositionID=? AND p.Active=1 AND "
+                        "(p.TeamSeasonID IS NULL OR p.TeamSeasonID=?)",
+                        {s.world, t.org, a.positionId, t.id});
+                    require(q.row(), WorldEditError::InvalidValue, "Staff position is outside this team");
+                    require(q.integer(1) == a.expectedAssignmentId, WorldEditError::StaleRoleHolder,
+                            "Staff holder changed; reload the form");
+                    if (a.kind == WorldStaffActionKind::Keep)
+                    {
+                        require(!a.personId && !a.newPerson, WorldEditError::InvalidValue,
+                                "KEEP cannot replace a person");
+                        continue;
+                    }
+                    const auto role = q.integer();
+                    const auto key = q.text(3);
+                    require(key == "OWNER" || key == "GENERAL_MANAGER" || key == "HEAD_COACH" ||
+                                key == "OFFENSIVE_COORDINATOR" || key == "DEFENSIVE_COORDINATOR",
+                            WorldEditError::UnsupportedFeature,
+                            "This role is not supported by the initial team editor");
+                    require(capability(s, t, "STAFF_ASSIGN", role), WorldEditError::NotAuthorized,
+                            "This controlled role cannot edit the selected staff position");
+                    if (a.kind == WorldStaffActionKind::Remove)
+                    {
+                        require(!a.personId && !a.newPerson, WorldEditError::InvalidValue,
+                                "REMOVE cannot select a replacement");
+                        if (a.expectedAssignmentId)
+                            pending.push_back({a, role, q.integer(2), 0});
+                        continue;
+                    }
+                    require(a.kind == WorldStaffActionKind::Replace &&
+                                (a.personId.has_value() != a.newPerson.has_value()),
+                            WorldEditError::InvalidValue,
+                            "Select one existing person or create one new person");
+                    if (a.personId)
+                    {
+                        require(chosen.insert(*a.personId).second, WorldEditError::PersonUnavailable,
+                                "A replacement cannot fill multiple jobs in this workflow");
+                        require(
+                            S::scalar(
+                                s.db,
+                                "SELECT count(*) FROM People p WHERE p.WorldID=? AND p.PersonID=? AND "
+                                "p.Active=1 AND NOT EXISTS(SELECT 1 FROM RoleAssignments a WHERE "
+                                "a.WorldID=p.WorldID AND a.PersonID=p.PersonID AND a.EndsUtc IS NULL) "
+                                "AND NOT EXISTS(SELECT 1 FROM WorldPlayers wp WHERE wp.PersonID=p.PersonID)",
+                                {s.world, *a.personId}) == 1,
+                            WorldEditError::PersonUnavailable,
+                            "Replacement must be an available staff person without a player identity or "
+                            "active job");
+                    }
+                    pending.push_back({a, role, q.integer(2), a.personId.value_or(0)});
+                }
+                if(!pending.empty())protectTeamInputs(s,t);
+                for (auto& p : pending)
+                {
+                    if (p.action.newPerson)
+                    {
+                        const auto& n = *p.action.newPerson;
+                        const auto name = text(n.displayName, 256, true);
+                        const auto first = optionalText(n.firstName, 128),
+                                   last = optionalText(n.lastName, 128);
+                        S::run(s.db,
+                               "INSERT INTO People(WorldID,PersonKey,DisplayName,FirstName,LastName) "
+                               "VALUES(?,?,?,?,?)",
+                               {s.world, personKey(), name, S::nullable(first), S::nullable(last)});
+                        p.newPerson = S::inserted(s.db);
+                        result.people.push_back(p.newPerson);
+                    }
+                    if (p.action.expectedAssignmentId)
+                    {
+                        S::run(s.db,
+                               "UPDATE CharacterRoleControls SET EndsUtc=? WHERE WorldID=? AND "
+                               "RoleAssignmentID=? "
+                               "AND EndsUtc IS NULL",
+                               {s.now, s.world, p.action.expectedAssignmentId});
+                        S::run(s.db,
+                               "UPDATE RoleAssignments SET "
+                               "EndsUtc=?,EndsRevision=?,EndReasonCode='TEAM_DATA_EDIT' "
+                               "WHERE WorldID=? AND RoleAssignmentID=? AND EndsUtc IS NULL",
+                               {s.now, rev, s.world, p.action.expectedAssignmentId});
+                        result.people.push_back(p.oldPerson);
+                    }
+                    if (p.newPerson)
+                    {
+                        S::run(s.db,
+                               "INSERT INTO "
+                               "RoleAssignments(WorldID,PositionID,PersonID,StartsUtc,StartsRevision) "
+                               "VALUES(?,?,?,?,?)",
+                               {s.world, p.action.positionId, p.newPerson, s.now, rev});
+                        result.people.push_back(p.newPerson);
+                    }
+                    result.changed = true;
+                }
+                if (identityChange)
+                {
+                    const auto name = city + " " + nickname;
+                    S::run(
+                        s.db,
+                        "UPDATE TeamSeasons SET MarketName=?,Nickname=?,DisplayName=? WHERE TeamSeasonID=?",
+                        {city, nickname, name, t.id});
+                    S::run(s.db,
+                           "UPDATE WorldOrganizations SET CanonicalName=? WHERE WorldID=? AND "
+                           "WorldOrganizationID=?",
+                           {name, s.world, t.org});
+                    S::run(
+                        s.db,
+                        "INSERT INTO OrganizationIdentityOverrides VALUES(?,?,?,?,?,?,?) ON "
+                        "CONFLICT(WorldID,WorldOrganizationID) DO UPDATE SET "
+                        "MarketName=excluded.MarketName,Nickname=excluded.Nickname,DisplayName=excluded."
+                        "DisplayName,ChangedUtc=excluded.ChangedUtc,ChangedRevision=excluded.ChangedRevision",
+                        {s.world, t.org, city, nickname, name, s.now, rev});
+                    result.changed = true;
+                }
+                if (draft.managed && !*draft.managed)
+                    management(s, t, false, rev, result);
+                else if (!pending.empty())
+                {
+                    // Staff turnover preserves the intent owner's control, including when
+                    // a different Commissioner makes the authorized edit.
+                    S::Query owner(s.db,
+                                   "SELECT WorldUserID FROM TeamManagementIntents WHERE WorldID=? AND "
+                                   "WorldOrganizationID=? AND EndsUtc IS NULL",
+                                   {s.world, t.org});
+                    if (owner.row())
+                    {
+                        const auto actorUser = s.user;
+                        const bool actorManage = s.manage;
+                        s.user = owner.integer();
+                        s.manage = true;
+                        management(s, t, true, rev, result);
+                        s.user = actorUser;
+                        s.manage = actorManage;
+                    }
+                }
+                if (result.changed)
+                {
+                    result.organizations.push_back(t.org);
+                    result.teamSeasons.push_back(t.id);
+                }
+            },
+            draft.venueCommandKey, fingerprint);
+        if (!saved.success)
+            throw Failure(saved.error, saved.message);
+        return saved.value;
     });
 }
 WorldEditResult<WorldEditCommit> setTeamManagement(const WorldActor& actor, std::int64_t org, bool enabled,
@@ -866,81 +900,128 @@ WorldEditResult<WorldEditCommit> setWorldEditMode(const WorldActor& actor, bool 
         r.changed = true;
     });
 }
+WorldEditResult<WorldLeagueWeekProgress> loadLeagueWeekProgress(const WorldActor& actor, std::int64_t season)
+{
+    return attempt<WorldLeagueWeekProgress>([&] {
+        Session s(actor, false);
+        auto r = weekProgress(s, season);
+        S::exec(s.db, "COMMIT");
+        return r;
+    });
+}
+WorldEditResult<std::vector<WorldVenueEvent>> listVenueEvents(const WorldActor& actor, std::int64_t venue,
+                                                              std::size_t offset, std::size_t limit)
+{
+    return attempt<std::vector<WorldVenueEvent>>([&] {
+        Session s(actor, false);
+        auto r = venueEvents(s, venue, offset, limit);
+        S::exec(s.db, "COMMIT");
+        return r;
+    });
+}
 WorldEditResult<std::vector<WorldVenueHistoryEntry>> listVenueHistory(const WorldActor& actor,
                                                                       std::int64_t venue, std::size_t offset,
                                                                       std::size_t limit)
 {
     return attempt<std::vector<WorldVenueHistoryEntry>>([&] {
-        Session s(actor, false);
-        require(limit > 0 && limit <= 500 && offset <= 1000000, WorldEditError::InvalidValue,
-                "Invalid history page");
+        auto events = listVenueEvents(actor, venue, offset, limit);
+        if (!events.success)
+            throw Failure(events.error, events.message);
         std::vector<WorldVenueHistoryEntry> rows;
-        S::Query baseline(s.db,
-                          "SELECT VenueName,TurfType,RecordedUtc FROM VenueHistoryBaselines WHERE WorldID=? "
-                          "AND WorldVenueID=?",
-                          {s.world, venue});
-        require(baseline.row(), WorldEditError::InvalidValue, "Venue baseline unavailable in this World");
-        if (offset == 0)
+        for (const auto& e : events.value)
         {
             WorldVenueHistoryEntry r;
-            r.baseline = true;
-            r.closed = true;
-            r.openingName = r.finalName = baseline.text();
-            r.openingSurface = r.finalSurface = baseline.optionalText(1);
-            r.startsUtc = baseline.text(2);
-            rows.push_back(r);
+            r.event = e;
+            r.periodId = e.planId;
+            r.periodKey = e.dueUtc + " " + e.field + " " + e.state;
+            r.startsUtc = e.announcedUtc;
+            r.endsUtc = e.resolvedUtc;
+            r.closed = e.state != "PENDING";
+            r.hasNetChange = e.state == "APPLIED" && e.desiredValue != e.appliedBeforeValue;
+            if (e.field == "NAME")
+            {
+                r.openingName = e.appliedBeforeValue.value_or("");
+                r.finalName = e.desiredValue.value_or("");
+            }
+            else
+            {
+                r.openingSurface = e.appliedBeforeValue;
+                r.finalSurface = e.desiredValue;
+            }
+            rows.push_back(std::move(r));
         }
-        S::Query q(s.db,
-                   "SELECT "
-                   "h.HistoryWeekPeriodID,p.PeriodKey,p.StartsUtc,p.EndsUtc,h.OpeningName,h.OpeningTurfType,"
-                   "h.FinalName,h.FinalTurfType,h.HasNetChange,h.ClosedAtUtc FROM VenueWeekHistory h JOIN "
-                   "GameWeekPeriods p ON p.WorldID=h.WorldID AND p.HistoryWeekPeriodID=h.HistoryWeekPeriodID "
-                   "WHERE h.WorldID=? AND h.WorldVenueID=? ORDER BY p.StartsUtc LIMIT ? OFFSET ?",
-                   {s.world, venue, static_cast<std::int64_t>(limit), static_cast<std::int64_t>(offset)});
-        while (q.row())
-        {
-            WorldVenueHistoryEntry r;
-            r.periodId = q.integer();
-            r.periodKey = q.text(1);
-            r.startsUtc = q.text(2);
-            r.endsUtc = q.text(3);
-            r.openingName = q.text(4);
-            r.openingSurface = q.optionalText(5);
-            r.finalName = q.text(6);
-            r.finalSurface = q.optionalText(7);
-            r.hasNetChange = q.integer(8) != 0;
-            r.closed = !q.null(9);
-            rows.push_back(r);
-        }
-        S::exec(s.db, "COMMIT");
         return rows;
     });
 }
-WorldEditResult<WorldEditCommit> advanceWorldClock(const WorldActor& actor, const std::string& utc,
-                                                   std::int64_t expected)
+WorldEditResult<WorldEditCommit> cancelVenueChanges(const WorldActor& actor, std::int64_t teamId,
+                                                    const std::vector<std::int64_t>& eventIds,
+                                                    const std::string& key, std::int64_t expected)
 {
-    return write(actor, expected, [&](Session& s, std::int64_t rev, WorldEditCommit& r) {
-        require(s.manage, WorldEditError::NotAuthorized, "This session cannot advance the World");
-        require(S::utc(utc) && utc >= s.now, WorldEditError::InvalidValue,
-                "World time must be valid UTC and cannot move backward");
-        if (utc == s.now)
-            return;
-        S::run(s.db, "UPDATE Worlds SET CurrentTimeUtc=? WHERE WorldID=?", {utc, s.world});
-        S::run(s.db,
-               "UPDATE VenueWeekHistory SET ClosedAtUtc=(SELECT EndsUtc FROM GameWeekPeriods p WHERE "
-               "p.WorldID=VenueWeekHistory.WorldID AND "
-               "p.HistoryWeekPeriodID=VenueWeekHistory.HistoryWeekPeriodID),ClosedRevision=? WHERE WorldID=? "
-               "AND ClosedAtUtc IS NULL AND HistoryWeekPeriodID IN (SELECT HistoryWeekPeriodID FROM "
-               "GameWeekPeriods WHERE WorldID=? AND EndsUtc<=?)",
-               {rev, s.world, s.world, utc});
-        r.currentTimeUtc = utc;
-        r.changed = true;
+    return attempt<WorldEditCommit>([&] {
+        auto ids = eventIds;
+        std::sort(ids.begin(), ids.end());
+        require(!ids.empty() && ids.size() <= 2 && std::adjacent_find(ids.begin(), ids.end()) == ids.end(),
+                WorldEditError::InvalidValue, "Select one or two distinct pending venue requests");
+        std::string fingerprint = "venue-cancel-v2:";
+        fingerprintPart(fingerprint, std::to_string(teamId));
+        for (auto id : ids)
+            fingerprintPart(fingerprint, std::to_string(id));
+        auto r = write(
+            actor, expected,
+            [&](Session &s, std::int64_t rev, WorldEditCommit &result) {
+                auto t = team(s, teamId);
+                require(t.venue && capability(s, t, "VENUE_EDIT"), WorldEditError::NotAuthorized,
+                        "Current venue authority is required to cancel requests");
+                require(s.god || shared(s, t) == 0, WorldEditError::SharedVenueReadOnly,
+                        "Shared venue requests are read-only outside God mode");
+                const auto pending = venueEvents(s, t.venue, 0, 500, true);
+                for (auto id : ids)
+                {
+                    const auto p = std::find_if(pending.begin(), pending.end(),
+                                                [&](const auto &e) { return e.eventId == id; });
+                    require(p != pending.end(), WorldEditError::StalePendingEvent,
+                            "Pending request changed or is outside this team's venue");
+                    require(s.god || s.now < p->dueUtc, WorldEditError::DueWorkPending,
+                            "Due venue work must be processed before ordinary cancellation");
+                }
+                const auto command = s.god ? 0 : venueCommand(s, t, key, fingerprint, rev);
+                for (auto id : ids)
+                {
+                    const auto p = std::find_if(pending.begin(), pending.end(),
+                                                [&](const auto &e) { return e.eventId == id; });
+                    resolveVenueRequest(s, *p, "CANCELED", s.god ? "GOD_OVERRIDE" : "USER_CANCEL", command,
+                                        rev);
+                    if (!s.god)
+                        venueFact(s, p->eventId, p->scheduledEventId, "VENUE_CANCELED", rev);
+                }
+                result.changed = true;
+                result.venues.push_back(t.venue);
+                result.organizations.push_back(t.org);
+                result.teamSeasons.push_back(t.id);
+            },
+            key, fingerprint);
+        if (!r.success)
+            throw Failure(r.error, r.message);
+        return r.value;
     });
 }
-WorldEditResult<WorldEditCommit> captureGameVenueEvidence(const WorldActor& actor, std::int64_t game,
+WorldEditResult<WorldEditCommit> advanceWorldClock(const WorldActor &actor, const std::string &utc,
+                                                   std::int64_t expected)
+{
+    return attempt<WorldEditCommit>([&]() -> WorldEditCommit {
+        Session s(actor, false);
+        require(S::utc(utc) && utc >= s.now, WorldEditError::InvalidValue,
+                "World time must be valid UTC and cannot move backward");
+        throw Failure(
+            WorldEditError::UnsupportedFeature,
+            "Direct clock advancement is disabled; use beginWorldAdvance and continueWorldAdvance");
+    });
+}
+WorldEditResult<WorldEditCommit> captureGameVenueEvidence(const WorldActor &actor, std::int64_t game,
                                                           std::int64_t expected)
 {
-    return write(actor, expected, [&](Session& s, std::int64_t rev, WorldEditCommit& r) {
+    return write(actor, expected, [&](Session &s, std::int64_t rev, WorldEditCommit &r) {
+        require(!s.clockModel,WorldEditError::UnsupportedFeature,"CLOCK_SCHEDULER_STAGE2_REQUIRED: venue capture must bind admitted game inputs");
         require(s.manage, WorldEditError::NotAuthorized, "This session cannot start games");
         S::Query q(s.db,
                    "SELECT g.WorldVenueID,v.VenueName,v.TurfType,g.GameStatus,g.StartedUtc FROM Games g LEFT "
@@ -967,3 +1048,11 @@ WorldEditResult<WorldEditCommit> captureGameVenueEvidence(const WorldActor& acto
         r.changed = true;
     });
 }
+
+#include "GCE/Database/WorldWeekTransaction.inl"
+
+WorldGameWindow previewInstalledWindow(Session&,std::int64_t);
+WorldEditResult<WorldAdvanceOutcome> beginInstalledGameWindow(const WorldActor&,std::int64_t,const std::string&,std::int64_t,const std::string&);
+#include "GCE/Database/WorldScheduler.inl"
+#include "GCE/Database/WorldClockServices.inl"
+#include "GCE/Database/WorldTestGame.inl"

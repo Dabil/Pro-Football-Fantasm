@@ -42,12 +42,16 @@ LeagueScheduleScreen::LeagueScheduleScreen(
     Assets::AssetLibrary& assetLibrary,
     std::function<bool(std::string_view)> commandDispatcher,
     std::function<LoadedWorldContext()> loadedWorldContextProvider,
-    std::function<void(const LoadedWorldContext&,std::int64_t)> openTeam)
+    std::function<void(const LoadedWorldContext&,std::int64_t)> openTeam,
+    std::function<void(const WorldEditCommit&)> committed,
+    std::function<void(std::unique_ptr<PffTest::GenericTestGame>,WorldActor)> openGame)
     : m_assetLibrary(assetLibrary)
     , m_commandDispatcher(std::move(commandDispatcher))
     , m_loadedWorldContextProvider(std::move(loadedWorldContextProvider))
 {
     m_openTeam=std::move(openTeam);
+    m_committed=std::move(committed);
+    m_openGame=std::move(openGame);
     buildButtons();
 }
 
@@ -76,6 +80,7 @@ void LeagueScheduleScreen::onEnter()
 
 void LeagueScheduleScreen::onExit()
 {
+    m_advancing=false;
     m_scheduleCache.reset();
     m_LeagueScheduleTitleObject.clear();
 
@@ -127,6 +132,7 @@ bool LeagueScheduleScreen::handleEvent(const Input::Event& event)
 void LeagueScheduleScreen::update(const Animation::TickEvent& event)
 {
     refreshLeagueContext();
+    if(m_advancing) continueGameWindow();
     m_root.update(event);
 }
 
@@ -208,8 +214,9 @@ void LeagueScheduleScreen::draw(Surface& surface)
             PFF_Colors::TextHighlightColor);
     }
 
+    drawGameWindowStatus(page,navigationPane);
     drawFooter(page,footer);
-    for(auto* button:{m_leaguePlayButton,m_lookAheadButton,m_lookBackButton})
+    for(auto* button:{m_nextGameButton,m_lookAheadButton,m_lookBackButton,m_leaguePlayButton})
     {auto child=m_root.removeChild(*button);m_root.addChild(std::move(child));}
     // Save the static page before drawing interactive button states.
     m_scheduleCache = std::make_unique<Surface>();
@@ -219,6 +226,10 @@ void LeagueScheduleScreen::draw(Surface& surface)
 
 void LeagueScheduleScreen::buildButtons()
 {
+    auto nextGameButton=std::make_unique<Button>(Rect{Point{0,0},Size{24,3}},"Next Game Window","schedule:next_game");
+    nextGameButton->setActivationCallback([this](const ButtonActivationResult& result){handleButtonActivation(result);});
+    m_nextGameButton=nextGameButton.get();
+    m_root.addChild(std::move(nextGameButton));
     auto leaguePlayButton = std::make_unique<Button>(
         Rect{ Point{ 0, 0 }, Size{ 34, 3 } },
         "Return",
@@ -273,6 +284,7 @@ void LeagueScheduleScreen::positionButtons(
     const Style& normal = PFF_Colors::ButtonNormalColor;
     const Style& hover = PFF_Colors::ButtonHoverColor;
     const Style& pressed = PFF_Colors::ButtonPressedColor;
+    const Style disabled=normal.withDim(true); // Shared disabled button appearance.
 
     if (m_leaguePlayButton)
     {
@@ -292,39 +304,21 @@ void LeagueScheduleScreen::positionButtons(
         m_leaguePlayButton->setFocusedStyle(ButtonFocusedStyle);
     }
 
-    const Size navigationButtonSize{ 24, 3 };
-    const int navigationX =
-        navigationPane.position.x +
-        ((navigationPane.size.width - navigationButtonSize.width) / 2);
-
-    const int firstButtonY =
-        navigationPane.position.y +
-        std::max(2, (navigationPane.size.height / 2) - 4);
-
-    if (m_lookAheadButton)
+    std::vector<Button*> buttons;
+    for(auto* button:{m_nextGameButton,m_lookAheadButton,m_lookBackButton})
+        if(button && button->isVisible()) buttons.push_back(button);
+    const int height=navigationPane.size.height>=18?3:1;
+    const int gap=navigationPane.size.height<12?0:1;
+    const int total=static_cast<int>(buttons.size())*(height+gap)-gap;
+    int y=navigationPane.position.y+std::max(0,(navigationPane.size.height-total-5)/2);
+    const int statusRows=std::max(0,std::min(5,navigationPane.size.height-total-1));
+    m_windowStatusBounds=Rect{Point{navigationPane.position.x+2,navigationPane.position.y+navigationPane.size.height-statusRows},Size{std::max(0,navigationPane.size.width-4),statusRows}};
+    for(auto* button:buttons)
     {
-        m_lookAheadButton->setBounds(Rect{
-            Point{ navigationX, firstButtonY },
-            navigationButtonSize
-            });
-
-        m_lookAheadButton->setNormalStyle(normal);
-        m_lookAheadButton->setHoverStyle(hover);
-        m_lookAheadButton->setPressedStyle(pressed);
-        m_lookAheadButton->setFocusedStyle(ButtonFocusedStyle);
-    }
-
-    if (m_lookBackButton)
-    {
-        m_lookBackButton->setBounds(Rect{
-            Point{ navigationX, firstButtonY + 5 },
-            navigationButtonSize
-            });
-
-        m_lookBackButton->setNormalStyle(normal);
-        m_lookBackButton->setHoverStyle(hover);
-        m_lookBackButton->setPressedStyle(pressed);
-        m_lookBackButton->setFocusedStyle(ButtonFocusedStyle);
+        button->setBounds(Rect{Point{navigationPane.position.x+(navigationPane.size.width-24)/2,y},Size{24,height}});
+        button->setNormalStyle(normal);button->setHoverStyle(hover);button->setPressedStyle(pressed);
+        button->setFocusedStyle(ButtonFocusedStyle);button->setDisabledStyle(disabled);
+        y+=height+gap;
     }
 }
 
@@ -335,6 +329,8 @@ void LeagueScheduleScreen::handleButtonActivation(
     {
         return;
     }
+
+    if(result.commandId=="schedule:next_game") {beginGameWindow();return;}
 
     if (result.commandId == "schedule:look_ahead")
     {
@@ -404,6 +400,10 @@ void LeagueScheduleScreen::loadSchedule()
     m_scheduleLoadMessage.clear();
     m_currentWeekIndex = 0;
     m_scheduleLoaded = false;
+    m_gameWindowReady=false;
+    m_advancing=false;
+    m_windowMessage.clear();
+    m_gameWindow=WorldGameWindow{};
 
     if (!m_dataContext.hasActiveCompetitionSeason())
     {
@@ -473,11 +473,13 @@ void LeagueScheduleScreen::loadSchedule()
         }
     }
 
+    loadGameWindow();
     updateNavigationButtons();
 }
 
 void LeagueScheduleScreen::updateNavigationButtons()
 {
+    if(m_nextGameButton) m_nextGameButton->setEnabled(m_gameWindowReady && m_gameWindow.canStart && !m_advancing && bool(m_committed) && bool(m_openGame));
     const bool canLookBack =
         m_scheduleLoaded && m_currentWeekIndex > 0;
 
@@ -494,6 +496,98 @@ void LeagueScheduleScreen::updateNavigationButtons()
     {
         m_lookAheadButton->setVisible(canLookAhead);
     }
+}
+
+void LeagueScheduleScreen::loadGameWindow()
+{
+    m_gameWindowReady=false;m_advancing=false;
+    auto actor=openLocalWorldActor(m_dataContext.databasePath);
+    if(!actor.success) {m_windowMessage="Unable to open game advancement: "+actor.message;return;}
+    m_actor=actor.value;
+    auto window=loadNextGameWindow(m_actor,m_dataContext.activeCompetitionSeasonId);
+    if(!window.success) {m_windowMessage="Unable to load next game window: "+window.message;return;}
+    m_gameWindow=std::move(window.value);
+    if(m_gameWindow.worldId!=m_dataContext.worldId || m_gameWindow.worldKey!=m_dataContext.worldKey)
+    {m_windowMessage="The loaded league changed. Reload the league before advancing.";return;}
+    m_gameWindowReady=true;
+    m_advancing=m_gameWindow.canResume;
+    m_windowMessage=m_gameWindow.reason;
+}
+
+void LeagueScheduleScreen::publishAdvance(const WorldAdvanceOutcome& outcome)
+{
+    WorldEditCommit edit;
+    edit.worldId=m_gameWindow.worldId;edit.worldKey=m_gameWindow.worldKey;
+    edit.revision=outcome.revision;edit.currentTimeUtc=outcome.currentTimeUtc;
+    edit.changed=outcome.revision!=m_dataContext.dataRevision;
+    if(m_committed) m_committed(edit);
+    loadSchedule();
+}
+
+void LeagueScheduleScreen::beginGameWindow()
+{
+    if(!m_gameWindowReady || !m_gameWindow.canStart || m_advancing || !m_committed) return;
+    if(m_openGame)
+    {
+        try
+        {
+            auto game=std::make_unique<PffTest::GenericTestGame>(m_dataContext.databasePath,m_dataContext.activeCompetitionSeasonId);
+            auto started=game->start(m_actor,m_gameWindow.revision);
+            if(!started.success)
+            {
+                // Intervening queue work may have committed before admission
+                // stopped. Publish that revision/time so a retry is not stale.
+                const auto previousRevision=m_gameWindow.revision;
+                loadGameWindow();
+                if(m_gameWindowReady && m_gameWindow.revision!=previousRevision)
+                {
+                    WorldAdvanceOutcome stopped;
+                    stopped.revision=m_gameWindow.revision;stopped.currentTimeUtc=m_gameWindow.currentTimeUtc;
+                    publishAdvance(stopped);
+                }
+                m_windowMessage="Unable to start game: "+started.message;
+                m_scheduleCache.reset();updateNavigationButtons();return;
+            }
+            m_committed(started.value.commit);
+            const auto open=m_openGame;const auto actor=m_actor;
+            m_root.clearPointerState();m_root.clearChildFocus();open(std::move(game),actor);return;
+        }
+        catch(const std::exception& error){m_windowMessage="Unable to load game: "+std::string(error.what());m_scheduleCache.reset();return;}
+    }
+}
+
+void LeagueScheduleScreen::continueGameWindow()
+{
+    if(!m_gameWindow.advance) {m_advancing=false;return;}
+    auto result=continueWorldAdvance(m_actor,m_gameWindow.advance->requestId,m_gameWindow.revision,1);
+    if(result.success) publishAdvance(result.value);
+    else {m_advancing=false;m_windowMessage="Advancement stopped: "+result.message;m_scheduleCache.reset();updateNavigationButtons();}
+}
+
+void LeagueScheduleScreen::drawGameWindowStatus(Composition::PageComposer& page,const Rect& pane)
+{
+    const Style& statusStyle=PFF_Colors::TextHighlightColor; // Window timing and stop explanation.
+    std::string message;
+    if(m_advancing) message="Advancing to game window...";
+    else if(m_windowMessage=="UNSUPPORTED_PROVIDER") message="Game executor not installed. Games cannot start yet.";
+    else if(m_windowMessage=="UNSUPPORTED_CODEC") message="Current games need a supported game executor before continuing.";
+    else if(m_windowMessage=="REQUIRED_DECISION") message="Game participation needs your attention before continuing.";
+    else if(m_windowMessage=="WAITING_FOR_WORLD_WORK") message="An earlier event needs attention before continuing.";
+    else if(m_windowMessage=="CURRENT_WINDOW_UNFINISHED" || m_windowMessage=="EARLIER_GAME_UNRESOLVED") message="Finish all games in the current window before advancing.";
+    else if(m_windowMessage=="NO_MORE_GAMES") message="No more scheduled game windows.";
+    else if(m_windowMessage=="NOT_AUTHORIZED") message="You do not have permission to advance this league.";
+    else if(m_windowMessage=="ADVANCE_ALREADY_ACTIVE") message="Another advancement is active. Resolve it before starting a game window.";
+    else if(m_windowMessage=="DISPATCH_FAILED") message="An earlier event could not complete. Resolve the problem before continuing.";
+    else if(m_windowMessage=="STALE_CHOICE") message="Game participation changed. Review team control before continuing.";
+    else if(m_windowMessage=="CLOCK_BARRIER") message="Unresolved earlier game or event prevents advancement.";
+    else message=m_windowMessage;
+    const Rect area=m_windowStatusBounds;
+    if(area.size.width<=0 || area.size.height<=0) return;
+    if(message.empty() && !m_gameWindow.kickoffUtc.empty())
+        message="Next window: "+PffGameTime::formatGameTimeEastern(m_gameWindow.kickoffUtc);
+    const auto lines=wrapText(message,area.size.width);
+    for(int row=0;row<std::min(area.size.height,static_cast<int>(lines.size()));++row)
+        page.writeLine(area,row,lines[static_cast<std::size_t>(row)],statusStyle);
 }
 
 void LeagueScheduleScreen::drawCurrentWeek(

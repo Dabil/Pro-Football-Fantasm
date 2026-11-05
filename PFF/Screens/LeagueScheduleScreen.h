@@ -3,6 +3,8 @@
 #include "Screens/Screen.h"
 #include "App/LoadedWorldContext.h"
 #include "GCE/Database/WorldDatabase.h"
+#include "GCE/Database/WorldScheduler.h"
+#include "Database/GenericTestGame.h"
 #include "Assets/AssetLibrary.h"
 #include "UI/Widgets/Button.h"
 #include "UI/Widgets/ContainerWidget.h"
@@ -29,7 +31,9 @@ public:
         Assets::AssetLibrary& assetLibrary,
         std::function<bool(std::string_view)> commandDispatcher,
         std::function<LoadedWorldContext()> loadedWorldContextProvider,
-        std::function<void(const LoadedWorldContext&,std::int64_t)> openTeam = {});
+        std::function<void(const LoadedWorldContext&,std::int64_t)> openTeam = {},
+        std::function<void(const WorldEditCommit&)> committed = {},
+        std::function<void(std::unique_ptr<PffTest::GenericTestGame>,WorldActor)> openGame = {});
 
     ~LeagueScheduleScreen();
 
@@ -45,6 +49,11 @@ private:
     void handleButtonActivation(const ButtonActivationResult& result);
 
     void loadSchedule();
+    void loadGameWindow();
+    void beginGameWindow();
+    void continueGameWindow();
+    void publishAdvance(const WorldAdvanceOutcome&);
+    void drawGameWindowStatus(Composition::PageComposer&, const Rect&);
     void refreshLeagueContext();
     void updateNavigationButtons();
     void drawCurrentWeek(
@@ -69,6 +78,13 @@ private:
     Button* m_leaguePlayButton = nullptr;
     Button* m_lookAheadButton = nullptr;
     Button* m_lookBackButton = nullptr;
+    Button* m_nextGameButton = nullptr;
+    std::function<void(const WorldEditCommit&)> m_committed;
+    std::function<void(std::unique_ptr<PffTest::GenericTestGame>,WorldActor)> m_openGame;
+    WorldActor m_actor;
+    WorldGameWindow m_gameWindow;
+    bool m_gameWindowReady = false, m_advancing = false;
+    std::string m_windowMessage;
 
     // Data belongs to the selected saved league and competition season.
     std::function<LoadedWorldContext()> m_loadedWorldContextProvider;
@@ -84,6 +100,7 @@ private:
     int m_maxScrollOffset = 0;
     int m_visibleRows = 1;
     Rect m_scheduleBounds;
+    Rect m_windowStatusBounds;
     // Static schedule/header/footer drawing; buttons remain live.
     std::function<void(const LoadedWorldContext&,std::int64_t)> m_openTeam;
     std::vector<Widget*> m_teamLinks;

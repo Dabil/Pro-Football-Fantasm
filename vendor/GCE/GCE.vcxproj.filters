@@ -15,7 +15,26 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Database\ClockTime.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\WorldTestGame.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\WorldTestGameState.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\WorldGameProgress.inl"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\WorldGameInterruption.inl"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\WorldTestGame.inl"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\ClockStateSql.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\ClockSchedulerBuild.inl"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\WorldClockServices.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\WorldClockServices.inl"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\WorldVenueEvents.inl"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\WorldWeekTransaction.inl"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\WorldWeekTransaction.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Database\WorldTeamData.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\WorldScheduler.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\WorldScheduler.inl"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\WorldClockAdvance.inl"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\WorldGameAdmission.inl"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\WorldStorageHash.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\WorldEventReadiness.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Database\WorldTeamDataSchema.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Database\TeamDataSql.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Database\WorldTeamDataBuild.inl"><Filter>Header Files</Filter></ClInclude>

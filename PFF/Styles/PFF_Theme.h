@@ -71,6 +71,26 @@ namespace PFF_Colors
             Color::FromIndexed(0),
             Color::FromRgb(0, 0, 0)));
 
+    inline const Style NormalTextHeadingColor =
+        style::Fg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::BrightBlack),
+            Color::FromIndexed(102),
+            Color::FromRgb(225, 225, 225)))
+        + style::Bg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::Black),
+            Color::FromIndexed(0),
+            Color::FromRgb(0, 0, 0)));
+
+    inline const Style NormalTextColor =
+        style::Fg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::BrightBlack),
+            Color::FromIndexed(102),
+            Color::FromRgb(175, 175, 175)))
+        + style::Bg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::Black),
+            Color::FromIndexed(0),
+            Color::FromRgb(0, 0, 0)));
+
     inline const Style FantasmTitleColor =
         style::Fg(ThemeColor::Basic256Rgb(
             Color::FromBasic(Color::Basic::Red),
