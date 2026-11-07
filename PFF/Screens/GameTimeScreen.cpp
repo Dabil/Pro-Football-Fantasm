@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <iomanip>
 #include <sstream>
+#include <string>
 
 GameTimeScreen::GameTimeScreen(std::unique_ptr<PffTest::GenericTestGame> game, WorldActor actor,
                                std::function<void(const WorldEditCommit &)> committed,
@@ -228,17 +229,25 @@ void GameTimeScreen::draw(Surface &surface)
     };
     const auto &state = m_game->state();
     const auto &game = m_game->matchup();
-    write(1, "GAME TIME - Simplified Generic queue test");
+    write(1, "GAME TIME - Generic Level Sim");
     write(3, game.awayName + "  " + std::to_string(state.teams[0].score()) + "    at    " + game.homeName +
                  "  " + std::to_string(state.teams[1].score()));
     std::ostringstream clock;
     clock << "Quarter " << state.quarter << "  " << state.remaining / 60 << ':' << std::setw(2)
           << std::setfill('0') << state.remaining % 60;
+
+    std::string current_spot = "";
+    if (state.spot < 50)
+        current_spot = "  |  Own " + std::to_string(state.spot);
+    else if (state.spot == 50)
+        current_spot = "  |  The " + std::to_string(state.spot);
+    else if (state.spot > 50)
+        current_spot = "  |  Opp " + std::to_string(100 - state.spot);
+
     write(5, state.final ? "FINAL - Results and PBP saved"
                          : clock.str() + "  |  " + (state.offense ? game.homeName : game.awayName) +
                                "  |  Down " + std::to_string(state.down) + "  To go " +
-                               std::to_string(state.lineToGain - state.spot) + "  |  Own " +
-                               std::to_string(state.spot));
+                               std::to_string(state.lineToGain - state.spot) + current_spot);
     write(7, "Team                         Q1   Q2   Q3   Q4   Total");
     for (int t = 0; t < 2; ++t)
     {
