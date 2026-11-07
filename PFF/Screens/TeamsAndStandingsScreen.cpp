@@ -384,6 +384,16 @@ void TeamsAndStandingsScreen::loadTeams()
     }
 
     m_teams = std::move(result.rows);
+    // Each division panel filters this display order to its own teams.
+    std::stable_sort(m_teams.begin(), m_teams.end(),
+        [](const PffStandingRow& left, const PffStandingRow& right)
+        {
+            const auto leftScore = 2 * left.wins + left.ties;
+            const auto rightScore = 2 * right.wins + right.ties;
+            if (leftScore != rightScore) return leftScore > rightScore;
+            if (left.pointsFor != right.pointsFor) return left.pointsFor > right.pointsFor;
+            return left.team.fallbackDisplayName() < right.team.fallbackDisplayName();
+        });
     m_teamsLoaded = true;
 }
 
