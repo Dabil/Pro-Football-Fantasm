@@ -44,7 +44,7 @@ std::string readTestPbp(Session &s, const WorldActor &actor, std::int64_t game)
             "Saved play-history checksum mismatch");
     return bytes;
 }
-WorldTestSavedState readTestProgress(Session &s, const WorldActor &actor, std::int64_t game)
+WorldTestSavedState readTestProgress(Session &s, const WorldActor &actor, std::int64_t game, bool final)
 {
     S::Query q(
         s.db,
@@ -76,14 +76,32 @@ WorldTestSavedState readTestProgress(Session &s, const WorldActor &actor, std::i
         WorldEditError::IntegrityFailure, "Saved play sequence disagrees with canonical history");
     require(result.gameId == game && result.inputHash == q.text(8) && g.generation == q.integer() &&
                 g.quarter == q.integer(1) && g.remaining == q.integer(2) && g.elapsed == q.integer(3) &&
-                !g.final && g.teams[0].score() == q.integer(9) && g.teams[1].score() == q.integer(10),
+                g.final == final && g.teams[0].score() == q.integer(9) && g.teams[1].score() == q.integer(10),
             WorldEditError::IntegrityFailure, "Saved state disagrees with game/checkpoint bindings");
     const auto frozen = admissionInput(s, actor, game);
     S::Query season(s.db, "SELECT CompetitionSeasonID FROM Games WHERE WorldID=? AND GameID=?",
                     {s.world, game});
     season.row();
     admissionVerifyProvider(s, actor, season.integer(), frozen[2]);
-    readTestPbp(s, actor, game);
+    if (final)
+    {
+        const auto filename = "Game-" + std::to_string(game) + ".pbp.txt";
+        const auto relative = std::filesystem::path("PBP") / filename;
+        S::Query artifact(s.db, "SELECT RelativePath,ContentHash FROM GameArtifacts WHERE GameID=? AND "
+                               "ArtifactType='PBP' AND FormatKey='PFF_QUEUE_TEST_TEXT' AND "
+                               "FormatVersion='1' AND HashAlgorithm='FNV1A64'", {game});
+        require(artifact.row() && artifact.text() == relative.generic_u8string(),
+                WorldEditError::IntegrityFailure, "Missing or invalid final play history");
+        const auto bytes = admissionBytes(WorldEditingAccess::path(actor).parent_path() / relative);
+        require(ClockTime::digest(bytes) == artifact.text(1), WorldEditError::IntegrityFailure,
+                "Final play-history checksum mismatch");
+        std::istringstream lines(bytes);
+        result.log.clear();
+        for (std::string line; std::getline(lines, line);)
+            result.log.push_back(std::move(line));
+    }
+    else
+        readTestPbp(s, actor, game);
     return result;
 }
 void validateTestSnapshot(Session &s, std::int64_t game, const WorldTestGameStep &tail,

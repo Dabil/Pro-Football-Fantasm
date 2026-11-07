@@ -34,6 +34,7 @@ struct WorldTestGameStep
 WorldEditResult<WorldTestMatchup> beginTestMatchup(const WorldActor &, std::int64_t season,
                                                    std::int64_t expectedRevision,
                                                    const std::string &inputEvidence);
+WorldEditResult<WorldTestMatchup> loadFinalTestMatchup(const WorldActor &, std::int64_t game);
 WorldEditResult<WorldEditCommit> finalizeTestMatchup(const WorldActor &, std::int64_t game,
                                                      const std::vector<WorldTestGameStep> &,
                                                      std::int64_t expectedRevision,

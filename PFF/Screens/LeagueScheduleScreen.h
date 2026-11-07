@@ -33,7 +33,7 @@ public:
         std::function<LoadedWorldContext()> loadedWorldContextProvider,
         std::function<void(const LoadedWorldContext&,std::int64_t)> openTeam = {},
         std::function<void(const WorldEditCommit&)> committed = {},
-        std::function<void(std::unique_ptr<PffTest::GenericTestGame>,WorldActor)> openGame = {});
+        std::function<void(std::unique_ptr<PffTest::GenericTestGame>,WorldActor)> openGame = {}, std::int64_t teamSeasonId = 0);
 
     ~LeagueScheduleScreen();
 
@@ -44,6 +44,8 @@ public:
     void draw(Surface& surface) override;
 
 private:
+    bool controlsTeam(std::int64_t teamId) const;
+    void openResult(std::int64_t gameId);
     void buildButtons();
     void positionButtons(const Rect& navigationPane, const Rect& footer);
     void handleButtonActivation(const ButtonActivationResult& result);
@@ -51,6 +53,8 @@ private:
     void loadSchedule();
     void loadGameWindow();
     void beginGameWindow();
+    void runBatch();
+    std::string nextTeamKickoff() const;
     void continueGameWindow();
     void publishAdvance(const WorldAdvanceOutcome&);
     void drawGameWindowStatus(Composition::PageComposer&, const Rect&);
@@ -82,9 +86,15 @@ private:
     std::function<void(const WorldEditCommit&)> m_committed;
     std::function<void(std::unique_ptr<PffTest::GenericTestGame>,WorldActor)> m_openGame;
     WorldActor m_actor;
+    std::int64_t m_teamSeasonId = 0;
+    bool m_controlsSelectedTeam = false;
     WorldGameWindow m_gameWindow;
     bool m_gameWindowReady = false, m_advancing = false;
     std::string m_windowMessage;
+    std::string m_batchKickoff;
+    std::unique_ptr<PffTest::GenericTestGame> m_backgroundGame;
+    bool m_returningFromGame = false;
+    bool m_batchStopped = false;
 
     // Data belongs to the selected saved league and competition season.
     std::function<LoadedWorldContext()> m_loadedWorldContextProvider;
@@ -105,5 +115,11 @@ private:
     std::function<void(const LoadedWorldContext&,std::int64_t)> m_openTeam;
     std::vector<Widget*> m_teamLinks;
     std::unique_ptr<Surface> m_scheduleCache;
+};
+
+class TeamScheduleScreen final : public LeagueScheduleScreen
+{
+public:
+    using LeagueScheduleScreen::LeagueScheduleScreen;
 };
 

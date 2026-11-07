@@ -38,6 +38,8 @@ private:
     // Creates a new 1989 GCE World from the compiled PFF Core, validates/loads
     // it, and only then publishes it as the application's LoadedWorldContext.
     bool createNewLeague();
+    void openTeamScreen(const LoadedWorldContext&,std::int64_t teamSeasonId);
+    void openScheduleScreen(std::int64_t teamSeasonId);
     void openTeamDataScreen(const LoadedWorldContext&,std::int64_t teamSeasonId);
 
     // Validates/loads an existing World.db and publishes it as the application's

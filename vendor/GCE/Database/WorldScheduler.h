@@ -80,6 +80,7 @@ struct WorldGameWindow
     std::string worldKey, currentTimeUtc, kickoffUtc, reason;
     bool canStart = false, canResume = false;
     std::optional<WorldAdvanceOutcome> advance;
+    bool hasSelectedGame = false;
 };
 WorldEditResult<WorldGameWindow> loadNextGameWindow(const WorldActor&, std::int64_t competitionSeasonId);
 WorldEditResult<WorldAdvanceOutcome> beginNextGameWindow(const WorldActor&, std::int64_t competitionSeasonId,

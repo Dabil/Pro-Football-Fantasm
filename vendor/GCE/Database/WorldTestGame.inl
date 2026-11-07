@@ -152,11 +152,34 @@ std::int64_t testArtifact(Session &s, std::int64_t game, const std::filesystem::
 namespace
 {
 bool savedTestGameReady(Session &, std::int64_t);
-WorldTestSavedState readTestProgress(Session &, const WorldActor &, std::int64_t);
+WorldTestSavedState readTestProgress(Session &, const WorldActor &, std::int64_t, bool final = false);
 std::string readTestPbp(Session &, const WorldActor &, std::int64_t);
 } // namespace
 #include "GCE/Database/WorldGameAdmission.inl"
 #include "GCE/Database/WorldGameInterruption.inl"
+WorldEditResult<WorldTestMatchup> loadFinalTestMatchup(const WorldActor &actor, std::int64_t game)
+{
+    return attempt<WorldTestMatchup>([&] {
+        Session s(actor, false);
+        S::Query final(s.db, "SELECT Generation,FinalElapsedSeconds FROM GameFinalSaves "
+                             "WHERE WorldID=? AND GameID=?", {s.world, game});
+        require(final.row(), WorldEditError::InvalidValue, "Game has no saved final");
+        const auto fields = admissionInput(s, actor, game);
+        WorldTestMatchup result;
+        result.gameId = game;
+        result.fixtureId = std::stoll(fields[5]);
+        result.kickoffUtc = fields[7];
+        result.awayId = std::stoll(fields[8]);
+        result.homeId = std::stoll(fields[9]);
+        result.awayName = fields[10];
+        result.homeName = fields[11];
+        result.saved = readTestProgress(s, actor, game, true);
+        require(result.saved->game.generation == final.integer() && result.saved->game.elapsed == final.integer(1),
+                WorldEditError::IntegrityFailure, "Final checkpoint disagrees with the save receipt");
+        S::exec(s.db, "COMMIT");
+        return result;
+    });
+}
 WorldEditResult<WorldTestMatchup> beginTestMatchup(const WorldActor &actor, std::int64_t season,
                                                    std::int64_t expected, const std::string &evidence)
 {

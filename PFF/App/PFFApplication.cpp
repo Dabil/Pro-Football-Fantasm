@@ -191,6 +191,33 @@ bool PFFApplication::createNewLeague()
     return loadWorldIntoContext(createResult.databasePath);
 }
 
+void PFFApplication::openTeamScreen(const LoadedWorldContext& world,std::int64_t teamId)
+{
+    screenManager().pushScreen(std::make_unique<TeamScreen>(assetLibrary(),
+        [this](std::string_view command){return handlePffCommandId(command);},
+        [this]{return loadedWorldContext();},world,teamId,
+        [this](const LoadedWorldContext& selected,std::int64_t id){openTeamDataScreen(selected,id);},
+        [this](const LoadedWorldContext&,std::int64_t id){openScheduleScreen(id);}));
+    requestRender();
+}
+
+void PFFApplication::openScheduleScreen(std::int64_t teamId)
+{
+    screenManager().pushScreen(std::make_unique<TeamScheduleScreen>(assetLibrary(),
+        [this](std::string_view command){return handlePffCommandId(command);},
+        [this]{return loadedWorldContext();},
+        [this](const LoadedWorldContext& world,std::int64_t id){openTeamScreen(world,id);},
+        [this](const WorldEditCommit& edit){m_loadedWorldContext.applyCommittedEdit(edit);requestRender();},
+        [this](std::unique_ptr<PffTest::GenericTestGame> game,WorldActor actor)
+        {
+            screenManager().pushScreen(std::make_unique<GameTimeScreen>(std::move(game),std::move(actor),
+                [this](const WorldEditCommit& edit){m_loadedWorldContext.applyCommittedEdit(edit);requestRender();},
+                [this]{screenManager().popScreen();requestRender();}));
+            requestRender();
+        },teamId));
+    requestRender();
+}
+
 void PFFApplication::openTeamDataScreen(const LoadedWorldContext& selected,std::int64_t id)
 {
     screenManager().pushScreen(std::make_unique<TeamDataScreen>(assetLibrary(),
@@ -334,11 +361,7 @@ bool PFFApplication::onInitialize()
                 },
                 [this](const LoadedWorldContext& world,std::int64_t teamId)
                 {
-                    screenManager().pushScreen(std::make_unique<TeamScreen>(assetLibrary(),
-                        [this](std::string_view command){return handlePffCommandId(command);},
-                        [this]{return loadedWorldContext();},world,teamId,
-                        [this](const LoadedWorldContext& selected,std::int64_t id){openTeamDataScreen(selected,id);}));
-                    requestRender();
+                    openTeamScreen(world,teamId);
                 });
         });
 
@@ -358,11 +381,7 @@ bool PFFApplication::onInitialize()
                 },
                 [this](const LoadedWorldContext& world,std::int64_t teamId)
                 {
-                    screenManager().pushScreen(std::make_unique<TeamScreen>(assetLibrary(),
-                        [this](std::string_view command){return handlePffCommandId(command);},
-                        [this]{return loadedWorldContext();},world,teamId,
-                        [this](const LoadedWorldContext& selected,std::int64_t id){openTeamDataScreen(selected,id);}));
-                    requestRender();
+                    openTeamScreen(world,teamId);
                 },
                 [this](const WorldEditCommit& edit){m_loadedWorldContext.applyCommittedEdit(edit);requestRender();},
                 [this](std::unique_ptr<PffTest::GenericTestGame> game,WorldActor actor)

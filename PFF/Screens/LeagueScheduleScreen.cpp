@@ -44,7 +44,7 @@ LeagueScheduleScreen::LeagueScheduleScreen(
     std::function<LoadedWorldContext()> loadedWorldContextProvider,
     std::function<void(const LoadedWorldContext&,std::int64_t)> openTeam,
     std::function<void(const WorldEditCommit&)> committed,
-    std::function<void(std::unique_ptr<PffTest::GenericTestGame>,WorldActor)> openGame)
+    std::function<void(std::unique_ptr<PffTest::GenericTestGame>,WorldActor)> openGame, std::int64_t teamSeasonId)
     : m_assetLibrary(assetLibrary)
     , m_commandDispatcher(std::move(commandDispatcher))
     , m_loadedWorldContextProvider(std::move(loadedWorldContextProvider))
@@ -52,6 +52,7 @@ LeagueScheduleScreen::LeagueScheduleScreen(
     m_openTeam=std::move(openTeam);
     m_committed=std::move(committed);
     m_openGame=std::move(openGame);
+    m_teamSeasonId = teamSeasonId;
     buildButtons();
 }
 
@@ -74,13 +75,16 @@ void LeagueScheduleScreen::onEnter()
 
     m_LeagueScheduleTitleObject = BannerFactory::makeBanner(
         *m_fontResult.asset.font,
-        "LEAGUE SCHEDULE",
+        m_teamSeasonId ? "TEAM SCHEDULE" : "LEAGUE SCHEDULE",
         PFF_Colors::ProFootballTitleColor);
 }
 
 void LeagueScheduleScreen::onExit()
 {
     m_advancing=false;
+    m_batchKickoff.clear();
+    m_batchStopped=false;
+    m_returningFromGame=false;
     m_scheduleCache.reset();
     m_LeagueScheduleTitleObject.clear();
 
@@ -101,6 +105,9 @@ bool LeagueScheduleScreen::handleEvent(const Input::Event& event)
     int scroll = 0;
     if (const auto* input=event.asCommand())
     {
+        if (m_backgroundGame && (input->command.code == Input::CommandCode::Back ||
+                                 input->command.code == Input::CommandCode::Cancel))
+            return true;
         switch (input->command.code)
         {
         case Input::CommandCode::MoveDown: scroll=1; break;
@@ -132,6 +139,7 @@ bool LeagueScheduleScreen::handleEvent(const Input::Event& event)
 void LeagueScheduleScreen::update(const Animation::TickEvent& event)
 {
     refreshLeagueContext();
+    if(!m_batchKickoff.empty() && !m_batchStopped) {runBatch();return;}
     if(m_advancing) continueGameWindow();
     m_root.update(event);
 }
@@ -226,7 +234,7 @@ void LeagueScheduleScreen::draw(Surface& surface)
 
 void LeagueScheduleScreen::buildButtons()
 {
-    auto nextGameButton=std::make_unique<Button>(Rect{Point{0,0},Size{24,3}},"Next Game Window","schedule:next_game");
+    auto nextGameButton=std::make_unique<Button>(Rect{Point{0,0},Size{24,3}},m_teamSeasonId ? "Next Game" : "Next Game Window","schedule:next_game");
     nextGameButton->setActivationCallback([this](const ButtonActivationResult& result){handleButtonActivation(result);});
     m_nextGameButton=nextGameButton.get();
     m_root.addChild(std::move(nextGameButton));
@@ -331,6 +339,7 @@ void LeagueScheduleScreen::handleButtonActivation(
     }
 
     if(result.commandId=="schedule:next_game") {beginGameWindow();return;}
+    if(result.commandId=="nav:back" && m_backgroundGame) return;
 
     if (result.commandId == "schedule:look_ahead")
     {
@@ -402,6 +411,7 @@ void LeagueScheduleScreen::loadSchedule()
     m_scheduleLoaded = false;
     m_gameWindowReady=false;
     m_advancing=false;
+    m_controlsSelectedTeam=false;
     m_windowMessage.clear();
     m_gameWindow=WorldGameWindow{};
 
@@ -439,7 +449,7 @@ void LeagueScheduleScreen::loadSchedule()
                 return left.scheduledKickoffUtc<right.scheduledKickoffUtc;
             return left.scheduledGameId<right.scheduledGameId;
         });
-    m_scheduleLoaded = !m_availableWeeks.empty();
+    m_scheduleLoaded = m_teamSeasonId || !m_availableWeeks.empty();
 
     if (!m_scheduleLoaded)
     {
@@ -447,7 +457,7 @@ void LeagueScheduleScreen::loadSchedule()
             "The loaded league contains no regular-season schedule weeks.";
     }
 
-    if (!sameSeason && m_scheduleLoaded)
+    if (!m_teamSeasonId && !sameSeason && m_scheduleLoaded)
     {
         // A new view starts at the earliest unfinished regular-season week.
         auto firstUnfinished=m_availableWeeks.end();
@@ -479,7 +489,12 @@ void LeagueScheduleScreen::loadSchedule()
 
 void LeagueScheduleScreen::updateNavigationButtons()
 {
-    if(m_nextGameButton) m_nextGameButton->setEnabled(m_gameWindowReady && m_gameWindow.canStart && !m_advancing && bool(m_committed) && bool(m_openGame));
+    if(m_nextGameButton) m_nextGameButton->setVisible(!m_teamSeasonId || m_controlsSelectedTeam);
+    const bool targetAvailable = !m_teamSeasonId || !nextTeamKickoff().empty();
+    const bool idle = m_batchKickoff.empty() || m_batchStopped;
+    if(m_nextGameButton) m_nextGameButton->setEnabled(idle && bool(m_committed) && bool(m_openGame) &&
+        (m_backgroundGame || (m_gameWindowReady && m_gameWindow.canStart && !m_advancing && targetAvailable)));
+    if(m_leaguePlayButton) m_leaguePlayButton->setEnabled(!m_backgroundGame);
     const bool canLookBack =
         m_scheduleLoaded && m_currentWeekIndex > 0;
 
@@ -489,12 +504,12 @@ void LeagueScheduleScreen::updateNavigationButtons()
 
     if (m_lookBackButton)
     {
-        m_lookBackButton->setVisible(canLookBack);
+        m_lookBackButton->setVisible(!m_teamSeasonId && canLookBack);
     }
 
     if (m_lookAheadButton)
     {
-        m_lookAheadButton->setVisible(canLookAhead);
+        m_lookAheadButton->setVisible(!m_teamSeasonId && canLookAhead);
     }
 }
 
@@ -504,6 +519,7 @@ void LeagueScheduleScreen::loadGameWindow()
     auto actor=openLocalWorldActor(m_dataContext.databasePath);
     if(!actor.success) {m_windowMessage="Unable to open game advancement: "+actor.message;return;}
     m_actor=actor.value;
+    m_controlsSelectedTeam = m_teamSeasonId && controlsTeam(m_teamSeasonId);
     auto window=loadNextGameWindow(m_actor,m_dataContext.activeCompetitionSeasonId);
     if(!window.success) {m_windowMessage="Unable to load next game window: "+window.message;return;}
     m_gameWindow=std::move(window.value);
@@ -524,35 +540,164 @@ void LeagueScheduleScreen::publishAdvance(const WorldAdvanceOutcome& outcome)
     loadSchedule();
 }
 
+bool LeagueScheduleScreen::controlsTeam(std::int64_t teamId) const
+{
+    const auto team = loadTeamData(m_actor, teamId);
+    return team.success && std::any_of(team.value.staff.begin(), team.value.staff.end(),
+        [](const WorldStaffPosition& role) { return role.userControlled; });
+}
+
+void LeagueScheduleScreen::openResult(std::int64_t gameId)
+{
+    try
+    {
+        auto game = std::make_unique<PffTest::GenericTestGame>(
+            m_dataContext.databasePath, m_dataContext.activeCompetitionSeasonId);
+        const auto result = game->viewFinal(m_actor, gameId);
+        if (result.success)
+        {
+            const auto open = m_openGame;
+            const auto actor = m_actor;
+            m_root.clearPointerState();
+            m_root.clearChildFocus();
+            open(std::move(game), actor);
+            return;
+        }
+        m_windowMessage = result.message;
+    }
+    catch (const std::exception& error)
+    {
+        m_windowMessage = error.what();
+    }
+    m_scheduleCache.reset();
+}
+
+std::string LeagueScheduleScreen::nextTeamKickoff() const
+{
+    if (m_gameWindow.kickoffUtc.empty()) return {};
+    for (const auto& game : m_scheduleGames)
+        if ((game.awayTeamSeasonId == m_teamSeasonId || game.homeTeamSeasonId == m_teamSeasonId) &&
+            game.scheduledKickoffUtc >= m_gameWindow.kickoffUtc &&
+            game.status != "FINAL" && game.status != "CANCELLED" &&
+            game.status != "CANCELED" && game.status != "VOID")
+            return game.scheduledKickoffUtc;
+    return {};
+}
+
 void LeagueScheduleScreen::beginGameWindow()
 {
-    if(!m_gameWindowReady || !m_gameWindow.canStart || m_advancing || !m_committed) return;
-    if(m_openGame)
+    if (!m_committed || !m_openGame || (m_teamSeasonId && !m_controlsSelectedTeam)) return;
+    if (m_backgroundGame)
     {
-        try
+        m_batchStopped = false;
+    }
+    else
+    {
+        if (!m_gameWindowReady || !m_gameWindow.canStart || m_advancing) return;
+        m_batchKickoff = m_teamSeasonId ? nextTeamKickoff() : m_gameWindow.kickoffUtc;
+        m_batchStopped = false;
+    }
+    m_scheduleCache.reset();
+    updateNavigationButtons();
+}
+
+void LeagueScheduleScreen::runBatch()
+{
+    const auto stop = [this](std::string message)
+    {
+        m_batchStopped = bool(m_backgroundGame);
+        if (!m_batchStopped) m_batchKickoff.clear();
+        if (!message.empty()) m_windowMessage = std::move(message);
+        m_scheduleCache.reset();
+        updateNavigationButtons();
+    };
+    try
+    {
+        if (m_returningFromGame)
         {
-            auto game=std::make_unique<PffTest::GenericTestGame>(m_dataContext.databasePath,m_dataContext.activeCompetitionSeasonId);
-            auto started=game->start(m_actor,m_gameWindow.revision);
-            if(!started.success)
+            m_returningFromGame = false;
+            if (m_gameWindow.hasSelectedGame)
             {
-                // Intervening queue work may have committed before admission
-                // stopped. Publish that revision/time so a retry is not stale.
-                const auto previousRevision=m_gameWindow.revision;
+                stop("Matchup saved. Select Next Game to resume.");
+                return;
+            }
+        }
+        if (!m_backgroundGame)
+        {
+            if (m_advancing && !m_gameWindow.canStart)
+            {
+                continueGameWindow();
+                return;
+            }
+            if (m_gameWindow.kickoffUtc.empty() || m_gameWindow.kickoffUtc > m_batchKickoff ||
+                !m_gameWindowReady || !m_gameWindow.canStart ||
+                (m_teamSeasonId && !m_controlsSelectedTeam))
+            {
+                stop({});
+                return;
+            }
+            auto game = std::make_unique<PffTest::GenericTestGame>(
+                m_dataContext.databasePath, m_dataContext.activeCompetitionSeasonId);
+            const auto previousRevision = m_gameWindow.revision;
+            const auto started = game->start(m_actor, previousRevision);
+            if (!started.success)
+            {
                 loadGameWindow();
-                if(m_gameWindowReady && m_gameWindow.revision!=previousRevision)
+                if (m_gameWindowReady && m_gameWindow.revision != previousRevision)
                 {
-                    WorldAdvanceOutcome stopped;
-                    stopped.revision=m_gameWindow.revision;stopped.currentTimeUtc=m_gameWindow.currentTimeUtc;
-                    publishAdvance(stopped);
+                    WorldAdvanceOutcome outcome;
+                    outcome.revision = m_gameWindow.revision;
+                    outcome.currentTimeUtc = m_gameWindow.currentTimeUtc;
+                    publishAdvance(outcome);
                 }
-                m_windowMessage="Unable to start game: "+started.message;
-                m_scheduleCache.reset();updateNavigationButtons();return;
+                if (m_gameWindowReady && m_advancing) return;
+                stop("Unable to start game: " + started.message);
+                return;
             }
             m_committed(started.value.commit);
-            const auto open=m_openGame;const auto actor=m_actor;
-            m_root.clearPointerState();m_root.clearChildFocus();open(std::move(game),actor);return;
+            const bool show = started.value.kickoffUtc == m_batchKickoff &&
+                (controlsTeam(started.value.awayId) || controlsTeam(started.value.homeId));
+            if (show)
+            {
+                m_returningFromGame = true;
+                const auto open = m_openGame;
+                const auto actor = m_actor;
+                m_root.clearPointerState();
+                m_root.clearChildFocus();
+                open(std::move(game), actor);
+                return;
+            }
+            m_backgroundGame = std::move(game);
+            updateNavigationButtons();
         }
-        catch(const std::exception& error){m_windowMessage="Unable to load game: "+std::string(error.what());m_scheduleCache.reset();return;}
+        // Keep the screen responsive while the shared executor runs a background matchup.
+        for (int step = 0; step < 32 && !m_backgroundGame->state().final; ++step)
+        {
+            if (m_backgroundGame->interruption())
+            {
+                const auto reason = m_backgroundGame->interruption()->reason;
+                m_backgroundGame.reset();
+                loadSchedule();
+                stop(reason);
+                return;
+            }
+            const auto advanced = m_backgroundGame->next(m_actor);
+            if (!advanced.success)
+            {
+                stop("Unable to simulate game: " + advanced.message);
+                return;
+            }
+            if (advanced.value.changed) m_committed(advanced.value);
+        }
+        if (m_backgroundGame->state().final)
+        {
+            m_backgroundGame.reset();
+            loadSchedule();
+        }
+    }
+    catch (const std::exception& error)
+    {
+        stop("Unable to simulate game: " + std::string(error.what()));
     }
 }
 
@@ -568,7 +713,8 @@ void LeagueScheduleScreen::drawGameWindowStatus(Composition::PageComposer& page,
 {
     const Style& statusStyle=PFF_Colors::TextHighlightColor; // Window timing and stop explanation.
     std::string message;
-    if(m_advancing) message="Advancing to game window...";
+    if(!m_batchKickoff.empty() && !m_batchStopped) message="Simulating games...";
+    else if(m_advancing) message="Advancing to game window...";
     else if(m_windowMessage=="UNSUPPORTED_PROVIDER") message="Game executor not installed. Games cannot start yet.";
     else if(m_windowMessage=="UNSUPPORTED_CODEC") message="Current games need a supported game executor before continuing.";
     else if(m_windowMessage=="REQUIRED_DECISION") message="Game participation needs your attention before continuing.";
@@ -597,13 +743,13 @@ void LeagueScheduleScreen::drawCurrentWeek(
 {
     const std::int32_t week = currentWeek();
 
-    if (week <= 0)
+    if (!m_teamSeasonId && week <= 0)
     {
         return;
     }
 
     const std::string weekTitle =
-        "WEEK " + std::to_string(week);
+        m_teamSeasonId ? "SCHEDULE" : "WEEK " + std::to_string(week);
 
     page.writePanelTitle(
         panelRegionName,
@@ -621,9 +767,14 @@ void LeagueScheduleScreen::drawCurrentWeek(
         m_maxScrollOffset=0;
         return;
     }
+    const auto displayed = [&](const WorldScheduleGameRecord& game)
+    {
+        return m_teamSeasonId ? game.awayTeamSeasonId == m_teamSeasonId || game.homeTeamSeasonId == m_teamSeasonId
+                              : game.stage == "REGULAR" && game.weekNumber == week;
+    };
     int matchupWidth=24;
     for(const auto& game:m_scheduleGames)
-        if(game.stage=="REGULAR" && game.weekNumber==week)
+        if(displayed(game))
             matchupWidth=std::max(matchupWidth,TextClip::measureDisplayWidth(UnicodeConversion::utf8ToU32(game.matchupDisplayName())));
     // Keep the full matchup on one line. Other columns may wrap within their
     // own cells; reserve enough space for both complete, independently linked names.
@@ -636,7 +787,7 @@ void LeagueScheduleScreen::drawCurrentWeek(
     }
     const int extra=content.size.width-requiredWidth;
     const std::array<int,5> widths{{matchupWidth,15,11,12+extra/2,18+extra-extra/2}};
-    const std::array<std::string,5> headings{{"MatchUp","Day and Date","Time","Location","Result"}};
+    const std::array<std::string,5> headings{{"Matchup","Day and Date","Time","Location","Result"}};
     std::vector<std::string> rows;
     std::vector<const WorldScheduleGameRecord*> linkRows;
     auto appendRow=[&](const std::array<std::string,5>& values,const WorldScheduleGameRecord* game=nullptr)
@@ -668,14 +819,14 @@ void LeagueScheduleScreen::drawCurrentWeek(
 
     for (const WorldScheduleGameRecord& game : m_scheduleGames)
     {
-        if (game.stage != "REGULAR" || game.weekNumber != week)
+        if (!displayed(game))
         {
             continue;
         }
 
         const std::string group=game.scheduledKickoffUtc.empty()
             ? "unknown:"+game.gameDate+" "+game.timeLabel : game.scheduledKickoffUtc;
-        if (first || group!=previousGroup)
+        if (first || (!m_teamSeasonId && group!=previousGroup))
         {
             if (!first) {rows.emplace_back();linkRows.push_back(nullptr);}
             appendRow(headings);
@@ -706,7 +857,7 @@ void LeagueScheduleScreen::drawCurrentWeek(
             const auto& name=home?game->homeDisplayName:game->awayDisplayName;
             const auto id=home?game->homeTeamSeasonId:game->awayTeamSeasonId;
             const int width=TextClip::measureDisplayWidth(UnicodeConversion::utf8ToU32(name));
-            if(width>0)
+            if(width>0 && id!=m_teamSeasonId)
             {
                 const auto open=m_openTeam;const auto world=m_dataContext;
                 auto link=std::make_unique<TeamLink>(std::vector<TeamLink::Span>{{Rect{Point{x,content.position.y+2+row},Size{width,1}},name}},
@@ -714,6 +865,17 @@ void LeagueScheduleScreen::drawCurrentWeek(
                 m_teamLinks.push_back(link.get());m_root.addChild(std::move(link));
             }
             x+=width+4; // The unlinked separator is exactly " at ".
+        }
+        if (m_openGame && game->status == "FINAL" && game->gameId)
+        {
+            const auto label = wrapText(displayResult(*game), widths[4]).front();
+            const int resultX = content.position.x + widths[0] + widths[1] + widths[2] + widths[3] + 8;
+            const int width = TextClip::measureDisplayWidth(UnicodeConversion::utf8ToU32(label));
+            auto link = std::make_unique<TeamLink>(
+                std::vector<TeamLink::Span>{{Rect{Point{resultX,content.position.y+2+row},Size{width,1}},label}},
+                [this,id=game->gameId] { openResult(id); });
+            m_teamLinks.push_back(link.get());
+            m_root.addChild(std::move(link));
         }
     }
     if (m_maxScrollOffset>0)

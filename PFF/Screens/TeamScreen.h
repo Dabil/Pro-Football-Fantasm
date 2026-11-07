@@ -13,7 +13,8 @@ class TeamScreen final : public Screen
 public:
     TeamScreen(Assets::AssetLibrary& assets,std::function<bool(std::string_view)> dispatch,
         std::function<LoadedWorldContext()> context,LoadedWorldContext selectedWorld,std::int64_t teamSeasonId,
-        std::function<void(const LoadedWorldContext&,std::int64_t)> openTeamData = {});
+        std::function<void(const LoadedWorldContext&,std::int64_t)> openTeamData = {},
+        std::function<void(const LoadedWorldContext&,std::int64_t)> openSchedule = {});
     void onEnter() override;
     bool handleEvent(const Input::Event& event) override;
     void update(const Animation::TickEvent& event) override;
@@ -33,6 +34,9 @@ private:
     std::vector<Button*> m_options;
     Button* m_return=nullptr;
     Button* m_teamData=nullptr;
+    Button* m_schedule=nullptr;
+    bool m_schedulePending=false;
+    std::function<void(const LoadedWorldContext&,std::int64_t)> m_openSchedule;
     bool m_openDataPending=false,m_returnPending=false;
     std::function<void(const LoadedWorldContext&,std::int64_t)> m_openTeamData;
 };

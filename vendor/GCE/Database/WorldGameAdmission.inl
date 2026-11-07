@@ -479,6 +479,7 @@ WorldGameWindow previewInstalledWindow(Session &s, std::int64_t season)
         S::Query saved(s.db, "SELECT SettingValue FROM WorldSettings WHERE WorldID=? AND SettingKey=?",
                        {s.world, admissionSelectionKey(r.windowId)});
         saved.row();
+        r.hasSelectedGame = true;
         r.canStart = savedTestGameReady(s, std::stoll(saved.text()));
         r.reason = r.canStart ? "Resume saved matchup."
                               : "Game is already open or its development checkpoint is incompatible.";
@@ -520,6 +521,7 @@ WorldGameWindow previewInstalledWindow(Session &s, std::int64_t season)
         {
             r.canStart = false;
             r.canResume = false;
+            r.hasSelectedGame = false;
             r.advance.reset();
             r.windowId = 0;
             r.games = 0;

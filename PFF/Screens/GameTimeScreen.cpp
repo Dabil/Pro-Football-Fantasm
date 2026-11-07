@@ -70,7 +70,7 @@ GameTimeScreen::GameTimeScreen(std::unique_ptr<PffTest::GenericTestGame> game, W
 void GameTimeScreen::onEnter()
 {
     m_root.resetFocus();
-    m_running = !m_game->interruption();
+    m_running = !m_game->state().final && !m_game->interruption();
     if (m_running)
         nextPlay();
     updateControls();
@@ -135,6 +135,12 @@ void GameTimeScreen::saveAndReturn()
     if (m_returnPending)
         return;
     m_running = false;
+    if (m_game->state().final)
+    {
+        m_returnPending = true;
+        updateControls();
+        return;
+    }
     const auto result = m_game->save(m_actor);
     if (result.success)
     {
@@ -303,7 +309,7 @@ void GameTimeScreen::draw(Surface &surface)
     write(bounds.size.height - 2,
           m_error.empty() ? (m_game->interruption() ? "Waiting for event. Handle it, then Resume Game. Return keeps saved progress."
                              : m_running     ? "Running to final... Pause to inspect; Return saves and exits."
-                             : state.final ? "Final saved. Returning to the previous screen..."
+                             : state.final ? "Final saved. Scroll the play-by-play or select Return."
                                            : "Paused. Next Play advances once. Return saves and exits.")
                           : m_error);
     m_root.draw(surface);

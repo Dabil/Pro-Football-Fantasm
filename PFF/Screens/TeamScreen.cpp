@@ -10,10 +10,12 @@
 
 TeamScreen::TeamScreen(Assets::AssetLibrary& assets,std::function<bool(std::string_view)> dispatch,
     std::function<LoadedWorldContext()> context,LoadedWorldContext selectedWorld,std::int64_t teamSeasonId,
-    std::function<void(const LoadedWorldContext&,std::int64_t)> openTeamData)
+    std::function<void(const LoadedWorldContext&,std::int64_t)> openTeamData,
+    std::function<void(const LoadedWorldContext&,std::int64_t)> openSchedule)
     : m_assets(assets),m_dispatch(std::move(dispatch)),m_context(std::move(context)),
       m_selectedWorld(std::move(selectedWorld)),m_teamSeasonId(teamSeasonId),m_openTeamData(std::move(openTeamData))
 {
+    m_openSchedule=std::move(openSchedule);
     for(const auto* label: {"Team Data","Roster","Statistics","Schedule","Team News","Return"})
     {
         auto button=std::make_unique<Button>(label);
@@ -26,6 +28,11 @@ TeamScreen::TeamScreen(Assets::AssetLibrary& assets,std::function<bool(std::stri
         }
         else {button->setEnabled(false);m_options.push_back(button.get());
             if(std::string_view(label)=="Team Data"){m_teamData=button.get();button->setActivationCallback([this](const ButtonActivationResult& r){if(r.activated)m_openDataPending=true;});}}
+        if(std::string_view(label)=="Schedule")
+        {
+            m_schedule=button.get();
+            button->setActivationCallback([this](const ButtonActivationResult& r){if(r.activated)m_schedulePending=true;});
+        }
         m_root.addChild(std::move(button));
     }
 }
@@ -40,6 +47,7 @@ void TeamScreen::refreshTeam(bool force)
         context.activeCompetitionSeasonId==m_displayContext.activeCompetitionSeasonId &&
         context.currentTimeUtc==m_displayContext.currentTimeUtc && context.dataRevision==m_displayContext.dataRevision && context.worldName==m_displayContext.worldName) return;
     m_displayContext=context;m_checked=true;m_available=false;m_banner.clear();m_teamData->setEnabled(false);
+    m_schedule->setEnabled(false);
     m_title="Team unavailable";m_message="This team is not available in the active league and season.";
     if(!context.hasActiveCompetitionSeason() || context.databasePath!=m_selectedWorld.databasePath ||
         context.worldKey!=m_selectedWorld.worldKey ||
@@ -48,6 +56,7 @@ void TeamScreen::refreshTeam(bool force)
     if(!teams.success) {m_message="Unable to load team information: "+teams.errorMessage;return;}
     const auto team=std::find_if(teams.teams.begin(),teams.teams.end(),[&](const auto& value) {return value.teamSeasonId==m_teamSeasonId;});
     if(team==teams.teams.end()) return;
+    m_schedule->setEnabled(bool(m_openSchedule));
     m_team=*team;m_available=true;m_message.clear();
     if(m_openTeamData){const auto actor=openLocalWorldActor(context.databasePath);if(actor.success){const auto details=loadTeamData(actor.value,m_teamSeasonId);m_teamData->setEnabled(details.success);if(!details.success)m_message="Team Data unavailable: "+details.message;}else m_message="Team Data unavailable: "+actor.message;}
     m_title=m_team.nickname.empty()?m_team.fallbackDisplayName():m_team.nickname;
@@ -60,6 +69,16 @@ bool TeamScreen::handleEvent(const Input::Event& event)
 {
     const bool handled=m_root.handleEvent(event);
     if(m_returnPending){m_returnPending=false;const auto dispatch=m_dispatch;if(dispatch)dispatch("nav:back");return handled;}
+    if(m_schedulePending)
+    {
+        m_schedulePending=false;
+        const auto open=m_openSchedule;
+        const auto world=m_displayContext;
+        const auto id=m_teamSeasonId;
+        m_root.resetFocus();
+        if(open)open(world,id);
+        return handled;
+    }
     if(m_openDataPending){m_openDataPending=false;const auto open=m_openTeamData;const auto world=m_displayContext;const auto id=m_teamSeasonId;m_root.resetFocus();if(open)open(world,id);}
     return handled;
 }
