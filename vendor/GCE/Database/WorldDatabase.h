@@ -72,7 +72,7 @@
 // dependency that can later move into a generic GCE database header.
 // -----------------------------------------------------------------------------
 
-inline constexpr std::int32_t WorldDatabaseSchemaVersion = 5;
+inline constexpr std::int32_t WorldDatabaseSchemaVersion = 6;
 enum class WorldInitializationPolicy { PreparedSeason, Offseason };
 
 // -----------------------------------------------------------------------------

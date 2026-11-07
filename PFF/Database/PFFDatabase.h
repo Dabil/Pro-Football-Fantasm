@@ -9,6 +9,27 @@
 // Forward declaration keeps sqlite3.h out of the public API header.
 struct sqlite3;
 
+struct CorePersonNicknameSource
+{
+    std::int64_t sourceFileId = 0;
+    std::size_t sourceLine = 0;
+    std::string relativePath;
+};
+struct CorePersonNickname
+{
+    std::string nickname, normalizedNickname;
+    std::int64_t displayOrder = 0;
+    std::vector<CorePersonNicknameSource> sources;
+};
+struct CorePersonNicknamesResult
+{
+    bool success = false;
+    std::string errorMessage, normalizationPolicy, unicodeVersion;
+    std::vector<CorePersonNickname> nicknames;
+};
+CorePersonNicknamesResult loadCorePersonNicknames(const std::filesystem::path& core,
+                                                 const std::string& corePersonKey);
+
 // -----------------------------------------------------------------------------
 // Database connection
 // -----------------------------------------------------------------------------

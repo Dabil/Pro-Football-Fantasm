@@ -1,4 +1,5 @@
 #include "GCE/Database/WorldTeamData.h"
+#include "GCE/Database/PersonNicknames.h"
 #include "GCE/Database/WorldScheduler.h"
 #include "GCE/Database/WorldDatabase.h"
 #include "GCE/Database/WorldWeekTransaction.h"
@@ -115,7 +116,7 @@ namespace
                     1,
                 WorldEditError::UnsupportedSchema, "UNSUPPORTED_SCHEMA: create a fresh compatible World");
             require(S::scalar(db, "SELECT count(*) FROM WorldSchemaInfo WHERE SchemaInfoID=1 AND "
-                                  "SchemaFamily='GCE_WORLD' AND SchemaVersion IN (4,5)") == 1,
+                                  "SchemaFamily='GCE_WORLD' AND SchemaVersion=6") == 1,
                     WorldEditError::UnsupportedSchema,
                     "UNSUPPORTED_SCHEMA: create a fresh compatible World; existing saves are not migrated");
             require(S::scalar(db, "SELECT count(*) FROM sqlite_master WHERE type='table' AND "
@@ -123,6 +124,8 @@ namespace
                     WorldEditError::UnsupportedSchema, "Unsupported venue/week feature contracts");
             world = WorldEditingAccess::world(actor);
             clockModel = ClockStateSql::enabled(db);
+            require(S::scalar(db,"SELECT count(*) FROM WorldFeatureVersions WHERE WorldID=? AND FeatureKey='PERSON_NICKNAMES' AND ContractVersion=1",{world})==1, WorldEditError::UnsupportedFeature,"Unsupported PERSON_NICKNAMES contract");
+            PersonNicknames::compatible(PersonNicknames::setting(db,world,"PersonNicknamesNormalizationPolicy"),PersonNicknames::setting(db,world,"PersonNicknamesUnicodeVersion"));
             user = WorldEditingAccess::user(actor);
             require(worldEventContractsReady(db, world),
                     WorldEditError::UnsupportedSchema, "Unsupported venue/week feature contracts");
@@ -631,6 +634,28 @@ WorldEditResult<WorldTeamData> loadTeamData(const WorldActor& actor, std::int64_
 WorldEditResult<WorldTeamData> previewTeamManagement(const WorldActor& actor, std::int64_t id, bool enabled)
 {
     return readTeamData(actor, id, enabled);
+}
+WorldEditResult<std::vector<WorldPersonNickname>> loadPersonNicknames(const WorldActor& actor,
+                                                                   std::int64_t personId)
+{
+    return attempt<std::vector<WorldPersonNickname>>([&] {
+        Session s(actor, false);
+        PersonNicknames::validateWorld(s.db,s.world);
+        require(S::scalar(s.db,"SELECT count(*) FROM People WHERE WorldID=? AND PersonID=?",{s.world,personId})==1,
+                WorldEditError::InvalidValue,"Person is not in this World");
+        std::vector<WorldPersonNickname> result;
+        S::Query names(s.db,"SELECT Nickname,NormalizedNickname,DisplayOrder,OriginKind,ChangedRevision FROM WorldPersonNicknames WHERE WorldID=? AND PersonID=? ORDER BY DisplayOrder,NormalizedNickname COLLATE BINARY",{s.world,personId});
+        while(names.row())
+        {
+            WorldPersonNickname value;
+            value.nickname=names.text(); value.normalizedNickname=names.text(1);
+            value.displayOrder=names.integer(2); value.originKind=names.text(3); value.changedRevision=names.integer(4);
+            S::Query sources(s.db,"SELECT WorldCoreSnapshotID,CorePersonKey FROM WorldPersonNicknameSources WHERE WorldID=? AND PersonID=? AND NormalizedNickname=? ORDER BY WorldCoreSnapshotID,CorePersonKey COLLATE BINARY",{s.world,personId,value.normalizedNickname});
+            while(sources.row()) value.sources.push_back({sources.integer(),sources.text(1)});
+            result.push_back(std::move(value));
+        }
+        return result;
+    });
 }
 WorldEditResult<WorldEditState> loadWorldEditState(const WorldActor& actor)
 {

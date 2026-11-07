@@ -78,6 +78,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Database\CorePersonNicknamesSchema.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\CorePersonNicknamesImport.inl"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Data\realTimeSettings.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Database\CoreClockSchema.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Database\CoreClockImport.inl"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Screens\GameTimeFormatting.h">

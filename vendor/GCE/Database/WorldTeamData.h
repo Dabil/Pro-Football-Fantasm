@@ -81,6 +81,21 @@ struct WorldPersonChoice
     std::int64_t personId = 0;
     std::string displayName;
 };
+// Nickname equality is never Person identity. Core file/line evidence remains
+// in the immutable snapshot referenced by each imported source mapping.
+struct WorldPersonNicknameSource
+{
+    std::int64_t coreSnapshotId = 0;
+    std::string corePersonKey;
+};
+struct WorldPersonNickname
+{
+    std::string nickname, normalizedNickname, originKind;
+    std::int64_t displayOrder = 0, changedRevision = 0;
+    std::vector<WorldPersonNicknameSource> sources;
+};
+WorldEditResult<std::vector<WorldPersonNickname>> loadPersonNicknames(const WorldActor&,
+                                                                    std::int64_t personId);
 struct WorldStaffPosition
 {
     std::int64_t positionId = 0, roleId = 0, assignmentId = 0, personId = 0;

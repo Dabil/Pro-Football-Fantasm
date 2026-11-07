@@ -15,6 +15,19 @@ void instantiateCorePeople(CreationContext& c)
                {c.worldId, c.worldCoreSnapshotId, people.text(0), S::inserted(c.world)});
         ++c.result->peopleCreated;
     }
+    S::run(c.world,"INSERT INTO WorldFeatureVersions VALUES(?,'PERSON_NICKNAMES',1)",{c.worldId});
+    for(const auto* key:{"PersonNicknamesNormalizationPolicy","PersonNicknamesUnicodeVersion"})
+        S::run(c.world,"INSERT INTO WorldSettings VALUES(?,?,?)",{c.worldId,std::string(key),readCoreMetadata(c.core,key)});
+    S::Query aliases(c.world,"SELECT CorePersonKey,PersonID FROM WorldPersonSourceAliases WHERE WorldID=? AND WorldCoreSnapshotID=?",{c.worldId,c.worldCoreSnapshotId});
+    while(aliases.row())
+    {
+        S::Query names(c.core,"SELECT NormalizedNickname,Nickname,DisplayOrder FROM CorePersonNicknames WHERE CorePersonKey=? ORDER BY DisplayOrder,NormalizedNickname COLLATE BINARY",{aliases.text()});
+        while(names.row())
+        {
+            S::run(c.world,"INSERT INTO WorldPersonNicknames VALUES(?,?,?,?,?,'CORE',0)",{c.worldId,aliases.integer(1),names.text(),names.text(1),names.integer(2)});
+            S::run(c.world,"INSERT INTO WorldPersonNicknameSources VALUES(?,?,?,?,?)",{c.worldId,aliases.integer(1),names.text(),c.worldCoreSnapshotId,aliases.text()});
+        }
+    }
 }
 void instantiateTeamData(CreationContext& c, std::int64_t coreSeason, const std::string& utc)
 {

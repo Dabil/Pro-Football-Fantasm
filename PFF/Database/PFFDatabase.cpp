@@ -2,6 +2,8 @@
 #include "Database/CoreManifest.h"
 #include "Database/CoreTeamDataSchema.h"
 #include "Database/CoreClockSchema.h"
+#include "Database/CorePersonNicknamesSchema.h"
+#include "GCE/Database/PersonNicknames.h"
 #include "GCE/Database/ClockTime.h"
 #include "GCE/Database/TeamDataSql.h"
 
@@ -100,7 +102,9 @@ namespace
 
     std::vector<TagLine> readTaggedFile(const std::filesystem::path& file)
     {
-        std::ifstream input(file);
+        // Binary input keeps control bytes (including Windows Ctrl-Z) available
+        // for field validation instead of silently treating them as end-of-file.
+        std::ifstream input(file, std::ios::binary);
         if (!input)
         {
             throw BuildException("Unable to open source file.", file);
@@ -113,6 +117,7 @@ namespace
         while (std::getline(input, line))
         {
             ++lineNumber;
+            if(!line.empty() && line.back()=='\r') line.pop_back();
 
             if (lineNumber == 1 &&
                 line.size() >= 3 &&
@@ -149,7 +154,7 @@ namespace
 
             TagLine tag;
             tag.tag = stripped.substr(1, close - 1);
-            tag.value = trim(stripped.substr(close + 1));
+            tag.value = tag.tag == "NICKNAME" ? line.substr(line.find(']') + 1) : trim(stripped.substr(close + 1));
             tag.line = lineNumber;
 
             tags.push_back(std::move(tag));
@@ -2477,6 +2482,7 @@ VALUES(?, ?, ?, ?, ?, ?, ?, ?);
     }
     #include "Database/CoreTeamDataImport.inl"
     #include "Database/CoreClockImport.inl"
+    #include "Database/CorePersonNicknamesImport.inl"
 
 }
 
@@ -2856,11 +2862,12 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
             createSchema(db);
             createChartSchema(db);
             exec(db, CoreTeamDataSchema);
+            exec(db, CorePersonNicknamesSchema);
             exec(db, CoreClockSchema);
             insertMetadata(db, context, "ChartImportSchemaVersion", "1");
             insertMetadata(db, context, "ChartExecutionReadiness", "NOT_CERTIFIED");
 
-            insertMetadata(db, context, "CoreSchemaVersion", "3");
+            insertMetadata(db, context, "CoreSchemaVersion", "4");
             insertMetadata(db, context, "Ruleset", request.ruleSet);
             for (std::size_t i = 0; i < packages.size(); ++i)
             {
@@ -2895,7 +2902,10 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
                 insertRuleset(context, request.ruleSet);
 
             auto selectedFile = [&](const std::filesystem::path& directory, const std::string& name) {
-                return manifestMode ? selectedFiles.at(name) : requireFile(directory, name.c_str());
+                if(manifestMode) return selectedFiles.at(name);
+                const auto file=requireFile(directory,name.c_str());
+                selectedFiles.emplace(name,file);
+                return file;
             };
             const std::filesystem::path venues =
                 selectedFile(seasonDirectory, "venues.pffdata");
@@ -3142,6 +3152,8 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
 
             buildCoreTeamData(context, selectedFiles, league);
             buildCoreClockData(context, request, selectedFiles);
+            buildCorePersonNicknames(context, selectedFiles);
+            PersonNicknames::validateCore(db);
             validateDatabase(db);
             context.diagnostic(DatabaseDiagnosticSeverity::Info,
                 "foreign_key_check and integrity_check passed. Historical package counts are not enforced.");
@@ -3258,6 +3270,36 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
 // -----------------------------------------------------------------------------
 // Core database read/query API
 // -----------------------------------------------------------------------------
+
+CorePersonNicknamesResult loadCorePersonNicknames(const std::filesystem::path& core,
+                                                 const std::string& corePersonKey)
+{
+    CorePersonNicknamesResult result;
+    try
+    {
+        Database connection;
+        if(!connection.open(core)) throw std::runtime_error(connection.lastError());
+        auto* db=CoreDatabaseQueryAccess::handle(connection);
+        namespace S=TeamDataSql;
+        S::exec(db,"BEGIN");
+        PersonNicknames::validateCore(db);
+        if(S::scalar(db,"SELECT count(*) FROM CorePeople WHERE CorePersonKey=?",{corePersonKey})!=1)
+            throw std::runtime_error("Person is not in this Core");
+        result.normalizationPolicy=PersonNicknames::coreSetting(db,"PersonNicknamesNormalizationPolicy");
+        result.unicodeVersion=PersonNicknames::coreSetting(db,"PersonNicknamesUnicodeVersion");
+        S::Query names(db,"SELECT Nickname,NormalizedNickname,DisplayOrder FROM CorePersonNicknames WHERE CorePersonKey=? ORDER BY DisplayOrder,NormalizedNickname COLLATE BINARY",{corePersonKey});
+        while(names.row())
+        {
+            CorePersonNickname value{names.text(),names.text(1),names.integer(2),{}};
+            S::Query sources(db,"SELECT s.SourceFileID,s.SourceLine,f.RelativePath FROM CorePersonNicknameSources s JOIN SourceFiles f ON f.SourceFileID=s.SourceFileID WHERE s.CorePersonKey=? AND s.NormalizedNickname=? ORDER BY f.RelativePath COLLATE BINARY,s.SourceLine",{corePersonKey,value.normalizedNickname});
+            while(sources.row()) value.sources.push_back({sources.integer(),static_cast<std::size_t>(sources.integer(1)),sources.text(2)});
+            result.nicknames.push_back(std::move(value));
+        }
+        result.success=true;
+    }
+    catch(const std::exception& e) { result.errorMessage=e.what(); result.nicknames.clear(); }
+    return result;
+}
 
 CoreTeamsLoadResult loadCoreTeams(
     const std::filesystem::path& databasePath,

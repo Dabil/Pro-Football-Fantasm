@@ -8,7 +8,7 @@ namespace ClockStateSql
 {
 namespace S=TeamDataSql;
 inline bool enabled(sqlite3* db)
-{return S::scalar(db,"SELECT count(*) FROM WorldSchemaInfo WHERE SchemaVersion=5 AND SchemaFamily='GCE_WORLD'")==1;}
+{return S::scalar(db,"SELECT count(*) FROM WorldSchemaInfo WHERE SchemaVersion=6 AND SchemaFamily='GCE_WORLD'")==1;}
 inline bool contracts(sqlite3* db,std::int64_t world)
 {
     return S::scalar(db,"SELECT count(*) FROM WorldFeatureVersions WHERE WorldID=? AND ((FeatureKey='WORLD_SCHEDULER' AND ContractVersion=2) OR (FeatureKey='VENUE_EVENTS' AND ContractVersion=3) OR (FeatureKey='LEAGUE_WEEKS' AND ContractVersion=2) OR (FeatureKey IN ('GAME_CLOCKS','GAME_WINDOWS','ELAPSED_GAME_TIME','TEMPORAL_EVENTS','EVENT_DELIVERY','SEASON_EVENTS') AND ContractVersion=1))",{world})==9 &&

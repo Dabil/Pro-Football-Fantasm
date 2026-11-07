@@ -131,6 +131,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Database\PersonNicknames.h" />
+    <ClInclude Include="Database\WorldPersonNicknamesSchema.h" />
     <ClInclude Include="Database\ClockTime.h" />
     <ClInclude Include="Database\WorldTestGame.h" />
     <ClInclude Include="Database\WorldTestGameState.h" />

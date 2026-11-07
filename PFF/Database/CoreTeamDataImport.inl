@@ -90,6 +90,8 @@ void buildCoreTeamData(BuildContext& context, const std::map<std::string, std::f
             }
             else
             {
+                // Repeatable Person nicknames are compiled after canonical identity mapping.
+                if(record.kind=="PERSON" && tag.tag=="NICKNAME") continue;
                 if (record.kind.empty() || !shapes.at(record.kind).count(tag.tag) ||
                     !record.fields.emplace(tag.tag, tag).second || tag.value.empty())
                     throw BuildException("Unexpected, duplicate or empty TeamData field: " + tag.tag,

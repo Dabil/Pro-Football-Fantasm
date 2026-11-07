@@ -161,6 +161,9 @@
     <ClCompile Include="Screens\TradeDeskScreen.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Database\CorePersonNicknamesSchema.h" />
+    <ClInclude Include="Database\CorePersonNicknamesImport.inl" />
+    <ClInclude Include="Data\realTimeSettings.h" />
     <ClInclude Include="Database\CoreClockSchema.h" />
     <ClInclude Include="Database\CoreClockImport.inl" />
     <ClInclude Include="App\LoadedWorldContext.h" />

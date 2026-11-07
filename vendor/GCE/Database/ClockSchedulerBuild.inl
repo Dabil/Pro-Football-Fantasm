@@ -1,4 +1,4 @@
-// Private fresh World5 construction participant. Core snapshot remains read-only.
+// Private clock construction participant in fresh World6. Core snapshot remains read-only.
 void instantiateClockScheduler(CreationContext& c,std::int64_t coreSeason,const std::string& utc,const WorldDatabaseCreateRequest& request)
 {
     namespace S=TeamDataSql;
@@ -14,12 +14,6 @@ void instantiateClockScheduler(CreationContext& c,std::int64_t coreSeason,const 
     S::Query venues(db,"SELECT WorldVenueID,VenueName,TurfType FROM WorldVenues WHERE WorldID=?",{c.worldId});
     while(venues.row()) S::run(db,"INSERT INTO TemporalVenueVersions(WorldID,WorldVenueID,EffectiveUtc,DataRevision,VenueName,TurfType,StateHash) VALUES(?,?,?,0,?,?,?)",
         {c.worldId,venues.integer(),utc,venues.text(1),S::nullable(venues.optionalText(2)),ClockTime::digest(venues.text(1)+":"+venues.optionalText(2).value_or("<NULL>"))});
-    const auto version=readCoreMetadata(c.core,"CoreSchemaVersion");
-    if(version!="3")
-    {
-        c.result->diagnostics.push_back({DatabaseDiagnosticSeverity::Warning,"MISSING_CLOCK_PROFILE: preserved Core2 has no clock/event configuration; new gameplay remains unavailable.",{},0});
-        return;
-    }
     S::Query profiles(c.core,"SELECT ProfileKey,ProfileVersion,RegulationPeriods,QuarterSeconds,OvertimePolicyKey,TimingPolicyKey,TimingPolicyVersion,PolicyContentHash FROM CoreGameClockProfiles ORDER BY ProfileKey,ProfileVersion");
     while(profiles.row()) S::run(db,"INSERT INTO GameClockProfiles VALUES(?,?,?,?,?,?,?,?,?)",
         {c.worldId,profiles.text(),profiles.integer(1),profiles.integer(2),profiles.integer(3),profiles.text(4),profiles.text(5),profiles.integer(6),profiles.text(7)});

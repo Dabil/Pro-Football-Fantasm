@@ -3,6 +3,8 @@
 
 #include <sqlite3.h>
 #include "GCE/Database/WorldTeamDataSchema.h"
+#include "GCE/Database/WorldPersonNicknamesSchema.h"
+#include "GCE/Database/PersonNicknames.h"
 #include "GCE/Database/WorldEventReadiness.h"
 #include "GCE/Database/TeamDataSql.h"
 #include <map>
@@ -2623,13 +2625,14 @@ WorldDatabaseCreateResult createWorldDatabase(
             const std::string scheduleClockZoneId =
                 readCoreMetadata(core, "ScheduleClockZoneId");
 
-            if ((schemaVersion != "2" && schemaVersion != "3") || readCoreMetadata(core, "TeamDataContractVersion") != "1")
+            if (schemaVersion != "4" || readCoreMetadata(core, "TeamDataContractVersion") != "1")
             {
                 throw WorldDatabaseException(
                     "UNSUPPORTED_SCHEMA: Core schema '" + schemaVersion + "'. Rebuild a fresh compatible Core; existing files are never migrated.");
             }
-            if(schemaVersion=="3" && readCoreMetadata(core,"ClockSchedulerStorageVersion")!="1")
-                throw WorldDatabaseException("UNSUPPORTED_SCHEMA: Core3 clock/scheduler storage contract is unavailable");
+            PersonNicknames::validateCore(core);
+            if(readCoreMetadata(core,"ClockSchedulerStorageVersion")!="1")
+                throw WorldDatabaseException("UNSUPPORTED_SCHEMA: Core4 clock/scheduler storage contract is unavailable");
 
             if (ruleset.empty())
             {
@@ -2757,6 +2760,7 @@ WorldDatabaseCreateResult createWorldDatabase(
             createWorldSchema(world);
             const auto clockSchema=clockSchedulerWorldSchema();
             exec(world, clockSchema.c_str());
+            exec(world, WorldPersonNicknamesSchema);
 
             Statement schemaInsert(
                 world,
@@ -2842,6 +2846,7 @@ VALUES(1, NULL, NULL, NULL, ?, NULL, ?, 'SHA256', ?, ?);
             if (!worldEventContractsReady(world, context.worldId) || !worldEventPublicationReady(world, context.worldId))
                 throw WorldDatabaseException("INTEGRITY_FAILURE: incomplete dated-event construction");
 
+            PersonNicknames::validateWorld(world, context.worldId);
             validateCreationParity(context);
             validateSqliteDatabase(world, "World database");
 
@@ -2970,7 +2975,7 @@ WHERE SchemaInfoID = 1;
                     "Unsupported World schema family: " + family);
             }
 
-            if (result.schemaVersion != 4 && result.schemaVersion != WorldDatabaseSchemaVersion)
+            if (result.schemaVersion != WorldDatabaseSchemaVersion)
             {
                 throw WorldDatabaseException(
                     "UNSUPPORTED_SCHEMA: create a fresh compatible World; existing saves are not migrated. Found version " +
@@ -3012,6 +3017,7 @@ FROM Worlds;
             throw WorldDatabaseException("UNSUPPORTED_SCHEMA: unsupported venue/week feature contracts; create a fresh compatible World.");
         if (!worldEventPublicationReady(db, 1))
             throw WorldDatabaseException("INTEGRITY_FAILURE: incomplete dated-event publication");
+        PersonNicknames::validateWorld(db, 1);
         result.world.dataRevision = TeamDataSql::scalar(db,"SELECT Revision FROM WorldDataRevisions WHERE WorldID=1");
 
         {
