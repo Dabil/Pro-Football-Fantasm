@@ -18,6 +18,9 @@ GameTimeScreen::GameTimeScreen(std::unique_ptr<PffTest::GenericTestGame> game, W
       m_return(std::move(back))
 {
     auto log = std::make_unique<ScrollBox>();
+    auto scrollStyle = log->styleSet();
+    scrollStyle.focused = PFF_Colors::ScrollBoxFocusedStyle;
+    log->setStyleSet(scrollStyle);
     m_log = log.get();
     m_root.addChild(std::move(log));
     for (const auto &command : {std::pair<const char *, const char *>{"Next Play", "next"},
