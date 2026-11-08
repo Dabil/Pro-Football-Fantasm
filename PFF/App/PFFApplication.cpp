@@ -14,6 +14,7 @@
 #include "Screens/GameTimeScreen.h"
 #include "Screens/CommissionersOfficeScreen.h"
 #include "Screens/LeaguePlayScreen.h"
+#include "Screens/LeagueNewsScreen.h"
 #include "Screens/TeamsAndStandingsScreen.h"
 #include "Screens/TeamScreen.h"
 #include "Screens/TeamDataScreen.h"
@@ -318,10 +319,18 @@ bool PFFApplication::onInitialize()
         {
             return std::make_unique<LeaguePlayScreen>(
                 assetLibrary(),
-                [this](std::string_view commandId)
-                {
-                    return handlePffCommandId(commandId);
-                });
+                [this](std::string_view commandId) { return handlePffCommandId(commandId); },
+                [this] { return loadedWorldContext(); });
+        });
+
+    registerScreenRoute(
+        "pff:league_news",
+        [this]() -> std::unique_ptr<Screen>
+        {
+            return std::make_unique<LeagueNewsScreen>(
+                assetLibrary(),
+                [this] { handlePffCommandId("nav:back"); },
+                [this] { return loadedWorldContext(); });
         });
 
     registerScreenRoute(
