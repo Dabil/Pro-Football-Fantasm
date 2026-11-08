@@ -1,6 +1,8 @@
 // PFF includes
 #include "Screens/LeaguePlayScreen.h"
 #include "Styles/PFF_Theme.h"
+#include "Screens/GameTimeFormatting.h"
+#include "Utilities/Text/TextClip.h"
 
 // TUI includes
 #include "Rendering/Surface.h"
@@ -8,6 +10,7 @@
 #include "Rendering/Objects/BannerFactory.h"
 
 // C++ library includes
+#include <algorithm>
 #include <utility>
 
 namespace
@@ -17,9 +20,11 @@ namespace
 
 LeaguePlayScreen::LeaguePlayScreen(
     Assets::AssetLibrary& assetLibrary,
-    std::function<bool(std::string_view)> commandDispatcher)
+    std::function<bool(std::string_view)> commandDispatcher,
+    std::function<LoadedWorldContext()> loadedWorldContextProvider)
     : m_assetLibrary(assetLibrary)
     , m_commandDispatcher(std::move(commandDispatcher))
+    , m_loadedWorldContextProvider(std::move(loadedWorldContextProvider))
 {
     buildButtons();
 }
@@ -72,12 +77,14 @@ void LeaguePlayScreen::draw(Surface& surface)
 	const Rect screen = page.resolveRegion("Screen");
     const auto [header, afterHeader] = page.splitTop(screen, 20);
     const auto [footer, body] = page.splitBottom(afterHeader, 10);
-    const auto [leftPane, rightPane] = page.splitLeft(body, body.size.width / 2);
+    const auto [leftPane, remainingPanes] = page.splitLeft(body, body.size.width / 3);
+    const auto [middlePane, rightPane] = page.splitLeft(remainingPanes, remainingPanes.size.width / 2);
+    const auto middleTopPane = page.splitTop(middlePane, middlePane.size.height / 2).first;
     const auto [leftTopPane, leftBottomPane] = page.splitTop(leftPane, leftPane.size.height / 2);
     const auto [rightTopPane, rightBottomPane] = page.splitTop(rightPane, rightPane.size.height / 2);
 
     m_root.setBounds(body);
-    positionButtons(leftTopPane, leftBottomPane, rightTopPane, rightBottomPane, footer);
+    positionButtons(leftTopPane, leftBottomPane, middleTopPane, rightTopPane, rightBottomPane, footer);
 
     page.createRegion("Header", header);
     page.createInsetRegion("InnerPanel", "Header", 2, 1, 2, 1);
@@ -89,6 +96,17 @@ void LeaguePlayScreen::draw(Surface& surface)
     page.drawPanel("Header", PFF_Colors::HeaderOuterColor, PFF_Colors::HeaderOuterColor, ObjectFactory::doubleLineBorder());
     buffer.fillRect(page.resolveRegion("InnerPanel"), U' ', PFF_Colors::HeaderInnerColor);
     page.writeObjectInRegion(m_LeaguePlayTitleObject, "TitleArea", Composition::Align::center());
+
+    const auto world = m_loadedWorldContextProvider ? m_loadedWorldContextProvider() : LoadedWorldContext{};
+    const Rect footerText{Point{footer.position.x + 2, footer.position.y + std::max(0, footer.size.height - 3)},
+        Size{std::max(0, footer.size.width - 42), std::min(2, footer.size.height)}};
+    page.writeLine(footerText, 0, TextClip::clipUtf8Text(
+        world.isLoaded() ? world.worldName : "No league loaded", footerText.size.width),
+        PFF_Colors::TextHighlightColor);
+    if (world.isLoaded())
+        page.writeLine(footerText, 1, TextClip::clipUtf8Text(
+            PffGameTime::formatGameTimeEastern(world.currentTimeUtc), footerText.size.width),
+            PFF_Colors::TextHighlightColor);
 
     m_root.draw(surface);
 }
@@ -109,6 +127,14 @@ void LeaguePlayScreen::buildButtons()
         Rect{ Point{ 0, 0 }, Size{ 34, 3 } },
         "League Schedule",
         "route:pff:league_schedule");
+
+    auto leagueNewsButton = std::make_unique<Button>(
+        Rect{ Point{ 0, 0 }, Size{ 34, 3 } },
+        "League News",
+        "route:pff:league_news");
+    leagueNewsButton->setActivationCallback(
+        [this](const ButtonActivationResult& result) { handleButtonActivation(result); });
+    m_leagueNewsButton = leagueNewsButton.get();
 
     auto leagueLeadersButton = std::make_unique<Button>(
         Rect{ Point{ 0, 0 }, Size{ 34, 3 } },
@@ -159,6 +185,7 @@ void LeaguePlayScreen::buildButtons()
     m_root.addChild(std::move(mainButton));
     m_root.addChild(std::move(teamsAndStandingsButton));
     m_root.addChild(std::move(leagueScheduleButton));
+    m_root.addChild(std::move(leagueNewsButton));
     m_root.addChild(std::move(leagueLeadersButton));
     m_root.addChild(std::move(tradeDeskButton));
 }
@@ -166,6 +193,7 @@ void LeaguePlayScreen::buildButtons()
 void LeaguePlayScreen::positionButtons(
     const Rect& leftTopPane,
     const Rect& leftBottomPane,
+    const Rect& middleTopPane,
     const Rect& rightTopPane,
     const Rect& rightBottomPane,
     const Rect& footer)
@@ -191,77 +219,24 @@ void LeaguePlayScreen::positionButtons(
         m_mainButton->setFocusedStyle(ButtonFocusedStyle);
     }
 
-    if (m_teamsAndStandingsButton)
+    const auto centerButton = [&](Button& button, const Rect& pane)
     {
-        const Size buttonSize{ 28, 3 };
+        const Size size{std::min(28, pane.size.width), std::min(3, pane.size.height)};
+        button.setBounds(Rect{
+            Point{pane.position.x + (pane.size.width - size.width) / 2,
+                  pane.position.y + (pane.size.height - size.height) / 2},
+            size});
+        button.setNormalStyle(PFF_Colors::ButtonNormalColor);
+        button.setHoverStyle(PFF_Colors::ButtonHoverColor);
+        button.setPressedStyle(PFF_Colors::ButtonPressedColor);
+        button.setFocusedStyle(ButtonFocusedStyle);
+    };
 
-        m_teamsAndStandingsButton->setBounds(Rect{
-            Point{
-                leftTopPane.position.x + ((leftTopPane.size.width - buttonSize.width) / 2),
-                leftTopPane.position.y + ((leftTopPane.size.height - buttonSize.height) / 2)
-            },
-            buttonSize
-            });
-
-        m_teamsAndStandingsButton->setNormalStyle(PFF_Colors::ButtonNormalColor);
-        m_teamsAndStandingsButton->setHoverStyle(PFF_Colors::ButtonHoverColor);
-        m_teamsAndStandingsButton->setPressedStyle(PFF_Colors::ButtonPressedColor);
-        m_teamsAndStandingsButton->setFocusedStyle(ButtonFocusedStyle);
-    }
-
-    if (m_leagueScheduleButton)
-    {
-        const Size buttonSize{ 28, 3 };
-
-        m_leagueScheduleButton->setBounds(Rect{
-            Point{
-                leftBottomPane.position.x + ((leftBottomPane.size.width - buttonSize.width) / 2),
-                leftBottomPane.position.y + ((leftBottomPane.size.height - buttonSize.height) / 2)
-            },
-            buttonSize
-            });
-
-        m_leagueScheduleButton->setNormalStyle(PFF_Colors::ButtonNormalColor);
-        m_leagueScheduleButton->setHoverStyle(PFF_Colors::ButtonHoverColor);
-        m_leagueScheduleButton->setPressedStyle(PFF_Colors::ButtonPressedColor);
-        m_leagueScheduleButton->setFocusedStyle(ButtonFocusedStyle);
-    }
-
-    if (m_leagueLeadersButton)
-    {
-        const Size buttonSize{ 28, 3 };
-
-        m_leagueLeadersButton->setBounds(Rect{
-            Point{
-                rightTopPane.position.x + ((rightTopPane.size.width - buttonSize.width) / 2),
-                rightTopPane.position.y + ((rightTopPane.size.height - buttonSize.height) / 2)
-            },
-            buttonSize
-            });
-
-        m_leagueLeadersButton->setNormalStyle(PFF_Colors::ButtonNormalColor);
-        m_leagueLeadersButton->setHoverStyle(PFF_Colors::ButtonHoverColor);
-        m_leagueLeadersButton->setPressedStyle(PFF_Colors::ButtonPressedColor);
-        m_leagueLeadersButton->setFocusedStyle(ButtonFocusedStyle);
-    }
-
-    if (m_tradeDeskButton)
-    {
-        const Size buttonSize{ 28, 3 };
-
-        m_tradeDeskButton->setBounds(Rect{
-            Point{
-                rightBottomPane.position.x + ((rightBottomPane.size.width - buttonSize.width) / 2),
-                rightBottomPane.position.y + ((rightBottomPane.size.height - buttonSize.height) / 2)
-            },
-            buttonSize
-            });
-
-        m_tradeDeskButton->setNormalStyle(PFF_Colors::ButtonNormalColor);
-        m_tradeDeskButton->setHoverStyle(PFF_Colors::ButtonHoverColor);
-        m_tradeDeskButton->setPressedStyle(PFF_Colors::ButtonPressedColor);
-        m_tradeDeskButton->setFocusedStyle(ButtonFocusedStyle);
-    }
+    centerButton(*m_teamsAndStandingsButton, leftTopPane);
+    centerButton(*m_leagueScheduleButton, leftBottomPane);
+    centerButton(*m_leagueNewsButton, middleTopPane);
+    centerButton(*m_leagueLeadersButton, rightTopPane);
+    centerButton(*m_tradeDeskButton, rightBottomPane);
 }
 
 void LeaguePlayScreen::handleButtonActivation(const ButtonActivationResult& result)

@@ -74,18 +74,18 @@ void testDispatchDue(Session &s, const std::string &through, std::int64_t rev, s
                            "c.EndsUtc IS NULL AND u.Active=1 AND c.StartsUtc<=? AND p.OfferedStartUtc<=?",
                            {s.world, event, at, at}),
                 WorldEditError::DueWorkPending, "Queue stopped: an event requires a user decision");
-        require(q.integer(4) == 1 && q.integer(5) == 1 &&
-                    (handler == "VENUE_APPLY" || handler == "OPEN_TRADING" || handler == "CLOSE_TRADING"),
-                WorldEditError::UnsupportedHandler, ("Queue stopped: unsupported event " + handler).c_str());
+        const bool supported = q.integer(4) == 1 && q.integer(5) == 1 &&
+            (handler == "VENUE_APPLY" || handler == "OPEN_TRADING" || handler == "CLOSE_TRADING");
         if (!game)
         {
             require(at >= s.now, WorldEditError::ClockBarrier, "Queue contains overdue work");
             S::run(s.db, "UPDATE Worlds SET CurrentTimeUtc=? WHERE WorldID=?", {at, s.world});
             s.now = at;
         }
-        clockDispatch(s, request, event, handler, rev, game, claim, at);
+        clockDispatch(s, request, event, supported ? handler : "SUPPORT_PENDING", rev, game, claim, at);
         if (notices && visibleEvent(s, event, at))
-            *notices += "[WORLD QUEUE] " + handler + " applied at " + at + ".\n";
+            *notices += supported ? "[WORLD QUEUE] " + handler + " applied at " + at + ".\n"
+                                  : "[WORLD QUEUE] Event support pending at " + at + ".\n";
     }
 }
 std::int64_t testClaim(Session &s, std::int64_t game, std::int64_t generation, int elapsed,

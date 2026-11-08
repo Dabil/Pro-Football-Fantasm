@@ -2,6 +2,7 @@
 
 #include "Screens/Screen.h"
 #include "Assets/AssetLibrary.h"
+#include "App/LoadedWorldContext.h"
 #include "UI/Widgets/Button.h"
 #include "UI/Widgets/ContainerWidget.h"
 
@@ -15,7 +16,8 @@ class LeaguePlayScreen : public Screen
 public:
 	explicit LeaguePlayScreen(
 		Assets::AssetLibrary& assetLibrary,
-		std::function<bool(std::string_view)> commandDispatcher);
+		std::function<bool(std::string_view)> commandDispatcher,
+		std::function<LoadedWorldContext()> loadedWorldContextProvider = {});
 
 	~LeaguePlayScreen();
 
@@ -30,6 +32,7 @@ private:
 	void positionButtons(
 		const Rect& leftTopPane, 
 		const Rect& leftBottomPane,
+		const Rect& middleTopPane,
 		const Rect& rightTopPane,
 		const Rect& rightBottomPane,
 		const Rect& footer);
@@ -46,7 +49,9 @@ private:
 
 	// buttons
 	std::function<bool(std::string_view)> m_commandDispatcher;
+	std::function<LoadedWorldContext()> m_loadedWorldContextProvider;
 	ContainerWidget m_root;
+	Button* m_leagueNewsButton = nullptr;
 	Button* m_mainButton = nullptr;
 	Button* m_teamsAndStandingsButton = nullptr;
 	Button* m_leagueScheduleButton = nullptr;

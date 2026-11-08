@@ -651,7 +651,10 @@ void LeagueScheduleScreen::runBatch()
                     publishAdvance(outcome);
                 }
                 if (m_gameWindowReady && m_advancing) return;
-                stop("Unable to start game: " + started.message);
+                if (m_gameWindow.reason == "UNSUPPORTED_EVENT")
+                    stop(started.message + ". Advance again to skip this event.");
+                else
+                    stop("Unable to start game: " + started.message);
                 return;
             }
             m_committed(started.value.commit);
@@ -716,6 +719,7 @@ void LeagueScheduleScreen::drawGameWindowStatus(Composition::PageComposer& page,
     if(!m_batchKickoff.empty() && !m_batchStopped) message="Simulating games...";
     else if(m_advancing) message="Advancing to game window...";
     else if(m_windowMessage=="UNSUPPORTED_PROVIDER") message="Game executor not installed. Games cannot start yet.";
+    else if(m_windowMessage=="UNSUPPORTED_EVENT") message="Event support pending. Advance again to skip it.";
     else if(m_windowMessage=="UNSUPPORTED_CODEC") message="Current games need a supported game executor before continuing.";
     else if(m_windowMessage=="REQUIRED_DECISION") message="Game participation needs your attention before continuing.";
     else if(m_windowMessage=="WAITING_FOR_WORLD_WORK") message="An earlier event needs attention before continuing.";

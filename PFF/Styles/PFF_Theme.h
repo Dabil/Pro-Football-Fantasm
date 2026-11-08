@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Rendering/Styles/Themes.h"
+#include "Rendering/Styles/UIThemes.h"
 
 namespace PFF_Colors
 {
@@ -110,6 +111,9 @@ namespace PFF_Colors
             Color::FromBasic(Color::Basic::Red),
             Color::FromIndexed(124),
             Color::FromRgb(155, 0, 0)));
+
+    // ScrollBox focus fills blank cells as well as text, so keep the fill unlined.
+    inline const Style ScrollBoxFocusedStyle = UIThemes::WidgetTextFocused.withUnderline(false);
 
     inline const Style ButtonHoverColor =
         style::Fg(ThemeColor::Basic256Rgb(

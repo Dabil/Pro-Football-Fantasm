@@ -318,6 +318,19 @@ bool ScrollBox::dispatchTranslatedMouseEvent(const Input::MouseEvent& mouseEvent
 
     Widget* target = hitTestContent(translatedMouseEvent.position);
 
+    if (mouseEvent.isMove() && !m_mouseCaptureChild)
+    {
+        for (std::size_t index = 0; index < childCount(); ++index)
+        {
+            auto* child = childAt(index);
+            if (child != target) child->clearPointerState();
+        }
+        if (target && target->canReceivePointerFocus(translatedMouseEvent.position))
+            setFocusedChild(*target);
+        else
+            clearChildFocus();
+    }
+
     if (mouseEvent.isPress())
     {
         m_mouseCaptureChild = target;

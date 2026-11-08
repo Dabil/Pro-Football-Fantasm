@@ -16,7 +16,7 @@ bool testAutomaticChain(Session &s, std::int64_t event, const std::string &throu
         "c.WorldUserID=p.WorldUserID JOIN WorldUsers u ON u.WorldID=p.WorldID AND "
         "u.WorldUserID=p.WorldUserID WHERE p.WorldID=e.WorldID AND p.ScheduledWorldEventID=e.ScheduledWorldEventID "
         "AND p.Required=1 AND p.State='OFFERED' AND c.EndsUtc IS NULL AND u.Active=1 AND "
-        "c.StartsUtc<=e.StartsUtc AND p.OfferedStartUtc<=e.StartsUtc) FROM ScheduledWorldEvents e "
+        "c.StartsUtc<=e.StartsUtc AND p.OfferedStartUtc<=e.StartsUtc),e.ResolutionReason FROM ScheduledWorldEvents e "
         "JOIN WorldEventKinds k ON k.WorldID=e.WorldID AND k.KindKey=e.KindKey LEFT JOIN SeasonEventInstances i "
         "ON i.WorldID=e.WorldID AND i.ScheduledWorldEventID=e.ScheduledWorldEventID LEFT JOIN SeasonEventDefinitions d "
         "ON d.WorldID=i.WorldID AND d.DefinitionID=i.DefinitionID WHERE e.WorldID=? AND e.ScheduledWorldEventID=?",
@@ -24,10 +24,10 @@ bool testAutomaticChain(Session &s, std::int64_t event, const std::string &throu
     if (!q.row())
         return false;
     if (q.text() == "COMPLETED")
-        return true;
+        return q.text(7) != "SUPPORT_PENDING";
     const auto handler = q.text(2) == "VENUE_APPLY" ? q.text(2) : q.text(4);
-    if (q.text() != "PENDING" || q.text(1) > through || q.integer(3) != 1 || q.integer(5) != 1 || q.integer(6) ||
-        (handler != "VENUE_APPLY" && handler != "OPEN_TRADING" && handler != "CLOSE_TRADING"))
+    if (q.text() != "PENDING" || q.text(1) > through || q.integer(3) != 1 || q.integer(5) != 1 ||
+        q.integer(6) || (handler != "VENUE_APPLY" && handler != "OPEN_TRADING" && handler != "CLOSE_TRADING"))
         return false;
     // A source dependency without an installed occurrence cannot be guessed.
     if (S::scalar(s.db,
@@ -103,17 +103,14 @@ std::vector<WorldTestQueuedEvent> testQueuedEvents(Session &s, std::int64_t game
             event.reason = "REQUIRED_ATTENTION";
             event.blocker = "An event requires a user decision";
         }
-        else if (q.integer(4) != 1 || q.integer(5) != 1 ||
-                 (handler != "VENUE_APPLY" && handler != "OPEN_TRADING" && handler != "CLOSE_TRADING"))
-        {
-            event.reason = "UNSUPPORTED_EVENT";
-            event.blocker = "This event needs a feature that is not installed";
-        }
+        const bool supported = q.integer(4) == 1 && q.integer(5) == 1 &&
+            (handler == "VENUE_APPLY" || handler == "OPEN_TRADING" || handler == "CLOSE_TRADING");
         if (visibleEvent(s, q.integer(), event.startsUtc))
         {
             if (!event.blocker.empty())
                 event.blocker += ": " + q.text(7) + " at " + event.startsUtc;
-            event.notice = "[WORLD QUEUE] " + handler + " due at " + event.startsUtc + " (pending save).\n";
+            event.notice = supported ? "[WORLD QUEUE] " + handler + " due at " + event.startsUtc + " (pending save).\n"
+                                     : "[WORLD QUEUE] Event support pending at " + event.startsUtc + " (pending save).\n";
         }
         // Hidden occurrences do not expose their key, ID, policy, or timestamp.
         else

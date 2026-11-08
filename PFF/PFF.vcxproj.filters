@@ -58,6 +58,7 @@
     <ClCompile Include="Screens\MainScreen.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Screens\LeagueNewsScreen.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="Screens\LeaguePlayScreen.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -136,6 +137,7 @@
     <ClInclude Include="Styles\PFF_Theme.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Screens\LeagueNewsScreen.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Screens\LeaguePlayScreen.h">
       <Filter>Header Files</Filter>
     </ClInclude>

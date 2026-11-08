@@ -491,7 +491,7 @@ WorldGameWindow previewInstalledWindow(Session &s, std::int64_t season)
                               : "Admit the next kickoff window and play its first matchup.";
     }
     S::Query active(s.db,
-                    "SELECT AdvanceRequestID,CommandKey,TargetUtc FROM WorldAdvanceRequests WHERE WorldID=? "
+                    "SELECT AdvanceRequestID,CommandKey,TargetUtc,StopReason FROM WorldAdvanceRequests WHERE WorldID=? "
                     "AND State IN ('RUNNING','PAUSED','BLOCKED')",
                     {s.world});
     if (active.row())
@@ -503,6 +503,7 @@ WorldGameWindow previewInstalledWindow(Session &s, std::int64_t season)
             r.advance = advanceOutcome(s, active.integer());
             r.canResume = r.advance->state == "RUNNING";
             r.canStart = r.advance->reason == "GAME_WINDOW_ADMISSION_REQUIRED" ||
+                         active.text(3) == "UNSUPPORTED_EVENT" ||
                          s.revision > r.advance->outcomeRevision;
             r.reason = r.advance->reason;
         }

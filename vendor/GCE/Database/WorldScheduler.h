@@ -40,6 +40,14 @@ enum class WorldEventChoiceKind
     Decline,
     Delegate
 };
+struct WorldLeagueNewsEntry
+{
+    std::string occurredUtc;
+    std::string headline;
+};
+WorldEditResult<std::vector<WorldLeagueNewsEntry>> loadWorldLeagueNews(
+    const WorldActor&, std::int64_t competitionSeasonId);
+
 struct WorldEventChoice
 {
     std::int64_t participationId = 0;

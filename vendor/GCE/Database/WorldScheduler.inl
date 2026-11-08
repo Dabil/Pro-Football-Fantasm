@@ -480,6 +480,51 @@ WorldEditResult<WorldTimeline> loadWorldTimeline(const WorldActor& actor, const 
         return r;
     });
 }
+WorldEditResult<std::vector<WorldLeagueNewsEntry>> loadWorldLeagueNews(
+    const WorldActor& actor, std::int64_t season)
+{
+    return attempt<std::vector<WorldLeagueNewsEntry>>([&] {
+        Session s(actor, false);
+        std::vector<WorldLeagueNewsEntry> entries;
+        const std::string completed =
+            "SELECT e.ResolvedUtc,e.EventKey,e.ResolutionReason FROM ScheduledWorldEvents e "
+            "WHERE e.WorldID=? AND e.Visibility='PUBLIC' AND e.State='COMPLETED' "
+            "AND e.KindKey<>'GAME_KICKOFF' AND e.ResolvedUtc<=?";
+        const std::string seasonFilter =
+            " AND NOT EXISTS(SELECT 1 FROM SeasonEventInstances i JOIN SeasonEventDefinitions d "
+            "ON d.WorldID=i.WorldID AND d.DefinitionID=i.DefinitionID WHERE i.WorldID=e.WorldID "
+            "AND i.ScheduledWorldEventID=e.ScheduledWorldEventID AND d.CompetitionSeasonID<>?)";
+        const auto sql = completed + (s.clockModel ? seasonFilter : " AND ? IS NOT NULL") +
+            " ORDER BY e.ScheduledWorldEventID";
+        S::Query events(s.db,sql.c_str(),{s.world,s.now,season});
+        while (events.row())
+        {
+            auto headline = events.text(1);
+            if (events.text(2) == "SUPPORT_PENDING") headline += " (support pending)";
+            entries.push_back({events.text(),std::move(headline)});
+        }
+        S::Query games(s.db,
+            "SELECT g.CompletedUtc,away.DisplayName,g.AwayScore,home.DisplayName,g.HomeScore "
+            "FROM Games g JOIN WorldScheduledGames fixture ON fixture.WorldScheduledGameID=g.WorldScheduledGameID "
+            "JOIN TeamSeasons away ON away.TeamSeasonID=fixture.AwayTeamSeasonID "
+            "JOIN TeamSeasons home ON home.TeamSeasonID=fixture.HomeTeamSeasonID "
+            "WHERE g.WorldID=? AND fixture.CompetitionSeasonID=? AND g.GameStatus='FINAL' "
+            "AND g.CompletedUtc<=? AND g.AwayScore IS NOT NULL AND g.HomeScore IS NOT NULL "
+            "AND NOT EXISTS(SELECT 1 FROM GameKickoffOccurrences k JOIN ScheduledWorldEvents e "
+            "ON e.WorldID=k.WorldID AND e.ScheduledWorldEventID=k.ScheduledWorldEventID "
+            "WHERE k.WorldID=g.WorldID AND k.WorldScheduledGameID=fixture.WorldScheduledGameID "
+            "AND k.IsCurrent=1 AND e.Visibility<>'PUBLIC') ORDER BY g.GameID", {s.world,season,s.now});
+        while (games.row())
+            entries.push_back({games.text(), "Final: " + games.text(1) + " " + std::to_string(games.integer(2))
+                + " at " + games.text(3) + " " + std::to_string(games.integer(4))});
+        std::stable_sort(entries.begin(), entries.end(), [](const auto& left, const auto& right) {
+            return left.occurredUtc > right.occurredUtc;
+        });
+        S::exec(s.db,"COMMIT");
+        return entries;
+    });
+}
+
 WorldEditResult<std::vector<WorldEventFact>> loadWorldFacts(const WorldActor& actor, const std::string& from,
                                                             const std::string& to, std::size_t offset,
                                                             std::size_t limit)

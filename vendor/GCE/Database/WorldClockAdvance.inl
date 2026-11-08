@@ -5,7 +5,8 @@ bool clockDependenciesReady(Session& s, std::int64_t occurrence)
     return ClockStateSql::prerequisitesReady(s.db,s.world,occurrence) &&
         S::scalar(s.db,"SELECT count(*) FROM EventDependencies d JOIN ScheduledWorldEvents p "
             "ON p.WorldID=d.WorldID AND p.ScheduledWorldEventID=d.RequiresEventID "
-            "WHERE d.WorldID=? AND d.ScheduledWorldEventID=? AND p.State<>'COMPLETED'",
+            "WHERE d.WorldID=? AND d.ScheduledWorldEventID=? "
+            "AND (p.State<>'COMPLETED' OR p.ResolutionReason='SUPPORT_PENDING')",
             {s.world,occurrence})==0;
 }
 std::int64_t clockAttention(Session& s,std::int64_t occurrence)
@@ -29,6 +30,7 @@ void clockDispatch(Session& s,std::int64_t request,std::int64_t event,
                    std::int64_t game=0,std::int64_t claim=0,const std::string& historical={})
 {
     const auto at=historical.empty()?s.now:historical;
+    const bool skipped=handler=="SUPPORT_PENDING";
     const auto sequence=S::scalar(s.db,"SELECT COALESCE(max(OrderInInstant),0)+1 "
         "FROM WorldExecutionContexts WHERE WorldID=? AND EffectiveUtc=?",{s.world,at});
     if(game)
@@ -55,11 +57,12 @@ void clockDispatch(Session& s,std::int64_t request,std::int64_t event,
     else if(handler=="OPEN_TRADING" || handler=="CLOSE_TRADING")
         ClockStateSql::applyTradingOutcome(s.db,s.world,outcome);
     S::run(s.db,"UPDATE ScheduledWorldEvents SET State='COMPLETED',StartedUtc=StartsUtc,ResolvedUtc=?,"
-        "ResolvedRevision=?,ResolutionReason='HISTORICAL_DISPATCH' WHERE WorldID=? "
-        "AND ScheduledWorldEventID=? AND State='PENDING'",{at,rev,s.world,event});
+        "ResolvedRevision=?,ResolutionReason=? WHERE WorldID=? "
+        "AND ScheduledWorldEventID=? AND State='PENDING'",
+        {at,rev,std::string(skipped?"SUPPORT_PENDING":"HISTORICAL_DISPATCH"),s.world,event});
     require(sqlite3_changes(s.db)==1,WorldEditError::IntegrityFailure,"Event changed during dispatch");
-    S::run(s.db,"INSERT INTO SchedulerDispatchReceipts VALUES(?,?,'APPLY',?,?,?,?)",
-        {s.world,event,context,fingerprint,at,rev});
+    S::run(s.db,"INSERT INTO SchedulerDispatchReceipts VALUES(?,?,?,?,?,?,?)",
+        {s.world,event,std::string(skipped?"RESOLVE":"APPLY"),context,fingerprint,at,rev});
     const std::string kind=handler=="VENUE_APPLY"?"VENUE_APPLIED":handler;
     S::run(s.db,"INSERT INTO WorldEventFacts(WorldID,FactKey,FactKind,ScheduledWorldEventID,"
         "VenueChangeEventID,OccurredUtc,DataRevision,Visibility,ExecutionContextID) "
@@ -98,7 +101,7 @@ WorldAdvanceOutcome clockAdvanceUnit(Session& s,S::Transaction& tx,std::int64_t 
         "x.SettingKey LIKE 'Clock.TeamHistoricalReference:'||d.DefinitionID||':%'))<"
         "(SELECT count(*) FROM TeamSeasons t WHERE t.CompetitionSeasonID=d.CompetitionSeasonID AND t.Status='ACTIVE')",
         {s.world})) return finish("BLOCKED","MISSING_TIMEZONE");
-    S::Query intent(s.db,"SELECT Mode,TargetUtc,VisibleStopEventID FROM WorldAdvanceRequests "
+    S::Query intent(s.db,"SELECT Mode,TargetUtc,VisibleStopEventID,StopReason,PauseEventID FROM WorldAdvanceRequests "
         "WHERE WorldID=? AND AdvanceRequestID=?",{s.world,id});
     require(intent.row(),WorldEditError::InvalidValue,"Unknown World advancement request");
     std::string target=intent.text(1);
@@ -131,15 +134,17 @@ WorldAdvanceOutcome clockAdvanceUnit(Session& s,S::Transaction& tx,std::int64_t 
         if(!clockDependenciesReady(s,event)){if(!blocked)blocked=event;continue;}
         if(clockAttention(s,event))return finish("PAUSED","REQUIRED_ATTENTION",event,1);
         const auto handler=due.text(1)=="VENUE_APPLY"?std::string("VENUE_APPLY"):due.text(3);
-        if(due.integer(2)!=1 || (handler!="VENUE_APPLY" && due.integer(4)!=1) ||
-           (handler!="VENUE_APPLY" && handler!="OPEN_TRADING" && handler!="CLOSE_TRADING" &&
-            handler!="ANNOUNCE_LEAGUE_SEASON_ENDED"))return finish("BLOCKED","UNSUPPORTED_EVENT",event,1);
-        if(handler=="ANNOUNCE_LEAGUE_SEASON_ENDED" && !S::scalar(s.db,
+        const bool unsupported=due.integer(2)!=1 || (handler!="VENUE_APPLY" && due.integer(4)!=1) ||
+            (handler!="VENUE_APPLY" && handler!="OPEN_TRADING" && handler!="CLOSE_TRADING" &&
+             handler!="ANNOUNCE_LEAGUE_SEASON_ENDED");
+        if(unsupported && (intent.text(3)!="UNSUPPORTED_EVENT" || intent.integer(4)!=event))
+            return finish("BLOCKED","UNSUPPORTED_EVENT",event,1);
+        if(!unsupported && handler=="ANNOUNCE_LEAGUE_SEASON_ENDED" && !S::scalar(s.db,
             "SELECT count(*) FROM SeasonEventInstances i JOIN GameFinalSaves f ON f.WorldID=i.WorldID "
             "AND f.GameID=i.ParentGameID WHERE i.WorldID=? AND i.ScheduledWorldEventID=? AND f.CompletedUtc=?",
             {s.world,event,s.now}))return finish("BLOCKED","UNSATISFIED_DEPENDENCY",event,1);
         advanceState(s,id,"RUNNING","",0,1,rev); // Historical context binds a live intent.
-        clockDispatch(s,id,event,handler,rev);
+        clockDispatch(s,id,event,unsupported?"SUPPORT_PENDING":handler,rev);
         return finish("RUNNING","",0,1);
     }
     if(blocked)return finish("BLOCKED","UNSATISFIED_DEPENDENCY",blocked,1);
