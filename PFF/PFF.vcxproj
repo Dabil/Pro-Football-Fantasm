@@ -141,6 +141,7 @@
     <ClCompile Include="..\vendor\sqlite\sqlite3.c" />
     <ClCompile Include="App\PFFApplication.cpp" />
     <ClCompile Include="Database\PFFDatabase.cpp" />
+    <ClCompile Include="Database\WorldFormationBook.cpp" />
     <ClCompile Include="Database\GenericTestGame.cpp" />
     <ClCompile Include="Screens\GameTimeScreen.cpp" />
     <ClCompile Include="main.cpp" />
@@ -159,6 +160,9 @@
     <ClCompile Include="Screens\TeamsAndStandingsScreen.cpp" />
     <ClCompile Include="Screens\TeamDataScreen.cpp" />
     <ClCompile Include="Screens\TeamScreen.cpp" />
+    <ClCompile Include="Screens\HeadCoachScreen.cpp" />
+    <ClCompile Include="Screens\FormationEditorScreen.cpp" />
+    <ClCompile Include="Screens\FormationBookDraft.cpp" />
     <ClCompile Include="Screens\TradeDeskScreen.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -172,6 +176,7 @@
     <ClInclude Include="Database\CoreTeamDataSchema.h" />
     <ClInclude Include="Database\CoreTeamDataImport.inl" />
     <ClInclude Include="Database\PFFDatabase.h" />
+    <ClInclude Include="Database\WorldFormationBook.h" />
     <ClInclude Include="Database\CoreManifest.h" />
     <ClInclude Include="Database\LeagueSetup.h" />
     <ClInclude Include="Database\PFFChartImport.inl" />
@@ -195,6 +200,9 @@
     <ClInclude Include="Screens\TeamDataScreen.h" />
     <ClInclude Include="Screens\FormCheckBox.h" />
     <ClInclude Include="Screens\TeamScreen.h" />
+    <ClInclude Include="Screens\HeadCoachScreen.h" />
+    <ClInclude Include="Screens\FormationEditorScreen.h" />
+    <ClInclude Include="Screens\FormationBookDraft.h" />
     <ClInclude Include="Screens\TeamLink.h" />
     <ClInclude Include="Screens\TradeDeskScreen.h" />
     <ClInclude Include="Styles\PFF_Theme.h" />

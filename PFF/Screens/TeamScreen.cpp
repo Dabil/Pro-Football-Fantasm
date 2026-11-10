@@ -11,12 +11,14 @@
 TeamScreen::TeamScreen(Assets::AssetLibrary& assets,std::function<bool(std::string_view)> dispatch,
     std::function<LoadedWorldContext()> context,LoadedWorldContext selectedWorld,std::int64_t teamSeasonId,
     std::function<void(const LoadedWorldContext&,std::int64_t)> openTeamData,
-    std::function<void(const LoadedWorldContext&,std::int64_t)> openSchedule)
+    std::function<void(const LoadedWorldContext&,std::int64_t)> openSchedule,
+    std::function<void(const LoadedWorldContext&,std::int64_t)> openHeadCoach)
     : m_assets(assets),m_dispatch(std::move(dispatch)),m_context(std::move(context)),
       m_selectedWorld(std::move(selectedWorld)),m_teamSeasonId(teamSeasonId),m_openTeamData(std::move(openTeamData))
 {
     m_openSchedule=std::move(openSchedule);
-    for(const auto* label: {"Team Data","Roster","Statistics","Schedule","Team News","Return"})
+    m_openHeadCoach=std::move(openHeadCoach);
+    for(const auto* label: {"Team Data","Head Coach","Roster","Statistics","Schedule","Team News","Return"})
     {
         auto button=std::make_unique<Button>(label);
         if(std::string_view(label)=="Return")
@@ -33,6 +35,13 @@ TeamScreen::TeamScreen(Assets::AssetLibrary& assets,std::function<bool(std::stri
             m_schedule=button.get();
             button->setActivationCallback([this](const ButtonActivationResult& r){if(r.activated)m_schedulePending=true;});
         }
+        if (std::string_view(label) == "Head Coach")
+        {
+            m_headCoach = button.get();
+            button->setActivationCallback([this](const ButtonActivationResult& result) {
+                if (result.activated) m_headCoachPending = true;
+            });
+        }
         m_root.addChild(std::move(button));
     }
 }
@@ -48,6 +57,7 @@ void TeamScreen::refreshTeam(bool force)
         context.currentTimeUtc==m_displayContext.currentTimeUtc && context.dataRevision==m_displayContext.dataRevision && context.worldName==m_displayContext.worldName) return;
     m_displayContext=context;m_checked=true;m_available=false;m_banner.clear();m_teamData->setEnabled(false);
     m_schedule->setEnabled(false);
+    m_headCoach->setEnabled(false);
     m_title="Team unavailable";m_message="This team is not available in the active league and season.";
     if(!context.hasActiveCompetitionSeason() || context.databasePath!=m_selectedWorld.databasePath ||
         context.worldKey!=m_selectedWorld.worldKey ||
@@ -57,6 +67,7 @@ void TeamScreen::refreshTeam(bool force)
     const auto team=std::find_if(teams.teams.begin(),teams.teams.end(),[&](const auto& value) {return value.teamSeasonId==m_teamSeasonId;});
     if(team==teams.teams.end()) return;
     m_schedule->setEnabled(bool(m_openSchedule));
+    m_headCoach->setEnabled(bool(m_openHeadCoach));
     m_team=*team;m_available=true;m_message.clear();
     if(m_openTeamData){const auto actor=openLocalWorldActor(context.databasePath);if(actor.success){const auto details=loadTeamData(actor.value,m_teamSeasonId);m_teamData->setEnabled(details.success);if(!details.success)m_message="Team Data unavailable: "+details.message;}else m_message="Team Data unavailable: "+actor.message;}
     m_title=m_team.nickname.empty()?m_team.fallbackDisplayName():m_team.nickname;
@@ -78,6 +89,16 @@ bool TeamScreen::handleEvent(const Input::Event& event)
         m_root.resetFocus();
         if(open)open(world,id);
         return handled;
+    }
+    if (m_headCoachPending)
+    {
+        m_headCoachPending = false;
+        const auto open = m_openHeadCoach;
+        const auto world = m_displayContext;
+        const auto id = m_teamSeasonId;
+        m_root.resetFocus();
+        if (open) open(world, id);
+        return true;
     }
     if(m_openDataPending){m_openDataPending=false;const auto open=m_openTeamData;const auto world=m_displayContext;const auto id=m_teamSeasonId;m_root.resetFocus();if(open)open(world,id);}
     return handled;
@@ -115,8 +136,9 @@ void TeamScreen::draw(Surface& surface)
             page.writeLine(titleArea,static_cast<int>(row),lines[row],titleStyle);
     }
     if(!m_message.empty()) page.writeLine(content,1,TextClip::clipUtf8Text(m_message,content.size.width),textStyle);
+    const int optionSpacing = controls.size.height >= 30 ? 5 : 3;
     for(std::size_t i=0;i<m_options.size();++i)
-        m_options[i]->setBounds(Rect{Point{controls.position.x+1,controls.position.y+2+static_cast<int>(i)*5},Size{std::max(0,controls.size.width-2),3}});
+        m_options[i]->setBounds(Rect{Point{controls.position.x+1,controls.position.y+2+static_cast<int>(i)*optionSpacing},Size{std::max(0,controls.size.width-2),3}});
     m_return->setBounds(Rect{Point{footer.position.x+std::max(0,footer.size.width-38),footer.position.y+1},Size{28,3}});
     for(std::size_t i=0;i<m_root.childCount();++i)
     {

@@ -17,6 +17,8 @@
 #include "Screens/LeagueNewsScreen.h"
 #include "Screens/TeamsAndStandingsScreen.h"
 #include "Screens/TeamScreen.h"
+#include "Screens/HeadCoachScreen.h"
+#include "Screens/FormationEditorScreen.h"
 #include "Screens/TeamDataScreen.h"
 #include "Screens/LeagueScheduleScreen.h"
 #include "Screens/LeagueLeadersScreen.h"
@@ -198,7 +200,21 @@ void PFFApplication::openTeamScreen(const LoadedWorldContext& world,std::int64_t
         [this](std::string_view command){return handlePffCommandId(command);},
         [this]{return loadedWorldContext();},world,teamId,
         [this](const LoadedWorldContext& selected,std::int64_t id){openTeamDataScreen(selected,id);},
-        [this](const LoadedWorldContext&,std::int64_t id){openScheduleScreen(id);}));
+        [this](const LoadedWorldContext&,std::int64_t id){openScheduleScreen(id);},
+        [this](const LoadedWorldContext& selected, std::int64_t id)
+        {
+            screenManager().pushScreen(std::make_unique<HeadCoachScreen>(assetLibrary(),
+                [this](std::string_view command) { return handlePffCommandId(command); },
+                [this] { return loadedWorldContext(); }, selected, id,
+                [this, selected](std::int64_t team)
+                {
+                    screenManager().pushScreen(std::make_unique<FormationEditorScreen>(assetLibrary(), selected,
+                        [this] { return loadedWorldContext(); }, team,
+                        [this] { handlePffCommandId("nav:back"); }));
+                    requestRender();
+                }));
+            requestRender();
+        }));
     requestRender();
 }
 

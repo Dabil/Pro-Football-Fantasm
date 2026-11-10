@@ -23,6 +23,9 @@
   <ItemGroup>
     <ClCompile Include="Screens\TeamDataScreen.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="Screens\TeamScreen.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="Screens\HeadCoachScreen.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="Screens\FormationEditorScreen.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="Screens\FormationBookDraft.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -47,6 +50,7 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Database\PFFDatabase.cpp">
+    <ClCompile Include="Database\WorldFormationBook.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\vendor\sqlite\sqlite3.c">
@@ -95,6 +99,9 @@
     <ClInclude Include="Screens\TeamDataScreen.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Screens\FormCheckBox.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Screens\TeamScreen.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Screens\HeadCoachScreen.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Screens\FormationEditorScreen.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Screens\FormationBookDraft.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Screens\TeamLink.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="App\PFFApplication.h">
       <Filter>Header Files</Filter>
@@ -114,6 +121,7 @@
     <ClInclude Include="Database\CoreTeamDataSchema.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Database\CoreTeamDataImport.inl"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Database\PFFDatabase.h">
+    <ClInclude Include="Database\WorldFormationBook.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Database\CoreManifest.h">

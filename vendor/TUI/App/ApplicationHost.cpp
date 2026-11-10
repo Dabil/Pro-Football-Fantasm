@@ -135,33 +135,23 @@ void ApplicationHost::run()
         {
             m_inputManager->poll();
 
-            std::vector<Input::Event> events;
-
-            for (const Input::Event& inputEvent : m_inputManager->drainEvents())
+            const auto events = m_inputManager->drainEvents();
+            for (const auto& event : events)
             {
-                events.push_back(inputEvent);
+                const bool handled = dispatchEvent(event);
+                if (!m_running) break;
 
-                if (const Input::KeyEvent* keyEvent = inputEvent.asKey())
-                {
-                    std::optional<Input::Command> command = m_commandMap.map(*keyEvent);
-                    if (command.has_value())
-                    {
-                        events.push_back(Input::Event::command(command.value()));
-                    }
-                }
+                const auto* key = event.asKey();
+                if (!key) continue;
+
+                // A focused text field consumes Space as a character.
+                // Unhandled Space still activates a focused button.
+                if (handled && key->code == Input::KeyCode::Space) continue;
+                if (const auto command = m_commandMap.map(*key))
+                    dispatchEvent(Input::Event::command(*command));
+                if (!m_running) break;
             }
-
-            events.push_back(Input::Event::tick(tickEvent));
-
-            for (const Input::Event& event : events)
-            {
-                dispatchEvent(event);
-
-                if (!m_running)
-                {
-                    break;
-                }
-            }
+            if (m_running) dispatchEvent(Input::Event::tick(tickEvent));
         }
 
         if (!m_running)

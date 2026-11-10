@@ -112,6 +112,30 @@ namespace PFF_Colors
             Color::FromIndexed(124),
             Color::FromRgb(155, 0, 0)));
 
+    // Formation boards and controls share their side colors.
+    inline const Style FormationOffenseColor =
+        style::Fg(Color::FromBasic(Color::Basic::BrightWhite))
+        + style::Bg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::Blue), Color::FromIndexed(18), Color::FromRgb(18, 44, 119)));
+
+    inline const Style FormationDefenseColor =
+        style::Fg(Color::FromBasic(Color::Basic::BrightWhite))
+        + style::Bg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::Red), Color::FromIndexed(124), Color::FromRgb(155, 0, 0)));
+
+    inline const Style FormationPreferredColor =
+        style::Fg(Color::FromBasic(Color::Basic::BrightWhite))
+        + style::Bg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::Green), Color::FromIndexed(28), Color::FromRgb(0, 112, 43)));
+
+    inline const Style FormationAllowedColor =
+        style::Fg(Color::FromBasic(Color::Basic::Black))
+        + style::Bg(ThemeColor::Basic256Rgb(
+            Color::FromBasic(Color::Basic::Yellow), Color::FromIndexed(220), Color::FromRgb(255, 212, 0)));
+
+    inline const Style FormationInactiveOffenseColor = FormationOffenseColor.withDim(true);
+    inline const Style FormationInactiveDefenseColor = FormationDefenseColor.withDim(true);
+
     // ScrollBox focus fills blank cells as well as text, so keep the fill unlined.
     inline const Style ScrollBoxFocusedStyle = UIThemes::WidgetTextFocused.withUnderline(false);
 

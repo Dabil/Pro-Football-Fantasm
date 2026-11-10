@@ -1,4 +1,5 @@
 #include "UI/Widgets/ContainerWidget.h"
+#include "UI/Widgets/TextInput.h"
 
 #include <algorithm>
 #include <stdexcept>
@@ -316,10 +317,12 @@ void ContainerWidget::draw(Surface& surface)
     // Layout/async results can hide or replace the item under the stationary
     // pointer. Reconcile it before drawing so a form cannot silently refocus
     // a default button while the mouse is over empty space.
-    if (m_pointerOwnsFocus && m_hasMousePosition && !m_mouseCaptureChild)
+    if (m_pointerOwnsFocus && m_hasMousePosition && !m_mouseCaptureChild &&
+        !dynamic_cast<TextInput*>(m_focusedChild))
     {
         Widget* target = hitTest(m_lastMousePosition);
-        if (!target || !target->canReceivePointerFocus(m_lastMousePosition)) target = nullptr;
+        if (!target || dynamic_cast<TextInput*>(target) || !target->canReceivePointerFocus(m_lastMousePosition))
+            target = nullptr;
         if (target != m_focusedChild || target != m_mouseHoverChild)
         {
             focusAtPointer(target, m_lastMousePosition);
@@ -363,6 +366,15 @@ bool ContainerWidget::handleEvent(const Input::Event& event)
 
         case Input::CommandCode::PreviousFocus:
             return focusPreviousChild();
+
+        case Input::CommandCode::Confirm:
+            if (dynamic_cast<TextInput*>(m_focusedChild))
+            {
+                clearPointerState();
+                clearChildFocus();
+                return true;
+            }
+            break;
 
         default:
             break;
@@ -482,10 +494,15 @@ bool ContainerWidget::dispatchMouseEvent(const Input::Event& event)
             && m_mouseCaptureChild->isVisible()
             && m_mouseCaptureChild->isEnabled())
         {
-            focusAtPointer(m_mouseCaptureChild, mouseEvent->position);
+            if (!dynamic_cast<TextInput*>(m_mouseCaptureChild))
+                focusAtPointer(m_mouseCaptureChild, mouseEvent->position);
             return m_mouseCaptureChild->handleEvent(event);
         }
+        // Text entry persists until a click or keyboard focus change.
+        if (dynamic_cast<TextInput*>(m_focusedChild))
+            return target == m_focusedChild && target->handleEvent(event);
         m_pointerOwnsFocus = true;
+        if (dynamic_cast<TextInput*>(target)) target = nullptr;
         focusAtPointer(target, mouseEvent->position);
         return target ? target->handleEvent(event) : false;
     }
@@ -512,7 +529,8 @@ bool ContainerWidget::dispatchMouseEvent(const Input::Event& event)
         m_mouseCaptureChild = nullptr;
         // Finish pointer bookkeeping BEFORE dispatching activation. Return or
         // another navigation action may destroy this entire container.
-        focusAtPointer(target, mouseEvent->position);
+        if (!dynamic_cast<TextInput*>(m_focusedChild))
+            focusAtPointer(dynamic_cast<TextInput*>(target) ? nullptr : target, mouseEvent->position);
         if (m_mouseHoverChild)
         {
             Input::MouseEvent moved = *mouseEvent;
