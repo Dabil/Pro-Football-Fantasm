@@ -6,6 +6,7 @@
 
 // TUI includes
 #include "Rendering/Surface.h"
+#include "Screens/LeagueFooter.h"
 #include "Rendering/Composition/PageComposer.h"
 #include "Rendering/Objects/BannerFactory.h"
 #include "Input/Event.h"
@@ -155,7 +156,7 @@ void TeamsAndStandingsScreen::draw(Surface& surface)
 
     const Rect screen = page.resolveRegion("Screen");
     const auto [header, afterHeader] = page.splitTop(screen, 12);
-    const auto [footer, body] = page.splitBottom(afterHeader, 5);
+    const auto [footer, body] = page.splitBottom(afterHeader, PffLeagueFooter::Height);
     const auto [afcPane, nfcPane] = page.splitLeft(body, body.size.width / 2);
 
     const int divisionHeight = afcPane.size.height / 3;
@@ -302,15 +303,7 @@ void TeamsAndStandingsScreen::positionButtons(const Rect& footer)
 
     if (m_leaguePlayButton)
     {
-        const Size buttonSize{ 28, 3 };
-
-        m_leaguePlayButton->setBounds(Rect{
-            Point{
-                footer.position.x + ((footer.size.width - buttonSize.width) - 10),
-                footer.position.y + ((footer.size.height - buttonSize.height) / 2)
-            },
-            buttonSize
-            });
+        m_leaguePlayButton->setBounds(PffLeagueFooter::returnBounds(footer));
 
         m_leaguePlayButton->setNormalStyle(PFF_Colors::ButtonNormalColor);
         m_leaguePlayButton->setHoverStyle(PFF_Colors::ButtonHoverColor);
@@ -479,8 +472,7 @@ void TeamsAndStandingsScreen::drawDivisionTeams(
 
 void TeamsAndStandingsScreen::drawFooter(PageComposer& page, const Rect& footer) const
 {
-    const Rect textArea{ Point{ footer.position.x + 2, footer.position.y + 1 },
-        Size{ std::max(0, footer.size.width - 42), 2 } };
+    const auto textArea = PffLeagueFooter::textBounds(footer);
     page.writeLine(textArea, 0, TextClip::clipUtf8Text(
         m_dataContext.isLoaded() ? m_dataContext.worldName : "No league loaded",
         textArea.size.width), PFF_Colors::TextHighlightColor);

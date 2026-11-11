@@ -85,20 +85,18 @@ WorldTestSavedState readTestProgress(Session &s, const WorldActor &actor, std::i
     admissionVerifyProvider(s, actor, season.integer(), frozen[2]);
     if (final)
     {
-        const auto filename = "Game-" + std::to_string(game) + ".pbp.txt";
+        const auto filename = "Game-" + std::to_string(game) + ".pbp";
         const auto relative = std::filesystem::path("PBP") / filename;
         S::Query artifact(s.db, "SELECT RelativePath,ContentHash FROM GameArtifacts WHERE GameID=? AND "
-                               "ArtifactType='PBP' AND FormatKey='PFF_QUEUE_TEST_TEXT' AND "
-                               "FormatVersion='1' AND HashAlgorithm='FNV1A64'", {game});
+                               "ArtifactType='TAGGED_PBP' AND FormatKey='PFF_LIVE_PBP' AND "
+                               "FormatVersion='2' AND HashAlgorithm='SHA256'", {game});
         require(artifact.row() && artifact.text() == relative.generic_u8string(),
                 WorldEditError::IntegrityFailure, "Missing or invalid final play history");
         const auto bytes = admissionBytes(WorldEditingAccess::path(actor).parent_path() / relative);
-        require(ClockTime::digest(bytes) == artifact.text(1), WorldEditError::IntegrityFailure,
-                "Final play-history checksum mismatch");
-        std::istringstream lines(bytes);
+        require(WorldStorageHash::bytes(bytes) == artifact.text(1) && bytes == result.replayHistory,
+                WorldEditError::IntegrityFailure, "Final tagged play-history checksum mismatch");
+        result.replayHistory = std::move(bytes);
         result.log.clear();
-        for (std::string line; std::getline(lines, line);)
-            result.log.push_back(std::move(line));
     }
     else
         readTestPbp(s, actor, game);
@@ -118,7 +116,7 @@ void validateTestSnapshot(Session &s, std::int64_t game, const WorldTestGameStep
     S::Query q(s.db,
                "SELECT r.InputBindingsHash FROM GameRuns r JOIN Games g ON g.WorldID=r.WorldID AND "
                "g.GameID=r.GameID WHERE r.WorldID=? AND r.GameID=? AND r.ProviderKey=? AND "
-               "r.ProviderVersion='1' AND g.GameStatus='IN_PROGRESS'",
+               "r.ProviderVersion='2' AND g.GameStatus='IN_PROGRESS'",
                {s.world, game, std::string(TestProvider)});
     require(q.row(), WorldEditError::UnsupportedProvider, "No matching saved-game provider");
     const auto &g = saved.game;
@@ -219,7 +217,7 @@ WorldEditResult<WorldEditCommit> saveTestMatchup(const WorldActor &actor, std::i
         validateTestSnapshot(s, game, steps.back(), saved, false);
         if (pauseThrough >= 0)
         {
-            require(pauseThrough >= saved.game.elapsed && pauseThrough <= 3600,
+            require(pauseThrough >= saved.game.elapsed && pauseThrough <= 4500,
                     WorldEditError::InvalidValue, "Invalid interruption horizon");
             const auto boundary = testInterruption(s, game, pauseThrough);
             require(boundary && boundary->elapsedSeconds > saved.game.elapsed,

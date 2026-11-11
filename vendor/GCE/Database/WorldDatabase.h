@@ -393,6 +393,8 @@ struct WorldScheduleGameRecord
     std::string status;
 
     bool hasFinalScore = false;
+    bool wentToOvertime = false;
+    bool hasTaggedReplay = false;
     // True only for a visible final score or an actually IN_PROGRESS game's
     // available current scoreboard after its start is visible. A future FINAL
     // game presented as IN_PROGRESS does not expose its stored final score.

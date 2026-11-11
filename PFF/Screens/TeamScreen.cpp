@@ -2,6 +2,7 @@
 #include "Screens/GameTimeFormatting.h"
 #include "Styles/PFF_Theme.h"
 #include "Rendering/Surface.h"
+#include "Screens/LeagueFooter.h"
 #include "Rendering/Composition/PageComposer.h"
 #include "Rendering/Objects/BannerFactory.h"
 #include "Utilities/Text/TextClip.h"
@@ -120,7 +121,7 @@ void TeamScreen::draw(Surface& surface)
     page.createFullScreenRegion("Screen");
     const auto screen=page.resolveRegion("Screen");
     const auto [header,afterHeader]=page.splitTop(screen,12);
-    const auto [footer,body]=page.splitBottom(afterHeader,5);
+    const auto [footer,body]=page.splitBottom(afterHeader, PffLeagueFooter::Height);
     const auto [controls,content]=page.splitRight(body,std::min(34,std::max(28,body.size.width/3)));
     page.createRegion("Header",header);page.createInsetRegion("InnerPanel","Header",2,1,2,1);
     page.createInsetRegion("TitleArea","InnerPanel",4,2,2,1);
@@ -139,14 +140,14 @@ void TeamScreen::draw(Surface& surface)
     const int optionSpacing = controls.size.height >= 30 ? 5 : 3;
     for(std::size_t i=0;i<m_options.size();++i)
         m_options[i]->setBounds(Rect{Point{controls.position.x+1,controls.position.y+2+static_cast<int>(i)*optionSpacing},Size{std::max(0,controls.size.width-2),3}});
-    m_return->setBounds(Rect{Point{footer.position.x+std::max(0,footer.size.width-38),footer.position.y+1},Size{28,3}});
+    m_return->setBounds(PffLeagueFooter::returnBounds(footer));
     for(std::size_t i=0;i<m_root.childCount();++i)
     {
         auto* button=static_cast<Button*>(m_root.childAt(i));
         button->setNormalStyle(normal);button->setFocusedStyle(active);button->setHoverStyle(active);
         button->setPressedStyle(pressed);button->setDisabledStyle(disabled);
     }
-    const Rect footerText{Point{footer.position.x+2,footer.position.y+1},Size{std::max(0,footer.size.width-42),2}};
+    const auto footerText = PffLeagueFooter::textBounds(footer);
     page.writeLine(footerText,0,TextClip::clipUtf8Text(m_displayContext.isLoaded()?m_displayContext.worldName:"No league loaded",footerText.size.width),textStyle);
     page.writeLine(footerText,1,TextClip::clipUtf8Text(m_displayContext.isLoaded()?PffGameTime::formatGameTimeEastern(m_displayContext.currentTimeUtc):"",footerText.size.width),textStyle);
     m_root.setBounds(screen);m_root.draw(surface);

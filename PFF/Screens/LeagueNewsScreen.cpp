@@ -1,5 +1,6 @@
 #include "Screens/LeagueNewsScreen.h"
 
+#include "Screens/LeagueFooter.h"
 #include "Rendering/Composition/PageComposer.h"
 #include "Rendering/Objects/BannerFactory.h"
 #include "Rendering/Surface.h"
@@ -163,7 +164,7 @@ void LeagueNewsScreen::draw(Surface& surface)
     page.createFullScreenRegion("Screen");
     const auto screen = page.resolveRegion("Screen");
     const auto [header, belowHeader] = page.splitTop(screen, 12);
-    const auto [footer, body] = page.splitBottom(belowHeader, 5);
+    const auto [footer, body] = page.splitBottom(belowHeader, PffLeagueFooter::Height);
 
     page.createRegion("Header", header);
     page.createInsetRegion("InnerPanel", "Header", 2, 1, 2, 1);
@@ -191,8 +192,7 @@ void LeagueNewsScreen::draw(Surface& surface)
     rebuildNews(std::max(1, news.size.width - 1));
     rebuildDates(std::max(1, dates.size.width - 1));
 
-    const Rect footerText{Point{footer.position.x + 2, footer.position.y + 1},
-        Size{std::max(0, footer.size.width - 42), 2}};
+    const auto footerText = PffLeagueFooter::textBounds(footer);
     page.writeLine(footerText, 0, TextClip::clipUtf8Text(
         m_context.isLoaded() ? m_context.worldName : "No league loaded", footerText.size.width),
         PFF_Colors::TextHighlightColor);
@@ -201,9 +201,7 @@ void LeagueNewsScreen::draw(Surface& surface)
             PffGameTime::formatGameTimeEastern(m_context.currentTimeUtc), footerText.size.width),
             PFF_Colors::TextHighlightColor);
 
-    const int width = std::min(28, footer.size.width);
     m_root.setBounds(screen);
-    m_return->setBounds(Rect{Point{footer.position.x + std::max(0, footer.size.width - width - 2),
-                                  footer.position.y + 1}, Size{width, std::min(3, footer.size.height)}});
+    m_return->setBounds(PffLeagueFooter::returnBounds(footer));
     m_root.draw(surface);
 }

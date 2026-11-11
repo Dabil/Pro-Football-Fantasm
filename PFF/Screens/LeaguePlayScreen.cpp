@@ -6,6 +6,7 @@
 
 // TUI includes
 #include "Rendering/Surface.h"
+#include "Screens/LeagueFooter.h"
 #include "Rendering/Composition/PageComposer.h"
 #include "Rendering/Objects/BannerFactory.h"
 
@@ -76,7 +77,7 @@ void LeaguePlayScreen::draw(Surface& surface)
 
 	const Rect screen = page.resolveRegion("Screen");
     const auto [header, afterHeader] = page.splitTop(screen, 20);
-    const auto [footer, body] = page.splitBottom(afterHeader, 10);
+    const auto [footer, body] = page.splitBottom(afterHeader, PffLeagueFooter::Height);
     const auto [leftPane, remainingPanes] = page.splitLeft(body, body.size.width / 3);
     const auto [middlePane, rightPane] = page.splitLeft(remainingPanes, remainingPanes.size.width / 2);
     const auto middleTopPane = page.splitTop(middlePane, middlePane.size.height / 2).first;
@@ -98,8 +99,7 @@ void LeaguePlayScreen::draw(Surface& surface)
     page.writeObjectInRegion(m_LeaguePlayTitleObject, "TitleArea", Composition::Align::center());
 
     const auto world = m_loadedWorldContextProvider ? m_loadedWorldContextProvider() : LoadedWorldContext{};
-    const Rect footerText{Point{footer.position.x + 2, footer.position.y + std::max(0, footer.size.height - 3)},
-        Size{std::max(0, footer.size.width - 42), std::min(2, footer.size.height)}};
+    const auto footerText = PffLeagueFooter::textBounds(footer);
     page.writeLine(footerText, 0, TextClip::clipUtf8Text(
         world.isLoaded() ? world.worldName : "No league loaded", footerText.size.width),
         PFF_Colors::TextHighlightColor);
@@ -203,15 +203,7 @@ void LeaguePlayScreen::positionButtons(
 
     if (m_mainButton)
     {
-        const Size buttonSize{ 28, 3 };
-
-        m_mainButton->setBounds(Rect{
-            Point{
-                footer.position.x + ((footer.size.width - buttonSize.width) - 10),
-                footer.position.y + ((footer.size.height - buttonSize.height) / 2)
-            },
-            buttonSize
-            });
+        m_mainButton->setBounds(PffLeagueFooter::returnBounds(footer));
 
         m_mainButton->setNormalStyle(PFF_Colors::ButtonNormalColor);
         m_mainButton->setHoverStyle(PFF_Colors::ButtonHoverColor);

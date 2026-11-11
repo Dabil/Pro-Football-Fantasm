@@ -14,7 +14,7 @@ struct WorldTestTeamStats
 {
     int firstDowns = 0, rushes = 0, rushYards = 0, attempts = 0, completions = 0, passYards = 0;
     int interceptions = 0, fumblesLost = 0, punts = 0, puntYards = 0, sacks = 0, sackYards = 0;
-    std::array<int, 4> quarters{};
+    std::array<int, 5> quarters{};
     int score() const
     {
         int n = 0;
@@ -28,6 +28,7 @@ struct WorldTestRuntimeState
     int quarter = 1, remaining = 900, elapsed = 0, offense = 1, spot = 20, down = 1, lineToGain = 30;
     std::int64_t generation = 0, playOrdinal = 0;
     bool final = false;
+    int pendingKick = -1;
     std::array<WorldTestTeamStats, 2> teams;
 };
 struct WorldTestSavedState
@@ -37,10 +38,11 @@ struct WorldTestSavedState
     WorldTestRuntimeState game;
     std::array<int, 2> planTier{};
     std::vector<std::string> log;
+    std::string replayHistory;
 };
 namespace WorldTestStateCodec
 {
-inline constexpr const char *Format = "GENERIC_GAME_STATE_V1";
+inline constexpr const char *Format = "GENERIC_GAME_STATE_V3";
 inline constexpr const char *InitialFormat = "GAME_TIME_INITIAL_V1";
 inline constexpr const char *StepFormat = "GAME_TIME_STEP_V1";
 inline constexpr std::size_t MaxBytes = 16u * 1024u * 1024u;
@@ -60,15 +62,15 @@ inline void validate(const WorldTestSavedState &s)
     insist(s.gameId > 0 && s.inputHash.size() == 64 &&
            s.inputHash.find_first_not_of("0123456789abcdef") == std::string::npos);
     insist(g.generation >= 0 && g.playOrdinal >= 0 && g.playOrdinal <= g.generation && g.quarter >= 1 &&
-           g.quarter <= 4 && g.remaining >= 0 && g.remaining <= 900 &&
+           g.quarter <= 5 && g.remaining >= 0 && g.remaining <= 900 &&
            g.elapsed == (g.quarter - 1) * 900 + 900 - g.remaining && g.offense >= 0 && g.offense <= 1 &&
-           g.spot >= 1 && g.spot <= 99 && g.down >= 1 && g.down <= 4 && g.lineToGain >= g.spot &&
-           g.lineToGain <= 100 && g.final == (g.quarter == 4 && g.remaining == 0));
+           g.pendingKick >= -1 && g.pendingKick <= 1 && g.spot >= 1 && g.spot <= 99 && g.down >= 1 && g.down <= 4 && g.lineToGain >= g.spot &&
+           g.lineToGain <= 100 && g.final == ((g.quarter == 4 && g.remaining == 0 && g.teams[0].score() != g.teams[1].score()) || (g.quarter == 5 && (g.remaining == 0 || g.teams[0].score() != g.teams[1].score()))));
     for (const auto &team : g.teams)
     {
         for (std::size_t n = 0; n < Stats.size(); ++n)
             insist(team.*Stats[n] >= ((n == 2 || n == 5) ? -100000 : 0) && team.*Stats[n] <= 100000);
-        for (std::size_t q = 0; q < 4; ++q)
+        for (std::size_t q = 0; q < team.quarters.size(); ++q)
             insist(team.quarters[q] >= 0 && team.quarters[q] <= 100000 &&
                    (q < static_cast<std::size_t>(g.quarter) || team.quarters[q] == 0));
     }
@@ -117,6 +119,7 @@ inline std::string encode(const WorldTestSavedState &s)
     n(g.lineToGain);
     n(g.final);
     n(g.playOrdinal);
+    n(g.pendingKick);
     for (const auto &team : g.teams)
     {
         for (auto member : Stats)
@@ -130,6 +133,8 @@ inline std::string encode(const WorldTestSavedState &s)
     n(s.log.size());
     for (const auto &line : s.log)
         p(line);
+    if (!s.replayHistory.empty())
+        p(s.replayHistory);
     insist(out.size() <= MaxBytes);
     return out;
 }
@@ -181,6 +186,7 @@ inline WorldTestSavedState decode(const std::string &bytes)
     };
     g.final = boolean();
     g.playOrdinal = number();
+    g.pendingKick = integer();
     for (auto &team : g.teams)
     {
         for (auto member : Stats)
@@ -195,6 +201,8 @@ inline WorldTestSavedState decode(const std::string &bytes)
     insist(count >= 0 && count <= 10000);
     for (std::int64_t i = 0; i < count; ++i)
         s.log.push_back(p());
+    if (at < bytes.size())
+        s.replayHistory = p();
     insist(at == bytes.size());
     validate(s);
     insist(encode(s) == bytes);

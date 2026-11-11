@@ -101,7 +101,8 @@ std::int64_t testClaim(Session &s, std::int64_t game, std::int64_t generation, i
     return S::inserted(s.db);
 }
 void testCheckpoint(Session &s, std::int64_t game, std::int64_t claim, const WorldTestGameStep &p,
-                    const WorldTestSavedState *saved = nullptr, bool paused = false)
+                    const WorldTestSavedState *saved = nullptr, bool paused = false,
+                             const std::function<std::string(std::string_view)> &taggedOutput = {})
 {
     const auto bytes = saved ? WorldTestStateCodec::encode(*saved) : p.text + p.teamStatistics;
     const auto hash = WorldStorageHash::bytes(bytes);
@@ -173,7 +174,11 @@ WorldEditResult<WorldTestMatchup> loadFinalTestMatchup(const WorldActor &actor, 
         result.homeId = std::stoll(fields[9]);
         result.awayName = fields[10];
         result.homeName = fields[11];
+        result.awayCoreKey = fields[12];
+        result.homeCoreKey = fields[13];
         result.saved = readTestProgress(s, actor, game, true);
+        result.pbpPath = WorldEditingAccess::path(actor).parent_path() / "PBP" /
+                         ("Game-" + std::to_string(game) + ".pbp");
         require(result.saved->game.generation == final.integer() && result.saved->game.elapsed == final.integer(1),
                 WorldEditError::IntegrityFailure, "Final checkpoint disagrees with the save receipt");
         S::exec(s.db, "COMMIT");
@@ -296,7 +301,7 @@ WorldEditResult<WorldTestMatchup> beginTestMatchup(const WorldActor &actor, std:
                     "Obsolete development checkpoint; create a fresh league");
         }
         r.pbpPath = WorldEditingAccess::path(actor).parent_path() / "PBP" /
-                    ("Game-" + std::to_string(r.gameId) + ".pbp.txt");
+                    ("Game-" + std::to_string(r.gameId) + ".pbp");
         require(!std::filesystem::exists(r.pbpPath), WorldEditError::IoError, "Final PBP already exists");
         r.queuedEvents = testQueuedEvents(s, r.gameId);
         S::Query interrupted(s.db, "SELECT SettingValue FROM WorldSettings WHERE WorldID=? AND SettingKey=?",
@@ -304,7 +309,7 @@ WorldEditResult<WorldTestMatchup> beginTestMatchup(const WorldActor &actor, std:
         if (interrupted.row())
         {
             r.pauseThrough = std::stoi(interrupted.text());
-            require(selectedGame && r.saved && r.pauseThrough >= r.saved->game.elapsed && r.pauseThrough <= 3600,
+            require(selectedGame && r.saved && r.pauseThrough >= r.saved->game.elapsed && r.pauseThrough <= 4500,
                     WorldEditError::IntegrityFailure, "Invalid saved interruption boundary");
             r.interruption = testInterruption(s, r.gameId, r.pauseThrough);
             if (r.interruption)
@@ -343,10 +348,11 @@ namespace
 {
 void persistBufferedTestStep(Session &s, std::int64_t game, const WorldTestGameStep &supplied,
                              std::int64_t rev, const std::filesystem::path &path, std::string &pbp,
-                             const WorldTestSavedState *saved = nullptr, bool paused = false)
+                             const WorldTestSavedState *saved = nullptr, bool paused = false,
+                             const std::function<std::string(std::string_view)> &taggedOutput = {})
 {
     auto p = supplied;
-    require(s.clockModel && p.generation > 0 && p.period >= 1 && p.period <= 4 && p.remaining >= 0 &&
+    require(s.clockModel && p.generation > 0 && p.period >= 1 && p.period <= 5 && p.remaining >= 0 &&
                 p.remaining <= 900 && p.elapsed >= 0 && p.awayScore >= 0 && p.homeScore >= 0,
             WorldEditError::InvalidValue, "Invalid test game checkpoint");
     S::Query run(s.db,
@@ -370,8 +376,11 @@ void persistBufferedTestStep(Session &s, std::int64_t game, const WorldTestGameS
                 (p.period == old.integer(1) + 1 && old.integer(2) == 0 && p.remaining == 900 &&
                  p.elapsed == old.integer(3)),
             WorldEditError::InvalidValue, "Invalid quarter or timing transition");
-    require(p.final == (p.period == 4 && p.remaining == 0), WorldEditError::InvalidValue,
-            "Final must be the end of regulation");
+    require(p.final == ((p.period == 4 && p.remaining == 0 && p.awayScore != p.homeScore) || (p.period == 5 && (p.remaining == 0 || p.awayScore != p.homeScore))), WorldEditError::InvalidValue,
+            "Invalid final game checkpoint");
+    if (p.period == 5 && old.integer(1) == 4)
+        S::run(s.db, "INSERT INTO GamePeriods VALUES(?,?,5,'OVERTIME','COUNTDOWN',900,'PFF_QUEUE_TEST_TIMING')",
+               {s.world, game});
     const auto claim =
         testClaim(s, game, p.generation - 1, p.elapsed,
                   WorldStorageHash::bytes(p.text + p.teamStatistics +
@@ -405,6 +414,19 @@ void persistBufferedTestStep(Session &s, std::int64_t game, const WorldTestGameS
                     std::int64_t(p.period), old.integer(2), old.integer(3), std::int64_t(p.elapsed)});
         }
     }
+    pbp += p.text;
+    std::optional<WorldTestSavedState> finalState;
+    if (p.final && saved)
+    {
+        finalState = *saved;
+        finalState->replayHistory = taggedOutput(pbp);
+        testWrite(path, finalState->replayHistory);
+        S::run(s.db, "INSERT INTO GameArtifacts(GameID,ArtifactType,RelativePath,FormatKey,FormatVersion,"
+                     "HashAlgorithm,ContentHash,CreatedUtc) VALUES(?,'TAGGED_PBP',?,'PFF_LIVE_PBP','2','SHA256',?,?)",
+               {game, (std::filesystem::path("PBP") / path.filename()).generic_u8string(),
+                WorldStorageHash::bytes(finalState->replayHistory), s.now});
+        saved = &*finalState;
+    }
     testCheckpoint(s, game, claim, p, saved, paused);
     S::run(s.db,
            "INSERT INTO "
@@ -421,14 +443,11 @@ void persistBufferedTestStep(Session &s, std::int64_t game, const WorldTestGameS
            {std::int64_t(p.awayScore), std::int64_t(p.homeScore),
             winner ? S::Value(winner) : S::Value(nullptr), std::string(p.final ? "FINAL" : "IN_PROGRESS"),
             p.final ? S::Value(at) : S::Value(nullptr), s.world, game});
-    pbp += p.text;
     if (p.final)
     {
-        testWrite(path, pbp);
-        const auto &bytes = pbp;
+        const auto &bytes = saved ? saved->replayHistory : pbp;
         const auto stats = path.parent_path() / ("Game-" + std::to_string(game) + ".stats.txt");
         testWrite(stats, p.teamStatistics);
-        testArtifact(s, game, path, "PBP", bytes);
         testArtifact(s, game, stats, "TEAM_STATISTICS", p.teamStatistics);
         const auto hash = ClockTime::digest(bytes + p.teamStatistics);
         S::run(s.db, "INSERT INTO GameFinalSaves VALUES(?,?,?,?,?,?,?,?,?)",
@@ -503,7 +522,8 @@ void persistBufferedTestStep(Session &s, std::int64_t game, const WorldTestGameS
 WorldEditResult<WorldEditCommit> finalizeTestMatchup(const WorldActor &actor, std::int64_t game,
                                                      const std::vector<WorldTestGameStep> &steps,
                                                      std::int64_t expected, std::string *recordedText,
-                                                     const WorldTestSavedState *saved)
+                                                     const WorldTestSavedState *saved,
+                                                     const std::function<std::string(std::string_view)> &taggedOutput)
 {
     return attempt<WorldEditCommit>([&] {
         require(!steps.empty() && steps.back().final, WorldEditError::InvalidValue,
@@ -523,10 +543,12 @@ WorldEditResult<WorldEditCommit> finalizeTestMatchup(const WorldActor &actor, st
             validateTestSnapshot(s, game, steps.back(), *saved, true);
         std::string pbp = readTestPbp(s, actor, game);
         const auto folder = WorldEditingAccess::path(actor).parent_path() / "PBP";
-        const auto path = folder / ("Game-" + std::to_string(game) + ".pbp.txt");
+        const auto path = folder / ("Game-" + std::to_string(game) + ".pbp");
         const auto stats = folder / ("Game-" + std::to_string(game) + ".stats.txt");
         require(!std::filesystem::exists(path) && !std::filesystem::exists(stats), WorldEditError::IoError,
                 "Final artifacts already exist; they will not be overwritten");
+        require(!saved || bool(taggedOutput), WorldEditError::InvalidValue,
+                "Final game requires tagged PBP");
         struct Cleanup
         {
             std::filesystem::path pbp, stats;
@@ -547,7 +569,7 @@ WorldEditResult<WorldEditCommit> finalizeTestMatchup(const WorldActor &actor, st
             require(steps[i].final == (i + 1 == steps.size()), WorldEditError::InvalidValue,
                     "Only the last buffered step may be final");
             persistBufferedTestStep(s, game, steps[i], rev, path, pbp,
-                                    (saved && i + 1 == steps.size()) ? saved : nullptr);
+                                    (saved && i + 1 == steps.size()) ? saved : nullptr, false, taggedOutput);
         }
         S::run(
             s.db,

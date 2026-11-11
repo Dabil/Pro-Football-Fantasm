@@ -35,7 +35,7 @@
     <ClCompile Include="App\PFFApplication.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Database\GenericTestGame.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="Database\PffGameSession.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="Screens\GameTimeScreen.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="Screens\Developer\RendererDiagnosticsScreen.cpp">
       <Filter>Source Files</Filter>
@@ -92,7 +92,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Screens\GameTimeScreen.h"><Filter>Header Files</Filter></ClInclude>
-    <ClInclude Include="Database\GenericTestGame.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Screens\PffBroadcast.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\PffGameSession.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\PbpRecorder.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Screens\GameScreen.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -152,6 +154,7 @@
     <ClInclude Include="Screens\CommissionersOfficeScreen.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Screens\LeagueFooter.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Screens\TeamsAndStandingsScreen.h">
       <Filter>Header Files</Filter>
     </ClInclude>

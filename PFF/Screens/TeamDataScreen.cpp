@@ -4,6 +4,7 @@
 #include "Styles/PFF_Theme.h"
 #include "Input/Event.h"
 #include "Rendering/Surface.h"
+#include "Screens/LeagueFooter.h"
 #include "Rendering/Composition/PageComposer.h"
 #include "Rendering/Objects/BannerFactory.h"
 #include "Utilities/Text/TextClip.h"
@@ -962,8 +963,7 @@ void TeamDataScreen::layout(const Rect& screen, const Rect& content, const Rect&
             buttons[i]->setBounds(Rect{Point{controls.position.x + 2, controls.position.y + controlRows[i]},
                                        Size{std::max(1, controls.size.width - 4), buttonHeight}});
     }
-    m_return->setBounds(Rect{
-        Point{footer.position.x + std::max(0, footer.size.width - 38), footer.position.y + 1}, Size{28, 3}});
+    m_return->setBounds(PffLeagueFooter::returnBounds(footer));
 }
 void TeamDataScreen::synchronizeModal()
 {
@@ -1021,7 +1021,7 @@ void TeamDataScreen::draw(Surface& surface)
     page.createFullScreenRegion("Screen");
     const auto screen = page.resolveRegion("Screen");
     const auto [header, rest] = page.splitTop(screen, 12);
-    const auto [footer, body] = page.splitBottom(rest, 5);
+    const auto [footer, body] = page.splitBottom(rest, PffLeagueFooter::Height);
     const auto [controls, content] = page.splitRight(body, std::min(34, std::max(28, body.size.width / 3)));
     page.createRegion("Header", header);
     page.createInsetRegion("HeaderInner", "Header", 2, 1, 2, 1);
@@ -1037,8 +1037,7 @@ void TeamDataScreen::draw(Surface& surface)
                        std::string(std::max(0, (titleArea.size.width - 9) / 2), ' ') + "Team Data", title);
     synchronize();
     layout(screen, content, controls, footer);
-    const Rect footerText{Point{footer.position.x + 2, footer.position.y + 1},
-                          Size{std::max(0, footer.size.width - 42), 2}};
+    const auto footerText = PffLeagueFooter::textBounds(footer);
     page.writeLine(footerText, 0, TextClip::clipUtf8Text(m_selectedWorld.worldName, footerText.size.width),
                    text);
     page.writeLine(
@@ -1149,8 +1148,9 @@ void TeamDataScreen::draw(Surface& surface)
                            dialogArea.position.y + (dialogArea.size.height - h) / 2},
                      Size{w, h}};
     page.createRegion("Dialog", modal);
+    page.createInsetRegion("DialogTextArea", "Dialog", 2, 1, 2, 1);
     page.drawPanel("Dialog", modalPanel, modalBorder, ObjectFactory::doubleLineBorder());
-    std::string caption = m_modal == Modal::Staff       ? std::string(" Change ") + RoleLabels[m_role] + " "
+    std::string caption =   m_modal == Modal::Staff       ? std::string(" Change ") + RoleLabels[m_role] + " "
                           : m_modal == Modal::NewPerson ? " Create Person "
                           : m_modal == Modal::History   ? " Venue History "
                           : m_modal == Modal::PendingVenue ? " Pending Venue Changes "
@@ -1175,14 +1175,14 @@ void TeamDataScreen::draw(Surface& surface)
         }
         if (m_modal == Modal::Staff)
         {
-            page.writeLine(modal, 2,
-                           TextClip::clipUtf8Text("   Current: " + (m_saved.staff[m_role].assignmentId
+            page.writeLine("DialogTextArea", 1,
+                           TextClip::clipUtf8Text(" Current: " + (m_saved.staff[m_role].assignmentId
                                                                         ? m_saved.staff[m_role].personName
                                                                         : std::string("Unassigned")),
                                                   w - 2),
-                           text);
-            page.writeLine(modal, 3, "   Available people without roles; Enter selects into the draft.",
-                           text);
+                           heading);
+            page.writeLine("DialogTextArea", 2, " Available people without roles; Enter selects into the draft.",
+                           heading);
             m_use->setBounds(rect(3, h - 14, (w - 9) / 2, 3));
             m_remove->setBounds(rect(w / 2, h - 14, w / 2 - 3, 3));
             m_new->setBounds(rect(3, h - 10, (w - 9) / 2, 3));
@@ -1190,14 +1190,14 @@ void TeamDataScreen::draw(Surface& surface)
             m_previous->setBounds(rect(3, h - 6, 25, 3));
             m_next->setBounds(rect(30, h - 6, 25, 3));
             m_modalCancel->setBounds(rect(w - 29, h - 6, 26, 3));
-            page.writeLine(modal, h - 2,
-                           "   Page " + std::to_string(m_page + 1) + ". Save Changes commits the draft.",
-                           text);
+            page.writeLine("DialogTextArea", h - 3,
+                           " Page " + std::to_string(m_page + 1) + ". Save Changes commits the draft.",
+                           heading);
         }
         else
         {
-            page.writeLine(modal, 2,
-                           "   Current values and announced, revised, canceled and applied changes.", text);
+            page.writeLine("DialogTextArea", 1,
+                           " Current values and announced, revised, canceled and applied changes.", heading);
             m_modalCancel->setBounds(rect(w - 29, h - 5, 26, 3));
         }
     }
@@ -1222,7 +1222,7 @@ void TeamDataScreen::draw(Surface& surface)
         m_cancelVenue[1]->setBounds(rect(w / 2, surfaceY, w / 2 - 3, bh));
         m_modalCancel->setBounds(rect(w - 29, closeY, 26, bh));
         if (dirty())
-            page.writeLine(modal, 2,
+            page.writeLine(modal, 1,
                            TextClip::clipUtf8Text(
                                "   Save or cancel unsaved form edits before changing saved requests.", w - 2),
                            message);
@@ -1236,13 +1236,13 @@ void TeamDataScreen::draw(Surface& surface)
             page.writeLine(modal, 3 + static_cast<int>(i) * 4, "   " + std::string(names[i]), label);
             m_personInputs[i]->setBounds(rect(3, 4 + static_cast<int>(i) * 4, w - 6, 1));
         }
-        page.writeLine(modal, 17, "   This creates a new person only when Save Changes succeeds.", text);
+        page.writeLine("DialogTextArea", 16, " This creates a new person only when Save Changes succeeds.", heading);
         m_create->setBounds(rect(3, h - 5, 28, 3));
         m_modalCancel->setBounds(rect(w - 31, h - 5, 28, 3));
     }
     else
     {
-        page.writeLine(modal, 3, "   You have unsaved changes. Save them, discard them, or stay here.", text);
+        page.writeLine("DialogTextArea", 2, " You have unsaved changes. Save them, discard them, or stay here.", heading);
         m_saveLeave->setBounds(rect(3, 7, w - 6, 3));
         m_discardLeave->setBounds(rect(3, 11, w - 6, 3));
         m_stay->setBounds(rect(3, 15, w - 6, 3));

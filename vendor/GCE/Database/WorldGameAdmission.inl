@@ -159,7 +159,7 @@ std::string admissionSelectionKey(std::int64_t window)
 void admissionVerifyProvider(Session &s, const WorldActor &actor, std::int64_t season,
                              const std::string &evidence)
 {
-    require(evidence.rfind("Provider=PFF_GENERIC_QUEUE_TEST/1\nCoreSHA256=", 0) == 0,
+    require(evidence.rfind("Provider=PFF_GENERIC_QUEUE_TEST/2\nCoreSHA256=", 0) == 0,
             WorldEditError::UnsupportedProvider, "Prepare the installed GameTime executor before admission");
     const auto at = evidence.find("\nSeed=");
     require(at != std::string::npos, WorldEditError::InvalidValue, "Missing explicit provider seed");
@@ -217,7 +217,7 @@ std::int64_t admitCohort(Session &s, const WorldActor &actor, std::int64_t seaso
     admissionCheckMembers(s, season, kickoff);
     require(!admissionEarlier(s, kickoff), WorldEditError::EarlierGameUnresolved,
             "An earlier kickoff lacks durable final saves");
-    require(evidence.rfind("Provider=PFF_GENERIC_QUEUE_TEST/1\nCoreSHA256=", 0) == 0,
+    require(evidence.rfind("Provider=PFF_GENERIC_QUEUE_TEST/2\nCoreSHA256=", 0) == 0,
             WorldEditError::UnsupportedProvider,
             "Prepare the installed GameTime provider inputs before admission");
     const auto seedAt = evidence.find("\nSeed=");
@@ -299,15 +299,14 @@ std::int64_t admitCohort(Session &s, const WorldActor &actor, std::int64_t seaso
         "Window requires every active fixture and exact occurrence binding");
     S::run(s.db,
            "INSERT OR IGNORE INTO GameClockProfiles "
-           "VALUES(?,'PFF_QUEUE_TEST',1,4,900,'TIE_AFTER_FOUR','PFF_QUEUE_TEST_TIMING',1,'GAMETIME-TEST-2026-"
-           "11-04')",
+           "VALUES(?,'PFF_QUEUE_TEST',2,4,900,'SUDDEN_DEATH','PFF_QUEUE_TEST_TIMING',1,'GAMETIME-TEST-OVERTIME-V2')",
            {s.world});
     require(
         S::scalar(s.db,
                   "SELECT count(*) FROM GameClockProfiles WHERE WorldID=? AND ProfileKey='PFF_QUEUE_TEST' "
-                  "AND ProfileVersion=1 AND RegulationPeriods=4 AND QuarterSeconds=900 AND "
-                  "OvertimePolicyKey='TIE_AFTER_FOUR' AND TimingPolicyKey='PFF_QUEUE_TEST_TIMING' AND "
-                  "TimingPolicyVersion=1 AND PolicyContentHash='GAMETIME-TEST-2026-11-04'",
+                  "AND ProfileVersion=2 AND RegulationPeriods=4 AND QuarterSeconds=900 AND "
+                  "OvertimePolicyKey='SUDDEN_DEATH' AND TimingPolicyKey='PFF_QUEUE_TEST_TIMING' AND "
+                  "TimingPolicyVersion=1 AND PolicyContentHash='GAMETIME-TEST-OVERTIME-V2'",
                   {s.world}) == 1,
         WorldEditError::MissingClockProfile, "Installed test provider clock profile does not match");
     std::string common;
@@ -366,7 +365,7 @@ std::int64_t admitCohort(Session &s, const WorldActor &actor, std::int64_t seaso
                "Games(GameKey,WorldID,CompetitionSeasonID,WorldScheduledGameID,AwayTeamSeasonID,"
                "HomeTeamSeasonID,WorldVenueID,GameStatus,ResolutionMode,SimulationProviderKey,"
                "SimulationProviderVersion,StartedUtc,AwayScore,HomeScore,ProviderCoverageKey) "
-               "VALUES(?,?,?,?,?,?,?,'IN_PROGRESS','SIMULATED',?,'1',?,0,0,'TEAM_ONLY_TEST')",
+               "VALUES(?,?,?,?,?,?,?,'IN_PROGRESS','SIMULATED',?,'2',?,0,0,'TEAM_ONLY_TEST')",
                {"queue-test:" + std::to_string(f.id), s.world, season, f.id, f.away, f.home,
                 f.venue ? S::Value(f.venue) : S::Value(nullptr), std::string(TestProvider), kickoff});
         const auto game = S::inserted(s.db);
@@ -376,7 +375,7 @@ std::int64_t admitCohort(Session &s, const WorldActor &actor, std::int64_t seaso
                "ContentHash,CreatedUtc) VALUES(?,'INPUT',?,'WINDOW_INPUT_V1','1','SHA256',?,?)",
                {game, (std::filesystem::path("PBP") / path.filename()).generic_u8string(), hash, kickoff});
         const auto artifact = S::inserted(s.db);
-        S::run(s.db, "INSERT INTO GameRuns VALUES(?,?,?,?,?,'PFF_QUEUE_TEST',1,?,'1',?,?,?,'PREPARED')",
+        S::run(s.db, "INSERT INTO GameRuns VALUES(?,?,?,?,?,'PFF_QUEUE_TEST',2,?,'2',?,?,?,'PREPARED')",
                {s.world, game, window, f.event, kickoff, std::string(TestProvider), hash, artifact,
                 venue.id ? S::Value(venue.id) : S::Value(nullptr)});
         for (std::int64_t period = 1; period <= 4; ++period)

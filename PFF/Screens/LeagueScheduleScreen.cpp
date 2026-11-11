@@ -6,6 +6,7 @@
 
 // TUI includes
 #include "Rendering/Surface.h"
+#include "Screens/LeagueFooter.h"
 #include "Rendering/Composition/PageComposer.h"
 #include "Rendering/Objects/BannerFactory.h"
 #include "Input/Event.h"
@@ -29,7 +30,8 @@ namespace
                 ": "+std::to_string(game.awayScore);
             const std::string home=(game.homeNickname.empty()?game.homeDisplayName:game.homeNickname)+
                 ": "+std::to_string(game.homeScore);
-            return game.homeScore>game.awayScore ? home+", "+away : away+", "+home;
+            const std::string score = game.homeScore > game.awayScore ? home + ", " + away : away + ", " + home;
+            return game.wentToOvertime ? "OT " + score : score;
         }
         if (game.status=="IN_PROGRESS") return "In progress - score unavailable";
         if (game.status=="FINAL") return "Score unavailable";
@@ -44,7 +46,7 @@ LeagueScheduleScreen::LeagueScheduleScreen(
     std::function<LoadedWorldContext()> loadedWorldContextProvider,
     std::function<void(const LoadedWorldContext&,std::int64_t)> openTeam,
     std::function<void(const WorldEditCommit&)> committed,
-    std::function<void(std::unique_ptr<PffTest::GenericTestGame>,WorldActor)> openGame, std::int64_t teamSeasonId)
+    std::function<void(std::unique_ptr<PffTest::PffGameSession>,WorldActor)> openGame, std::int64_t teamSeasonId)
     : m_assetLibrary(assetLibrary)
     , m_commandDispatcher(std::move(commandDispatcher))
     , m_loadedWorldContextProvider(std::move(loadedWorldContextProvider))
@@ -167,7 +169,7 @@ void LeagueScheduleScreen::draw(Surface& surface)
 
     const Rect screen = page.resolveRegion("Screen");
     const auto [header, afterHeader] = page.splitTop(screen, 12);
-    const auto [footer, body] = page.splitBottom(afterHeader, 5);
+    const auto [footer, body] = page.splitBottom(afterHeader, PffLeagueFooter::Height);
 
     const int navigationWidth = std::min(34, std::max(28, body.size.width / 3));
 
@@ -296,15 +298,7 @@ void LeagueScheduleScreen::positionButtons(
 
     if (m_leaguePlayButton)
     {
-        const Size buttonSize{ 28, 3 };
-
-        m_leaguePlayButton->setBounds(Rect{
-            Point{
-                footer.position.x + ((footer.size.width - buttonSize.width) - 10),
-                footer.position.y + ((footer.size.height - buttonSize.height) / 2)
-            },
-            buttonSize
-            });
+        m_leaguePlayButton->setBounds(PffLeagueFooter::returnBounds(footer));
 
         m_leaguePlayButton->setNormalStyle(normal);
         m_leaguePlayButton->setHoverStyle(hover);
@@ -551,7 +545,7 @@ void LeagueScheduleScreen::openResult(std::int64_t gameId)
 {
     try
     {
-        auto game = std::make_unique<PffTest::GenericTestGame>(
+        auto game = std::make_unique<PffTest::PffGameSession>(
             m_dataContext.databasePath, m_dataContext.activeCompetitionSeasonId);
         const auto result = game->viewFinal(m_actor, gameId);
         if (result.success)
@@ -636,7 +630,7 @@ void LeagueScheduleScreen::runBatch()
                 stop({});
                 return;
             }
-            auto game = std::make_unique<PffTest::GenericTestGame>(
+            auto game = std::make_unique<PffTest::PffGameSession>(
                 m_dataContext.databasePath, m_dataContext.activeCompetitionSeasonId);
             const auto previousRevision = m_gameWindow.revision;
             const auto started = game->start(m_actor, previousRevision);
@@ -870,7 +864,7 @@ void LeagueScheduleScreen::drawCurrentWeek(
             }
             x+=width+4; // The unlinked separator is exactly " at ".
         }
-        if (m_openGame && game->status == "FINAL" && game->gameId)
+        if (m_openGame && game->status == "FINAL" && game->gameId && game->hasTaggedReplay)
         {
             const auto label = wrapText(displayResult(*game), widths[4]).front();
             const int resultX = content.position.x + widths[0] + widths[1] + widths[2] + widths[3] + 8;
@@ -889,8 +883,7 @@ void LeagueScheduleScreen::drawCurrentWeek(
 
 void LeagueScheduleScreen::drawFooter(PageComposer& page,const Rect& footer) const
 {
-    const Rect textArea{Point{footer.position.x+2,footer.position.y+1},
-        Size{std::max(0,footer.size.width-42),2}};
+    const auto textArea = PffLeagueFooter::textBounds(footer);
     page.writeLine(textArea,0,TextClip::clipUtf8Text(
         m_dataContext.isLoaded()?m_dataContext.worldName:"No league loaded",textArea.size.width),
         PFF_Colors::TextHighlightColor);

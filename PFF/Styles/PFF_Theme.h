@@ -5,9 +5,9 @@
 
 namespace PFF_Colors
 {
-///////////////////////////////////////////////////////////////
-// C O L O R   A U G M E N T A T I O N S
-//    
+    ///////////////////////////////////////////////////////////////
+    // C O L O R   A U G M E N T A T I O N S
+    //    
     inline const Style TextHighlightColor =
         style::Fg(ThemeColor::Basic256Rgb(
             Color::FromBasic(Color::Basic::Yellow),
@@ -112,7 +112,10 @@ namespace PFF_Colors
             Color::FromIndexed(124),
             Color::FromRgb(155, 0, 0)));
 
-    // Formation boards and controls share their side colors.
+    ///////////////////////////////////////////////////////////////
+    // F O R M A T I O N   B O A R D S   &   C O N T R O L S
+    //    
+ 
     inline const Style FormationOffenseColor =
         style::Fg(Color::FromBasic(Color::Basic::BrightWhite))
         + style::Bg(ThemeColor::Basic256Rgb(
@@ -136,7 +139,11 @@ namespace PFF_Colors
     inline const Style FormationInactiveOffenseColor = FormationOffenseColor.withDim(true);
     inline const Style FormationInactiveDefenseColor = FormationDefenseColor.withDim(true);
 
+    ///////////////////////////////////////////////////////////////
+    // S C R O L L B O X   
     // ScrollBox focus fills blank cells as well as text, so keep the fill unlined.
+    //
+
     inline const Style ScrollBoxFocusedStyle = UIThemes::WidgetTextFocused.withUnderline(false);
 
     inline const Style ButtonHoverColor =
@@ -169,9 +176,9 @@ namespace PFF_Colors
             Color::FromIndexed(102),
             Color::FromRgb(139, 139, 139)));
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////
-    /// Forms
-    ///
+    ///////////////////////////////////////////////////////////////
+    // F O R M S
+    //    
 
     inline const Style FormPanelColor =
         style::Fg(ThemeColor::Basic256Rgb(

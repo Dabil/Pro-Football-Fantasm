@@ -3312,7 +3312,10 @@ SELECT
     COALESCE(away.Nickname, ''),
     COALESCE(home.Nickname, ''),
     COALESCE(CASE WHEN evidence.GameID IS NOT NULL AND evidence.CapturedUtc <= (SELECT CurrentTimeUtc FROM Worlds WHERE WorldID=1) THEN evidence.VenueName ELSE venue.VenueName END, ''),
-    CASE WHEN g.SimulationProviderKey='PFF_GENERIC_QUEUE_TEST' AND EXISTS(SELECT 1 FROM GameArtifacts a WHERE a.GameID=g.GameID AND a.ArtifactType='TEAM_STATISTICS') THEN 1 ELSE 0 END
+    CASE WHEN g.SimulationProviderKey='PFF_GENERIC_QUEUE_TEST' AND EXISTS(SELECT 1 FROM GameArtifacts a WHERE a.GameID=g.GameID AND a.ArtifactType='TEAM_STATISTICS') THEN 1 ELSE 0 END,
+    OVERTIME_EXPRESSION,
+    EXISTS(SELECT 1 FROM GameArtifacts a WHERE a.GameID=g.GameID AND a.ArtifactType='TAGGED_PBP'
+           AND a.FormatKey='PFF_LIVE_PBP' AND a.FormatVersion='2' AND a.HashAlgorithm='SHA256')
 FROM WorldScheduledGames sg
 JOIN TeamSeasons away
     ON away.TeamSeasonID = sg.AwayTeamSeasonID
@@ -3329,6 +3332,12 @@ ORDER BY
     sg.ScheduledUtc,
     sg.ScheduleKey;
 )SQL";
+        const std::string overtimeExpression = clockModel
+            ? "EXISTS(SELECT 1 FROM GamePeriods p WHERE p.WorldID=g.WorldID AND p.GameID=g.GameID "
+              "AND p.PeriodKind='OVERTIME')"
+            : "0";
+        const std::string overtimeToken = "OVERTIME_EXPRESSION";
+        scheduleSql.replace(scheduleSql.find(overtimeToken), overtimeToken.size(), overtimeExpression);
         const auto venueJoin=scheduleSql.find("LEFT JOIN WorldVenues venue");
         scheduleSql.replace(venueJoin,std::string("LEFT JOIN WorldVenues venue").size(),"LEFT JOIN "+venueTable+" venue");
         Statement statement(db,scheduleSql.c_str());
@@ -3383,6 +3392,8 @@ ORDER BY
                             sqlite3_column_type(statement.get(), 20) != SQLITE_NULL)
                         {
                             game.hasFinalScore = true;
+                            game.wentToOvertime = sqlite3_column_int(statement.get(), 25) != 0;
+                            game.hasTaggedReplay = sqlite3_column_int(statement.get(), 26) != 0;
                             game.hasVisibleScore = true;
                             game.awayScore = sqlite3_column_int(statement.get(), 19);
                             game.homeScore = sqlite3_column_int(statement.get(), 20);

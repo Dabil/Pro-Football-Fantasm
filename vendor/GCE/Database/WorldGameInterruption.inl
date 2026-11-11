@@ -84,7 +84,7 @@ std::vector<WorldTestQueuedEvent> testQueuedEvents(Session &s, std::int64_t game
                "SeasonEventDefinitions d ON d.WorldID=i.WorldID AND d.DefinitionID=i.DefinitionID "
                "WHERE e.WorldID=? AND e.State='PENDING' AND e.KindKey<>'GAME_KICKOFF' AND "
                "e.StartsUtc<=? ORDER BY e.StartsUtc,e.DispatchPriority,k.PhaseCode,e.ScheduledWorldEventID",
-               {kickoff, s.world, testTime(s, kickoff, 3600)});
+               {kickoff, s.world, testTime(s, kickoff, 4500)});
     std::vector<WorldTestQueuedEvent> result;
     while (q.row())
     {

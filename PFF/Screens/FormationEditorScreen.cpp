@@ -3,6 +3,7 @@
 #include "Styles/PFF_Theme.h"
 #include "Input/Command.h"
 #include "Input/Event.h"
+#include "Screens/LeagueFooter.h"
 #include "Rendering/Composition/PageComposer.h"
 #include "Rendering/Surface.h"
 #include "Rendering/Objects/BannerFactory.h"
@@ -451,7 +452,7 @@ void FormationEditorScreen::draw(Surface& surface)
     page.createFullScreenRegion("Screen");
     const auto screen = page.resolveRegion("Screen");
     const auto [header, remaining] = page.splitTop(screen, 12);
-    const auto [footer, body] = page.splitBottom(remaining, 5);
+    const auto [footer, body] = page.splitBottom(remaining, PffLeagueFooter::Height);
     const auto [controls, content] = page.splitRight(body, std::min(30, body.size.width / 3));
     const auto& text = PFF_Colors::TextHighlightColor;
     const auto line = [&](const Rect& area, int row, std::string_view value) {
@@ -557,11 +558,10 @@ void FormationEditorScreen::draw(Surface& surface)
     for (std::size_t i = 2; i < m_actions.size(); ++i)
         m_actions[i]->setBounds(bounds(controls, 1, 6 + listHeight + static_cast<int>(i - 2) * 3, controlWidth, 3));
     const auto world = m_context ? m_context() : m_world;
-    const int returnWidth = std::min(28, footer.size.width / 3);
-    const auto footerText = bounds(footer, 2, 1, footer.size.width - returnWidth - 4, 2);
+    const auto footerText = PffLeagueFooter::textBounds(footer);
     line(footerText, 0, world.worldName);
     line(footerText, 1, PffGameTime::formatGameTimeEastern(world.currentTimeUtc));
-    m_return->setBounds(bounds(footer, footer.size.width - returnWidth, 1, returnWidth, 3));
+    m_return->setBounds(PffLeagueFooter::returnBounds(footer));
     m_return->setNormalStyle(PFF_Colors::ButtonNormalColor);
     m_return->setFocusedStyle(PFF_Colors::ButtonHoverColor);
     m_return->setHoverStyle(PFF_Colors::ButtonHoverColor);

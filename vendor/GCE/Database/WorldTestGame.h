@@ -1,7 +1,9 @@
 #pragma once
 #include "GCE/Database/WorldTeamData.h"
 #include "GCE/Database/WorldTestGameState.h"
+#include <functional>
 #include <optional>
+#include <string_view>
 
 // GAMETIME-TEST-2026-11-04: bounded development harness, not FULL_PFF readiness.
 // Owns queue admission and atomic buffered-game publication. No football rules.
@@ -39,7 +41,8 @@ WorldEditResult<WorldEditCommit> finalizeTestMatchup(const WorldActor &, std::in
                                                      const std::vector<WorldTestGameStep> &,
                                                      std::int64_t expectedRevision,
                                                      std::string *recordedText = nullptr,
-                                                     const WorldTestSavedState *state = nullptr);
+                                                     const WorldTestSavedState *state = nullptr,
+                                                     const std::function<std::string(std::string_view)> &taggedOutput = {});
 WorldEditResult<WorldEditCommit> saveTestMatchup(const WorldActor &, std::int64_t game,
                                                const std::vector<WorldTestGameStep> &,
                                                const WorldTestSavedState &,
