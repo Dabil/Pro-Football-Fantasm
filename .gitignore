@@ -382,3 +382,9 @@ build/
 .DS_Store
 Thumbs.db
 /PFF/render_diagnostics_report.txt
+
+# Local standalone PFF database tests
+/PFF/Database/Tests/
+
+# Local World saves
+/PFF/Data/World/

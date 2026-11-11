@@ -6,7 +6,7 @@
 #include "GCE/Database/TeamDataSql.h"
 #include "GCE/Database/WorldEventReadiness.h"
 #include "GCE/Database/WorldClockServices.h"
-#include "GCE/Database/WorldTestGame.h"
+#include "GCE/Database/WorldGameSession.h"
 #include <fstream>
 #include <iterator>
 #include <algorithm>
@@ -1080,4 +1080,4 @@ WorldGameWindow previewInstalledWindow(Session&,std::int64_t);
 WorldEditResult<WorldAdvanceOutcome> beginInstalledGameWindow(const WorldActor&,std::int64_t,const std::string&,std::int64_t,const std::string&);
 #include "GCE/Database/WorldScheduler.inl"
 #include "GCE/Database/WorldClockServices.inl"
-#include "GCE/Database/WorldTestGame.inl"
+#include "GCE/Database/WorldGameSession.inl"

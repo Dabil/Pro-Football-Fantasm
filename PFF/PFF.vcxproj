@@ -211,21 +211,7 @@
     <ClInclude Include="Styles\PFF_Theme.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Database\ClockSchedulerStage1Tests.cpp" />
-    <None Include="Database\GameTimeTests.cpp" />
-    <None Include="Database\GameProgressTests.inl" />
-    <None Include="Database\GameInterruptionTests.inl" />
-    <None Include="Database\RunGameTimeTests.cmd" />
-    <None Include="Database\WorldClockAdvanceTests.cpp" />
-    <None Include="Database\RunWorldClockAdvanceTests.cmd" />
-    <None Include="Database\RunClockSchedulerStage1Tests.cmd" />
     <None Include="startup.config" />
-    <None Include="Database\TeamDataUiTests.cpp" />
-    <None Include="Database\RunTeamDataUiTests.cmd" />
-    <None Include="Database\TeamDataTests.cpp" />
-    <None Include="Database\RunTeamDataTests.cmd" />
-    <None Include="Database\CoreManifestTests.cpp" />
-    <None Include="Database\RunCoreManifestTests.cmd" />
     <None Include="Assets\XP\Field.xp" />
     <None Include="Assets\XP\ScoreBoard.xp" />
     <None Include="Assets\XP\ScoreBoardFont.xp" />

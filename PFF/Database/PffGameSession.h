@@ -1,5 +1,5 @@
 #pragma once
-#include "GCE/Database/WorldTestGame.h"
+#include "GCE/Database/WorldGameSession.h"
 #include <array>
 #include <memory>
 #include <string_view>

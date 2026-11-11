@@ -18,11 +18,11 @@
     <ClInclude Include="Database\PersonNicknames.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Database\WorldPersonNicknamesSchema.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Database\ClockTime.h"><Filter>Header Files</Filter></ClInclude>
-    <ClInclude Include="Database\WorldTestGame.h"><Filter>Header Files</Filter></ClInclude>
-    <ClInclude Include="Database\WorldTestGameState.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\WorldGameSession.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\WorldGameSessionState.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Database\WorldGameProgress.inl"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Database\WorldGameInterruption.inl"><Filter>Header Files</Filter></ClInclude>
-    <ClInclude Include="Database\WorldTestGame.inl"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\WorldGameSession.inl"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Database\ClockStateSql.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Database\ClockSchedulerBuild.inl"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Database\WorldClockServices.h"><Filter>Header Files</Filter></ClInclude>

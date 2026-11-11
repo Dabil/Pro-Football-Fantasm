@@ -134,11 +134,11 @@
     <ClInclude Include="Database\PersonNicknames.h" />
     <ClInclude Include="Database\WorldPersonNicknamesSchema.h" />
     <ClInclude Include="Database\ClockTime.h" />
-    <ClInclude Include="Database\WorldTestGame.h" />
-    <ClInclude Include="Database\WorldTestGameState.h" />
+    <ClInclude Include="Database\WorldGameSession.h" />
+    <ClInclude Include="Database\WorldGameSessionState.h" />
     <ClInclude Include="Database\WorldGameProgress.inl" />
     <ClInclude Include="Database\WorldGameInterruption.inl" />
-    <ClInclude Include="Database\WorldTestGame.inl" />
+    <ClInclude Include="Database\WorldGameSession.inl" />
     <ClInclude Include="Database\ClockStateSql.h" />
     <ClInclude Include="Database\ClockSchedulerBuild.inl" />
     <ClInclude Include="Database\WorldClockServices.h" />
