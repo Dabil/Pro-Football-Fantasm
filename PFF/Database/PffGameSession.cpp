@@ -1,3 +1,5 @@
+// GameTime model implementation. Resolves football plays, records tagged PBP, and saves or restores matchups.
+
 #include "Database/PffGameSession.h"
 #include "Database/PbpRecorder.h"
 #include "GCE/Database/ClockTime.h"

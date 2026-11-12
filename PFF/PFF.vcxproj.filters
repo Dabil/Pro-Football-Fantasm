@@ -36,6 +36,7 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Database\PffGameSession.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="Screens\GameTimeController.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="Screens\GameTimeScreen.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="Screens\Developer\RendererDiagnosticsScreen.cpp">
       <Filter>Source Files</Filter>
@@ -91,6 +92,7 @@
     <ClInclude Include="Screens\GameTimeFormatting.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Screens\GameTimeController.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Screens\GameTimeScreen.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Screens\PffBroadcast.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Database\PffGameSession.h"><Filter>Header Files</Filter></ClInclude>

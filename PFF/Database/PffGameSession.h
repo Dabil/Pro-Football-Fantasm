@@ -1,3 +1,5 @@
+// GameTime model API. Exposes live matchup state, play commands, and saved replay history.
+
 #pragma once
 #include "GCE/Database/WorldGameSession.h"
 #include <array>
