@@ -11,5 +11,11 @@ struct Panes
     Rect controls;
 };
 
-Panes layout(Composition::PageComposer &page, const Rect &body);
+struct ControlPaneWidth
+{
+    int minimum = 28;
+    int maximum = 34;
+};
+
+Panes layout(Composition::PageComposer &page, const Rect &body, ControlPaneWidth width = {});
 }

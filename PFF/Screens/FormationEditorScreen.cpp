@@ -3,7 +3,7 @@
 #include "Styles/PFF_Theme.h"
 #include "Input/Command.h"
 #include "Input/Event.h"
-#include "Screens/LeagueFooter.h"
+#include "Screens/ContentControlFrameView.h"
 #include "Rendering/Composition/PageComposer.h"
 #include "Rendering/Surface.h"
 #include "Rendering/Objects/BannerFactory.h"
@@ -447,13 +447,14 @@ void FormationEditorScreen::update(const Animation::TickEvent& event)
 void FormationEditorScreen::draw(Surface& surface)
 {
     auto& buffer = surface.buffer();
-    buffer.clear(PFF_Colors::MainBackgroundColor);
     Composition::PageComposer page(buffer);
-    page.createFullScreenRegion("Screen");
-    const auto screen = page.resolveRegion("Screen");
-    const auto [header, remaining] = page.splitTop(screen, 12);
-    const auto [footer, body] = page.splitBottom(remaining, PffLeagueFooter::Height);
-    const auto [controls, content] = page.splitRight(body, std::min(30, body.size.width / 3));
+    const auto frame = ContentControlFrameView::drawFrame(
+        page, m_banner, "Formations", ContentControlFrameView::TitleFallback::CenteredInTitleArea,
+        ContentControlView::ControlPaneWidth{0, 30});
+    const auto& screen = frame.screen;
+    const auto& footer = frame.footer;
+    const auto& content = frame.content;
+    const auto& controls = frame.controls;
     const auto& text = PFF_Colors::TextHighlightColor;
     const auto line = [&](const Rect& area, int row, std::string_view value) {
         if (row >= 0 && row < area.size.height)
@@ -463,20 +464,6 @@ void FormationEditorScreen::draw(Surface& surface)
         return Rect{Point{area.position.x + x, area.position.y + y},
             Size{std::max(0, width), std::max(0, height)}};
     };
-    page.createRegion("Header", header);
-    page.createInsetRegion("InnerPanel", "Header", 2, 1, 2, 1);
-    page.drawPanel("Header", PFF_Colors::HeaderOuterColor, PFF_Colors::HeaderOuterColor,
-        ObjectFactory::doubleLineBorder());
-    page.createInsetRegion("TitleArea", "InnerPanel", 4, 2, 2, 1);
-    buffer.fillRect(page.resolveRegion("InnerPanel"), U' ', PFF_Colors::HeaderInnerColor);
-    const auto titleArea = page.resolveRegion("TitleArea");
-    if (!m_banner.isEmpty() && m_banner.getWidth() <= titleArea.size.width &&
-        m_banner.getHeight() <= titleArea.size.height)
-        page.writeObjectInRegion(m_banner, "TitleArea", Composition::Align::center());
-    else
-        line(bounds(titleArea, std::max(0, (titleArea.size.width - 10) / 2),
-            std::max(0, (titleArea.size.height - 1) / 2), std::min(titleArea.size.width, 10),
-            titleArea.size.height > 0 ? 1 : 0), 0, "Formations");
     const bool offense = m_draft.side() == Side::Offense;
     const auto& boardStyle = offense ? PFF_Colors::FormationOffenseColor : PFF_Colors::FormationDefenseColor;
     const auto boardArea = bounds(content, 0, 5, content.size.width,
@@ -558,9 +545,8 @@ void FormationEditorScreen::draw(Surface& surface)
     for (std::size_t i = 2; i < m_actions.size(); ++i)
         m_actions[i]->setBounds(bounds(controls, 1, 6 + listHeight + static_cast<int>(i - 2) * 3, controlWidth, 3));
     const auto world = m_context ? m_context() : m_world;
-    const auto footerText = PffLeagueFooter::textBounds(footer);
-    line(footerText, 0, world.worldName);
-    line(footerText, 1, PffGameTime::formatGameTimeEastern(world.currentTimeUtc));
+    ContentControlFrameView::drawFooter(page, footer, world.worldName,
+        PffGameTime::formatGameTimeEastern(world.currentTimeUtc));
     m_return->setBounds(PffLeagueFooter::returnBounds(footer));
     m_return->setNormalStyle(PFF_Colors::ButtonNormalColor);
     m_return->setFocusedStyle(PFF_Colors::ButtonHoverColor);

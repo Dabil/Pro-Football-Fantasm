@@ -21,12 +21,14 @@ struct Panes
 using TitleFallback = HeaderView::TitleFallback;
 
 inline Panes drawFrame(Composition::PageComposer &page, const TextObject &banner, std::string_view title,
-                       TitleFallback fallback = TitleFallback::Centered)
+                       TitleFallback fallback = TitleFallback::Centered,
+                       ContentControlView::ControlPaneWidth controlWidth = {},
+                       HeaderView::BannerPlacement placement = HeaderView::BannerPlacement::TitleArea)
 {
     const auto frame = FrameView::begin(page, HeaderView::Height, FooterView::Height,
                                         PFF_Colors::MainBackgroundColor);
-    HeaderView::draw(page, frame.header, banner, title, fallback);
-    const auto [content, controls] = ContentControlView::layout(page, frame.body);
+    HeaderView::draw(page, frame.header, banner, title, fallback, placement);
+    const auto [content, controls] = ContentControlView::layout(page, frame.body, controlWidth);
     return {frame.screen, frame.body, content, controls, frame.footer};
 }
 

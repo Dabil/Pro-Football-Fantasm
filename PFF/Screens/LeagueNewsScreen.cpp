@@ -1,6 +1,6 @@
 #include "Screens/LeagueNewsScreen.h"
 
-#include "Screens/LeagueFooter.h"
+#include "Screens/ContentControlFrameView.h"
 #include "Rendering/Composition/PageComposer.h"
 #include "Rendering/Objects/BannerFactory.h"
 #include "Rendering/Surface.h"
@@ -9,7 +9,6 @@
 #include "GCE/Database/WorldScheduler.h"
 #include "UI/Widgets/Label.h"
 #include "UI/Widgets/ScrollBox.h"
-#include "Utilities/Text/TextClip.h"
 #include "Utilities/Text/TextWrap.h"
 #include "UI/Widgets/Button.h"
 
@@ -158,23 +157,12 @@ void LeagueNewsScreen::rebuildNews(int width)
 
 void LeagueNewsScreen::draw(Surface& surface)
 {
-    auto& buffer = surface.buffer();
-    buffer.clear(PFF_Colors::MainBackgroundColor);
-    Composition::PageComposer page(buffer);
-    page.createFullScreenRegion("Screen");
-    const auto screen = page.resolveRegion("Screen");
-    const auto [header, belowHeader] = page.splitTop(screen, 12);
-    const auto [footer, body] = page.splitBottom(belowHeader, PffLeagueFooter::Height);
-
-    page.createRegion("Header", header);
-    page.createInsetRegion("InnerPanel", "Header", 2, 1, 2, 1);
-    page.drawPanel("Header", PFF_Colors::HeaderOuterColor, PFF_Colors::HeaderOuterColor,
-        ObjectFactory::doubleLineBorder());
-    const auto inner = page.resolveRegion("InnerPanel");
-    buffer.fillRect(inner, U' ', PFF_Colors::HeaderInnerColor);
-    page.writeObjectInRegion(m_title, "InnerPanel", Composition::Align::center());
-
-    const auto [navigation, content] = page.splitRight(body, std::min(30, body.size.width / 3));
+    Composition::PageComposer page(surface.buffer());
+    const auto frame = ContentControlFrameView::drawFrame(
+        page, m_title, {}, ContentControlFrameView::TitleFallback::Centered,
+        ContentControlView::ControlPaneWidth{0, 30}, HeaderView::BannerPlacement::InnerPanel);
+    const auto& content = frame.content;
+    const auto& navigation = frame.controls;
     page.createRegion("ContentPane", content);
     page.createRegion("NavigationPane", navigation);
     for (const auto* pane : {"ContentPane", "NavigationPane"})
@@ -192,16 +180,11 @@ void LeagueNewsScreen::draw(Surface& surface)
     rebuildNews(std::max(1, news.size.width - 1));
     rebuildDates(std::max(1, dates.size.width - 1));
 
-    const auto footerText = PffLeagueFooter::textBounds(footer);
-    page.writeLine(footerText, 0, TextClip::clipUtf8Text(
-        m_context.isLoaded() ? m_context.worldName : "No league loaded", footerText.size.width),
-        PFF_Colors::TextHighlightColor);
-    if (m_context.isLoaded())
-        page.writeLine(footerText, 1, TextClip::clipUtf8Text(
-            PffGameTime::formatGameTimeEastern(m_context.currentTimeUtc), footerText.size.width),
-            PFF_Colors::TextHighlightColor);
+    ContentControlFrameView::drawFooter(page, frame.footer,
+        m_context.isLoaded() ? m_context.worldName : "No league loaded",
+        m_context.isLoaded() ? PffGameTime::formatGameTimeEastern(m_context.currentTimeUtc) : "");
 
-    m_root.setBounds(screen);
-    m_return->setBounds(PffLeagueFooter::returnBounds(footer));
+    m_root.setBounds(frame.screen);
+    m_return->setBounds(PffLeagueFooter::returnBounds(frame.footer));
     m_root.draw(surface);
 }

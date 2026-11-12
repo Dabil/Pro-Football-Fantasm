@@ -2,7 +2,7 @@
 #include "Screens/GameTimeFormatting.h"
 #include "Styles/PFF_Theme.h"
 #include "Rendering/Surface.h"
-#include "Screens/LeagueFooter.h"
+#include "Screens/ContentControlFrameView.h"
 #include "Rendering/Composition/PageComposer.h"
 #include "Rendering/Objects/BannerFactory.h"
 #include "Utilities/Text/TextClip.h"
@@ -97,26 +97,12 @@ void HeadCoachScreen::draw(Surface& surface)
     const bool active = matchesSelection(world);
     m_controls[1]->setEnabled(bool(m_openFormationEditor) && active);
 
-    auto& buffer = surface.buffer();
-    buffer.clear(PFF_Colors::MainBackgroundColor);
-    Composition::PageComposer page(buffer);
-    page.createFullScreenRegion("Screen");
-    const auto screen = page.resolveRegion("Screen");
-    const auto [header, afterHeader] = page.splitTop(screen, 12);
-    const auto [footer, body] = page.splitBottom(afterHeader, PffLeagueFooter::Height);
-    const auto [controls, content] = page.splitRight(body, std::min(34, std::max(28, body.size.width / 3)));
-    page.createRegion("Header", header);
-    page.createInsetRegion("InnerPanel", "Header", 2, 1, 2, 1);
-    page.createInsetRegion("TitleArea", "InnerPanel", 4, 2, 2, 1);
-    page.drawPanel("Header", PFF_Colors::HeaderOuterColor, PFF_Colors::HeaderOuterColor,
-        ObjectFactory::doubleLineBorder());
-    buffer.fillRect(page.resolveRegion("InnerPanel"), U' ', PFF_Colors::HeaderInnerColor);
-    const auto titleArea = page.resolveRegion("TitleArea");
-    if (!m_banner.isEmpty() && m_banner.getWidth() <= titleArea.size.width &&
-        m_banner.getHeight() <= titleArea.size.height)
-        page.writeObjectInRegion(m_banner, "TitleArea", Composition::Align::center());
-    else
-        page.writeLine(titleArea, 0, "Head Coach", PFF_Colors::ProFootballTitleColor);
+    Composition::PageComposer page(surface.buffer());
+    const auto frame = ContentControlFrameView::drawFrame(
+        page, m_banner, "Head Coach", ContentControlFrameView::TitleFallback::LeftAligned);
+    const auto& content = frame.content;
+    const auto& controls = frame.controls;
+    const auto& footer = frame.footer;
 
     const auto& text = PFF_Colors::TextHighlightColor;
     const auto message = active ? "Choose a coaching option." : "This team is unavailable in the active league.";
@@ -139,12 +125,9 @@ void HeadCoachScreen::draw(Surface& surface)
         button->setDisabledStyle(PFF_Colors::ButtonNormalColor.withDim(true));
     }
 
-    const auto footerText = PffLeagueFooter::textBounds(footer);
-    page.writeLine(footerText, 0, TextClip::clipUtf8Text(
-        world.isLoaded() ? world.worldName : "No league loaded", footerText.size.width), text);
-    if (world.isLoaded())
-        page.writeLine(footerText, 1, TextClip::clipUtf8Text(
-            PffGameTime::formatGameTimeEastern(world.currentTimeUtc), footerText.size.width), text);
-    m_root.setBounds(screen);
+    ContentControlFrameView::drawFooter(page, footer,
+        world.isLoaded() ? world.worldName : "No league loaded",
+        world.isLoaded() ? PffGameTime::formatGameTimeEastern(world.currentTimeUtc) : "");
+    m_root.setBounds(frame.screen);
     m_root.draw(surface);
 }

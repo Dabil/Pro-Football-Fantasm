@@ -6,7 +6,7 @@
 
 // TUI includes
 #include "Rendering/Surface.h"
-#include "Screens/LeagueFooter.h"
+#include "Screens/ContentControlFrameView.h"
 #include "Rendering/Composition/PageComposer.h"
 #include "Rendering/Objects/BannerFactory.h"
 #include "Input/Event.h"
@@ -161,49 +161,20 @@ void LeagueScheduleScreen::draw(Surface& surface)
     m_root.resetFocus();
     for(auto* link:m_teamLinks) m_root.removeChild(*link);
     m_teamLinks.clear();
-    buffer.clear(PFF_Colors::MainBackgroundColor);
-
     PageComposer page(buffer);
-    page.clearRegions();
-    page.createFullScreenRegion("Screen");
-
-    const Rect screen = page.resolveRegion("Screen");
-    const auto [header, afterHeader] = page.splitTop(screen, 12);
-    const auto [footer, body] = page.splitBottom(afterHeader, PffLeagueFooter::Height);
-
-    const int navigationWidth = std::min(34, std::max(28, body.size.width / 3));
-
-    const auto [navigationPane, schedulePane] = page.splitRight(body, navigationWidth);
+    const auto frame = ContentControlFrameView::drawFrame(
+        page, m_LeagueScheduleTitleObject, m_teamSeasonId ? "TEAM SCHEDULE" : "LEAGUE SCHEDULE");
+    const auto &body = frame.body;
+    const auto &schedulePane = frame.content;
+    const auto &navigationPane = frame.controls;
+    const auto &footer = frame.footer;
     m_scheduleBounds = schedulePane;
 
     m_root.setBounds(body);
     positionButtons(navigationPane, footer);
 
-    page.createRegion("Header", header);
-    page.createInsetRegion("InnerPanel", "Header", 2, 1, 2, 1);
-    page.createInsetRegion("TitleArea", "InnerPanel", 4, 2, 2, 1);
-
-    page.createRegion("Footer", footer);
-    page.createRegion("Body", body);
     page.createRegion("SchedulePanel", schedulePane);
     page.createInsetRegion("ScheduleContent", "SchedulePanel", 2, 1, 2, 1);
-    page.createRegion("NavigationPane", navigationPane);
-
-    page.drawPanel(
-        "Header",
-        PFF_Colors::HeaderOuterColor,
-        PFF_Colors::HeaderOuterColor,
-        ObjectFactory::doubleLineBorder());
-
-    buffer.fillRect(
-        page.resolveRegion("InnerPanel"),
-        U' ',
-        PFF_Colors::HeaderInnerColor);
-
-    page.writeObjectInRegion(
-        m_LeagueScheduleTitleObject,
-        "TitleArea",
-        Composition::Align::center());
 
     page.drawPanel(
         "SchedulePanel",
@@ -225,7 +196,8 @@ void LeagueScheduleScreen::draw(Surface& surface)
     }
 
     drawGameWindowStatus(page,navigationPane);
-    drawFooter(page,footer);
+    ContentControlFrameView::drawFooter(page, footer,
+        m_dataContext.isLoaded() ? m_dataContext.worldName : "No league loaded", m_gameTimeLabel);
     for(auto* button:{m_nextGameButton,m_lookAheadButton,m_lookBackButton,m_leaguePlayButton})
     {auto child=m_root.removeChild(*button);m_root.addChild(std::move(child));}
     // Save the static page before drawing interactive button states.
@@ -879,15 +851,6 @@ void LeagueScheduleScreen::drawCurrentWeek(
     if (m_maxScrollOffset>0)
         page.writeLine(content,content.size.height-1,TextClip::clipUtf8Text(
             "Scroll: mouse wheel / arrows / Page Up / Page Down",content.size.width),PFF_Colors::TextHighlightColor);
-}
-
-void LeagueScheduleScreen::drawFooter(PageComposer& page,const Rect& footer) const
-{
-    const auto textArea = PffLeagueFooter::textBounds(footer);
-    page.writeLine(textArea,0,TextClip::clipUtf8Text(
-        m_dataContext.isLoaded()?m_dataContext.worldName:"No league loaded",textArea.size.width),
-        PFF_Colors::TextHighlightColor);
-    page.writeLine(textArea,1,TextClip::clipUtf8Text(m_gameTimeLabel,textArea.size.width),PFF_Colors::TextHighlightColor);
 }
 
 std::int32_t LeagueScheduleScreen::currentWeek() const noexcept

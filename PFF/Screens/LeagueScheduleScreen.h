@@ -64,7 +64,6 @@ private:
         Composition::PageComposer& page,
         std::string_view panelRegionName,
         std::string_view contentRegionName);
-    void drawFooter(Composition::PageComposer& page, const Rect& footer) const;
 
     [[nodiscard]] std::int32_t currentWeek() const noexcept;
 

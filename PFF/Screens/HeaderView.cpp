@@ -6,7 +6,7 @@
 #include <string>
 
 void HeaderView::draw(Composition::PageComposer &page, const Rect &header, const TextObject &banner,
-                      std::string_view title, TitleFallback fallback)
+                      std::string_view title, TitleFallback fallback, BannerPlacement placement)
 {
     page.createRegion("Header", header);
     page.createInsetRegion("HeaderInner", "Header", 2, 1, 2, 1);
@@ -14,6 +14,11 @@ void HeaderView::draw(Composition::PageComposer &page, const Rect &header, const
     const auto &outer = PFF_Colors::HeaderOuterColor;
     page.drawPanel("Header", outer, outer, ObjectFactory::doubleLineBorder());
     page.getTarget().fillRect(page.resolveRegion("HeaderInner"), U' ', PFF_Colors::HeaderInnerColor);
+    if (placement == BannerPlacement::InnerPanel)
+    {
+        page.writeObjectInRegion(banner, "HeaderInner", Composition::Align::center());
+        return;
+    }
     const auto titleArea = page.resolveRegion("Title");
     if (!banner.isEmpty() && banner.getWidth() <= titleArea.size.width &&
         banner.getHeight() <= titleArea.size.height)
@@ -26,6 +31,19 @@ void HeaderView::draw(Composition::PageComposer &page, const Rect &header, const
         const auto count = std::min(lines.size(), static_cast<std::size_t>(std::max(0, titleArea.size.height)));
         for (std::size_t row = 0; row < count; ++row)
             page.writeLine(titleArea, static_cast<int>(row), lines[row], PFF_Colors::ProFootballTitleColor);
+    }
+    else if (fallback == TitleFallback::LeftAligned)
+    {
+        page.writeLine(titleArea, 0, title, PFF_Colors::ProFootballTitleColor);
+    }
+    else if (fallback == TitleFallback::CenteredInTitleArea)
+    {
+        const int titleWidth = TextClip::measureDisplayWidth(UnicodeConversion::utf8ToU32(title));
+        const Rect line{
+            Point{titleArea.position.x + std::max(0, (titleArea.size.width - titleWidth) / 2),
+                  titleArea.position.y + std::max(0, (titleArea.size.height - 1) / 2)},
+            Size{std::min(titleArea.size.width, titleWidth), std::min(titleArea.size.height, 1)}};
+        page.writeLine(line, 0, TextClip::clipUtf8Text(title, line.size.width), PFF_Colors::TextHighlightColor);
     }
     else
     {
