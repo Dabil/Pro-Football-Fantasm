@@ -161,6 +161,10 @@
     <ClCompile Include="Screens\TeamsAndStandingsScreen.cpp" />
     <ClCompile Include="Screens\TeamDataScreen.cpp" />
     <ClCompile Include="Screens\TeamScreen.cpp" />
+    <ClCompile Include="Screens\HeaderView.cpp" />
+    <ClCompile Include="Screens\FooterView.cpp" />
+    <ClCompile Include="Screens\ContentControlView.cpp" />
+    <ClCompile Include="Screens\FrameView.cpp" />
     <ClCompile Include="Screens\HeadCoachScreen.cpp" />
     <ClCompile Include="Screens\FormationEditorScreen.cpp" />
     <ClCompile Include="Screens\FormationBookDraft.cpp" />
@@ -202,6 +206,10 @@
     <ClInclude Include="Database\PbpRecorder.h" />
     <ClInclude Include="Screens\LeagueFooter.h" />
     <ClInclude Include="Screens\ContentControlFrameView.h" />
+    <ClInclude Include="Screens\HeaderView.h" />
+    <ClInclude Include="Screens\FooterView.h" />
+    <ClInclude Include="Screens\ContentControlView.h" />
+    <ClInclude Include="Screens\FrameView.h" />
     <ClInclude Include="Screens\TeamsAndStandingsScreen.h" />
     <ClInclude Include="Screens\TeamDataScreen.h" />
     <ClInclude Include="Screens\FormCheckBox.h" />

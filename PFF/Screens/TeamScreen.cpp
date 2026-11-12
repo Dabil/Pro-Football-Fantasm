@@ -2,11 +2,10 @@
 #include "Screens/GameTimeFormatting.h"
 #include "Styles/PFF_Theme.h"
 #include "Rendering/Surface.h"
-#include "Screens/LeagueFooter.h"
+#include "Screens/ContentControlFrameView.h"
 #include "Rendering/Composition/PageComposer.h"
 #include "Rendering/Objects/BannerFactory.h"
 #include "Utilities/Text/TextClip.h"
-#include "Utilities/Text/TextWrap.h"
 #include <algorithm>
 
 TeamScreen::TeamScreen(Assets::AssetLibrary& assets,std::function<bool(std::string_view)> dispatch,
@@ -108,34 +107,19 @@ void TeamScreen::update(const Animation::TickEvent& event) {refreshTeam();m_root
 
 void TeamScreen::draw(Surface& surface)
 {
-    const Style& background=PFF_Colors::MainBackgroundColor;
-    const Style& titleStyle=PFF_Colors::ProFootballTitleColor;
     const Style& textStyle=PFF_Colors::TextHighlightColor;
     const Style& normal=PFF_Colors::ButtonNormalColor;
     const Style& active=PFF_Colors::ButtonHoverColor;
     const Style& pressed=PFF_Colors::ButtonPressedColor;
     const Style disabled=normal.withDim(true);
     refreshTeam();
-    auto& buffer=surface.buffer();buffer.clear(background);
-    Composition::PageComposer page(buffer);
-    page.createFullScreenRegion("Screen");
-    const auto screen=page.resolveRegion("Screen");
-    const auto [header,afterHeader]=page.splitTop(screen,12);
-    const auto [footer,body]=page.splitBottom(afterHeader, PffLeagueFooter::Height);
-    const auto [controls,content]=page.splitRight(body,std::min(34,std::max(28,body.size.width/3)));
-    page.createRegion("Header",header);page.createInsetRegion("InnerPanel","Header",2,1,2,1);
-    page.createInsetRegion("TitleArea","InnerPanel",4,2,2,1);
-    page.drawPanel("Header",PFF_Colors::HeaderOuterColor,PFF_Colors::HeaderOuterColor,ObjectFactory::doubleLineBorder());
-    buffer.fillRect(page.resolveRegion("InnerPanel"),U' ',PFF_Colors::HeaderInnerColor);
-    const auto titleArea=page.resolveRegion("TitleArea");
-    if(!m_banner.isEmpty() && m_banner.getWidth()<=titleArea.size.width && m_banner.getHeight()<=titleArea.size.height)
-        page.writeObjectInRegion(m_banner,"TitleArea",Composition::Align::center());
-    else
-    {
-        const auto lines=wrapText(m_title,std::max(1,titleArea.size.width));
-        for(std::size_t row=0;row<lines.size() && row<static_cast<std::size_t>(std::max(0,titleArea.size.height));++row)
-            page.writeLine(titleArea,static_cast<int>(row),lines[row],titleStyle);
-    }
+    Composition::PageComposer page(surface.buffer());
+    const auto frame = ContentControlFrameView::drawFrame(
+        page, m_banner, m_title, ContentControlFrameView::TitleFallback::Wrapped);
+    const auto &screen = frame.screen;
+    const auto &content = frame.content;
+    const auto &controls = frame.controls;
+    const auto &footer = frame.footer;
     if(!m_message.empty()) page.writeLine(content,1,TextClip::clipUtf8Text(m_message,content.size.width),textStyle);
     const int optionSpacing = controls.size.height >= 30 ? 5 : 3;
     for(std::size_t i=0;i<m_options.size();++i)
@@ -147,8 +131,8 @@ void TeamScreen::draw(Surface& surface)
         button->setNormalStyle(normal);button->setFocusedStyle(active);button->setHoverStyle(active);
         button->setPressedStyle(pressed);button->setDisabledStyle(disabled);
     }
-    const auto footerText = PffLeagueFooter::textBounds(footer);
-    page.writeLine(footerText,0,TextClip::clipUtf8Text(m_displayContext.isLoaded()?m_displayContext.worldName:"No league loaded",footerText.size.width),textStyle);
-    page.writeLine(footerText,1,TextClip::clipUtf8Text(m_displayContext.isLoaded()?PffGameTime::formatGameTimeEastern(m_displayContext.currentTimeUtc):"",footerText.size.width),textStyle);
+    ContentControlFrameView::drawFooter(page, footer,
+        m_displayContext.isLoaded() ? m_displayContext.worldName : "No league loaded",
+        m_displayContext.isLoaded() ? PffGameTime::formatGameTimeEastern(m_displayContext.currentTimeUtc) : "");
     m_root.setBounds(screen);m_root.draw(surface);
 }

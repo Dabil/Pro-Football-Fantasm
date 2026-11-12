@@ -23,6 +23,10 @@
   <ItemGroup>
     <ClCompile Include="Screens\TeamDataScreen.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="Screens\TeamScreen.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="Screens\HeaderView.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="Screens\FooterView.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="Screens\ContentControlView.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="Screens\FrameView.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="Screens\HeadCoachScreen.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="Screens\FormationEditorScreen.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="Screens\FormationBookDraft.cpp"><Filter>Source Files</Filter></ClCompile>
@@ -158,6 +162,10 @@
     </ClInclude>
     <ClInclude Include="Screens\LeagueFooter.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Screens\ContentControlFrameView.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Screens\HeaderView.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Screens\FooterView.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Screens\ContentControlView.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Screens\FrameView.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Screens\TeamsAndStandingsScreen.h">
       <Filter>Header Files</Filter>
     </ClInclude>
