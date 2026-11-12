@@ -201,7 +201,7 @@
     <ClInclude Include="Database\GameTimeModel.h" />
     <ClInclude Include="Database\PbpRecorder.h" />
     <ClInclude Include="Screens\LeagueFooter.h" />
-    <ClInclude Include="Screens\LeagueScreenLayout.h" />
+    <ClInclude Include="Screens\ContentControlFrameView.h" />
     <ClInclude Include="Screens\TeamsAndStandingsScreen.h" />
     <ClInclude Include="Screens\TeamDataScreen.h" />
     <ClInclude Include="Screens\FormCheckBox.h" />

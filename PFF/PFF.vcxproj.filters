@@ -157,7 +157,7 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Screens\LeagueFooter.h"><Filter>Header Files</Filter></ClInclude>
-    <ClInclude Include="Screens\LeagueScreenLayout.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Screens\ContentControlFrameView.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Screens\TeamsAndStandingsScreen.h">
       <Filter>Header Files</Filter>
     </ClInclude>

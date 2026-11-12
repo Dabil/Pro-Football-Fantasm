@@ -1,4 +1,4 @@
-// Shared FIGlet header, league footer, and two-pane geometry for league screens.
+// Shared view for a FIGlet header, footer, and content and control panes.
 #pragma once
 
 #include "Rendering/Composition/PageComposer.h"
@@ -9,7 +9,7 @@
 #include <string>
 #include <string_view>
 
-namespace PffLeagueScreen
+namespace ContentControlFrameView
 {
 struct Panes
 {
@@ -58,4 +58,4 @@ inline void drawFooter(Composition::PageComposer &page, const Rect &footer,
     page.writeLine(text, 0, TextClip::clipUtf8Text(leagueName, text.size.width), PFF_Colors::TextHighlightColor);
     page.writeLine(text, 1, TextClip::clipUtf8Text(clock, text.size.width), PFF_Colors::TextHighlightColor);
 }
-} // namespace PffLeagueScreen
+} // namespace ContentControlFrameView

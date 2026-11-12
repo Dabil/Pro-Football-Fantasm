@@ -4,7 +4,7 @@
 #include "Styles/PFF_Theme.h"
 #include "Input/Event.h"
 #include "Rendering/Surface.h"
-#include "Screens/LeagueScreenLayout.h"
+#include "Screens/ContentControlFrameView.h"
 #include "Rendering/Composition/PageComposer.h"
 #include "Rendering/Objects/BannerFactory.h"
 #include "Utilities/Text/TextClip.h"
@@ -1012,10 +1012,10 @@ void TeamDataScreen::draw(Surface& surface)
     refreshContext();
     auto& buffer = surface.buffer();
     Composition::PageComposer page(buffer);
-    const auto [screen, body, content, controls, footer] = PffLeagueScreen::drawFrame(page, m_banner, "Team Data");
+    const auto [screen, body, content, controls, footer] = ContentControlFrameView::drawFrame(page, m_banner, "Team Data");
     synchronize();
     layout(screen, content, controls, footer);
-    PffLeagueScreen::drawFooter(page, footer, m_selectedWorld.worldName,
+    ContentControlFrameView::drawFooter(page, footer, m_selectedWorld.worldName,
         PffGameTime::formatGameTimeEastern(m_available ? m_saved.currentTimeUtc : m_selectedWorld.currentTimeUtc));
     {
         const auto group = [&](const char* key, const char* caption, int y, int height) {
