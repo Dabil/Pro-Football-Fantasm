@@ -227,7 +227,7 @@ void PFFApplication::openScheduleScreen(std::int64_t teamId)
         [this](const WorldEditCommit& edit){m_loadedWorldContext.applyCommittedEdit(edit);requestRender();},
         [this](std::unique_ptr<PffTest::GameTimeModel> game,WorldActor actor)
         {
-            screenManager().pushScreen(std::make_unique<GameTimeView>(std::move(game),std::move(actor),
+            screenManager().pushScreen(std::make_unique<GameTimeView>(assetLibrary(), std::move(game),std::move(actor),
                 [this](const WorldEditCommit& edit){m_loadedWorldContext.applyCommittedEdit(edit);requestRender();},
                 [this]{screenManager().popScreen();requestRender();}));
             requestRender();
@@ -411,7 +411,7 @@ bool PFFApplication::onInitialize()
                 [this](const WorldEditCommit& edit){m_loadedWorldContext.applyCommittedEdit(edit);requestRender();},
                 [this](std::unique_ptr<PffTest::GameTimeModel> game,WorldActor actor)
                 {
-                    screenManager().pushScreen(std::make_unique<GameTimeView>(std::move(game),std::move(actor),
+                    screenManager().pushScreen(std::make_unique<GameTimeView>(assetLibrary(), std::move(game),std::move(actor),
                         [this](const WorldEditCommit& edit){m_loadedWorldContext.applyCommittedEdit(edit);requestRender();},
                         [this]{screenManager().popScreen();requestRender();}));
                     requestRender();

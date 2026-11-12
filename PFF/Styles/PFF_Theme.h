@@ -42,6 +42,17 @@ namespace PFF_Colors
             Color::FromIndexed(58),
             Color::FromRgb(51, 89, 2)));
 
+    // Scoreboard artwork text and information blocks.
+    inline const Style ScoreboardTeamText =
+        style::Fg(Color::FromRgb(255, 255, 255)) + style::Bg(Color::FromRgb(0, 0, 0));
+    inline const Style ScoreboardPossessionText =
+        style::Fg(Color::FromRgb(255, 255, 0)) + style::Bg(Color::FromRgb(0, 0, 0));
+    inline const Style ScoreboardSituationText =
+        style::Fg(Color::FromRgb(255, 255, 255)) + style::Bg(Color::FromRgb(100, 100, 100));
+    inline const Style ScoreboardRedZoneText =
+        style::Fg(Color::FromRgb(255, 255, 255)) + style::Bg(Color::FromRgb(200, 0, 0));
+
+
     inline const Style HeaderOuterColor =
         style::Fg(ThemeColor::Basic256Rgb(
             Color::FromBasic(Color::Basic::Black),

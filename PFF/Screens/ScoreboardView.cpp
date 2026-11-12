@@ -36,6 +36,16 @@ std::string clockText(int remaining)
     return text.str();
 }
 
+std::string downAndDistance(const PffTest::State &state)
+{
+    constexpr std::array<std::string_view, 4> Ordinals{"1st", "2nd", "3rd", "4th"};
+    const int yardsToGain = state.lineToGain - state.spot;
+    const int yardsToGoal = 100 - state.spot;
+    const auto down = state.down >= 1 && state.down <= static_cast<int>(Ordinals.size())
+        ? std::string(Ordinals[state.down - 1]) + " down" : "Down " + std::to_string(state.down);
+    return down + (yardsToGoal <= yardsToGain ? ", goal to go" : ", " + std::to_string(yardsToGain) + " to go");
+}
+
 TextObject crop(const TextObject &source, int left, int top, int width, int height)
 {
     if (source.getWidth() < left + width || source.getHeight() < top + height)
@@ -69,6 +79,8 @@ void drawBoardText(ScreenBuffer &buffer, Point origin, const GameTimeDisplayStat
     const auto &state = display.game;
     const bool scrimmage = !state.final && state.pendingKick < 0 && state.down > 0 &&
         (!display.replay || (display.play && !display.play->value("START_STATE", "POSSESSION_TEAM_KEY").empty()));
+    const auto &downStyle = scrimmage && state.spot >= 80 ? PFF_Colors::ScoreboardRedZoneText
+                                                         : PFF_Colors::ScoreboardSituationText;
     const auto centered = [&](int left, int row, std::string_view text, const Style &style) {
         const auto clipped = UnicodeConversion::utf8ToU32(TextClip::clipUtf8Text(text, BlockWidth));
         const int offset = (BlockWidth - TextClip::measureDisplayWidth(clipped)) / 2;
@@ -86,20 +98,20 @@ void drawBoardText(ScreenBuffer &buffer, Point origin, const GameTimeDisplayStat
         centered(left, TeamRow, name.city, style);
         centered(left, TeamRow + 1, name.nickname.empty()
             ? (team == 0 ? display.matchup.awayName : display.matchup.homeName) : name.nickname, style);
-        buffer.fillRect(Rect{Point{origin.x + left, origin.y + ClockRow}, Size{BlockWidth, 2}},
+        buffer.fillRect(Rect{Point{origin.x + left, origin.y + ClockRow}, Size{BlockWidth, 1}},
                         U' ', PFF_Colors::ScoreboardSituationText);
+        buffer.fillRect(Rect{Point{origin.x + left, origin.y + SituationRow}, Size{BlockWidth, 1}},
+                        U' ', team == 0 ? downStyle : PFF_Colors::ScoreboardSituationText);
     }
     centered(blockStarts[0], ClockRow, quarterLabel(state.quarter), PFF_Colors::ScoreboardSituationText);
     // The last two cells of the home clock row are reserved for the future play clock.
     centered(blockStarts[1], ClockRow, clockText(state.remaining), PFF_Colors::ScoreboardSituationText);
     if (scrimmage)
     {
-        const std::string down = "Down " + std::to_string(state.down) + " to go " +
-            std::to_string(state.lineToGain - state.spot);
         const std::string line = state.spot == 50 ? "At the 50-yard line"
             : state.spot < 50 ? "Own " + std::to_string(state.spot) + "-yard line"
                               : "Opp " + std::to_string(100 - state.spot) + "-yard line";
-        centered(blockStarts[0], SituationRow, down, PFF_Colors::ScoreboardSituationText);
+        centered(blockStarts[0], SituationRow, downAndDistance(state), downStyle);
         centered(blockStarts[1], SituationRow, line, PFF_Colors::ScoreboardSituationText);
     }
 }
@@ -172,6 +184,7 @@ void ScoreboardView::draw(Composition::PageComposer &page, const Rect &area,
                                              state.offense ? game.awayName : game.homeName, state.spot);
 
     std::string situation;
+    std::string redZoneText;
     if (display.replay && !display.play)
         situation = "Replay has no plays";
     else if (state.final)
@@ -180,17 +193,43 @@ void ScoreboardView::draw(Composition::PageComposer &page, const Rect &area,
         situation = clock + "  |  Kickoff pending: " +
                     (state.pendingKick ? game.homeName : game.awayName) + "  |  " + spot;
     else
+    {
+        const auto down = downAndDistance(state);
         situation = clock + "  |  " + (state.offense ? game.homeName : game.awayName) +
-                    "  |  Down " + std::to_string(state.down) + " to go " +
-                    std::to_string(state.lineToGain - state.spot) + "  |  " + spot;
+                    "  |  " + down + "  |  " + spot;
+        if (state.down > 0 && state.spot >= 80)
+            redZoneText = down;
+    }
 
     int row = TextMatchupRow;
-    const auto writeWrapped = [&](const std::string &text, int endRow) {
+    const auto writeWrapped = [&](const std::string &text, int endRow, std::string_view highlight = {}) {
+        const auto highlightStart = highlight.empty() ? std::string::npos : text.rfind(highlight);
+        std::size_t cursor = 0;
         for (const auto &line : wrapText(text, area.size.width))
         {
             if (row >= endRow)
                 break;
-            write(row++, line);
+            write(row, line);
+            if (highlightStart != std::string::npos)
+            {
+                const auto start = text.find(line, cursor);
+                if (start != std::string::npos)
+                {
+                    cursor = start + line.size();
+                    const auto first = std::max(start, highlightStart);
+                    const auto last = std::min(cursor, highlightStart + highlight.size());
+                    if (first < last)
+                    {
+                        const auto prefix = std::string_view(line).substr(0, first - start);
+                        const int offset = TextClip::measureDisplayWidth(UnicodeConversion::utf8ToU32(prefix));
+                        page.writeLine(Rect{Point{area.position.x + offset, area.position.y + row},
+                                            Size{area.size.width - offset, 1}},
+                                       0, std::string_view(text).substr(first, last - first),
+                                       PFF_Colors::ScoreboardRedZoneText);
+                    }
+                }
+            }
+            ++row;
         }
     };
     const int awayScore = state.teams[0].score();
@@ -211,7 +250,7 @@ void ScoreboardView::draw(Composition::PageComposer &page, const Rect &area,
                          game.homeName + "  " + std::to_string(homeScore),
                      std::min(row + 3, area.size.height - TableRows));
         ++row;
-        writeWrapped(situation, area.size.height - TableRows);
+        writeWrapped(situation, area.size.height - TableRows, redZoneText);
     }
     const int periodCount = state.quarter == 5 ? 5 : 4;
     const int tableLeft = std::max(0, (area.size.width - boxScoreWidth(state.quarter)) / 2);
