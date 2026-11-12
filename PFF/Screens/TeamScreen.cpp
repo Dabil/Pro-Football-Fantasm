@@ -115,7 +115,7 @@ void TeamScreen::draw(Surface& surface)
     refreshTeam();
     Composition::PageComposer page(surface.buffer());
     const auto frame = ContentControlFrameView::drawFrame(
-        page, m_banner, m_title, ContentControlFrameView::TitleFallback::Wrapped);
+        page, m_banner, m_title);
     const auto &screen = frame.screen;
     const auto &content = frame.content;
     const auto &controls = frame.controls;

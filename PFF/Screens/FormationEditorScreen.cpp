@@ -449,7 +449,7 @@ void FormationEditorScreen::draw(Surface& surface)
     auto& buffer = surface.buffer();
     Composition::PageComposer page(buffer);
     const auto frame = ContentControlFrameView::drawFrame(
-        page, m_banner, "Formations", ContentControlFrameView::TitleFallback::CenteredInTitleArea,
+        page, m_banner, "Formations",
         ContentControlView::ControlPaneWidth{0, 30});
     const auto& screen = frame.screen;
     const auto& footer = frame.footer;

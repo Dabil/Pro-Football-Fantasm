@@ -159,8 +159,8 @@ void LeagueNewsScreen::draw(Surface& surface)
 {
     Composition::PageComposer page(surface.buffer());
     const auto frame = ContentControlFrameView::drawFrame(
-        page, m_title, {}, ContentControlFrameView::TitleFallback::Centered,
-        ContentControlView::ControlPaneWidth{0, 30}, HeaderView::BannerPlacement::InnerPanel);
+        page, m_title, "LEAGUE NEWS",
+        ContentControlView::ControlPaneWidth{0, 30});
     const auto& content = frame.content;
     const auto& navigation = frame.controls;
     page.createRegion("ContentPane", content);

@@ -8,10 +8,6 @@ namespace HeaderView
 {
 inline constexpr int Height = 12;
 
-enum class TitleFallback { Centered, Wrapped, LeftAligned, CenteredInTitleArea };
-enum class BannerPlacement { TitleArea, InnerPanel };
-
 void draw(Composition::PageComposer &page, const Rect &header, const TextObject &banner,
-          std::string_view title, TitleFallback fallback = TitleFallback::Centered,
-          BannerPlacement placement = BannerPlacement::TitleArea);
+          std::string_view title);
 }

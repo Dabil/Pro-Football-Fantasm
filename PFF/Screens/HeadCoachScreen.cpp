@@ -99,7 +99,7 @@ void HeadCoachScreen::draw(Surface& surface)
 
     Composition::PageComposer page(surface.buffer());
     const auto frame = ContentControlFrameView::drawFrame(
-        page, m_banner, "Head Coach", ContentControlFrameView::TitleFallback::LeftAligned);
+        page, m_banner, "Head Coach");
     const auto& content = frame.content;
     const auto& controls = frame.controls;
     const auto& footer = frame.footer;
