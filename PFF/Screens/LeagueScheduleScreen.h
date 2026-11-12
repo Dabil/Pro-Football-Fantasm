@@ -4,7 +4,7 @@
 #include "App/LoadedWorldContext.h"
 #include "GCE/Database/WorldDatabase.h"
 #include "GCE/Database/WorldScheduler.h"
-#include "Database/PffGameSession.h"
+#include "Database/GameTimeModel.h"
 #include "Assets/AssetLibrary.h"
 #include "UI/Widgets/Button.h"
 #include "UI/Widgets/ContainerWidget.h"
@@ -33,7 +33,7 @@ public:
         std::function<LoadedWorldContext()> loadedWorldContextProvider,
         std::function<void(const LoadedWorldContext&,std::int64_t)> openTeam = {},
         std::function<void(const WorldEditCommit&)> committed = {},
-        std::function<void(std::unique_ptr<PffTest::PffGameSession>,WorldActor)> openGame = {}, std::int64_t teamSeasonId = 0);
+        std::function<void(std::unique_ptr<PffTest::GameTimeModel>,WorldActor)> openGame = {}, std::int64_t teamSeasonId = 0);
 
     ~LeagueScheduleScreen();
 
@@ -84,7 +84,7 @@ private:
     Button* m_lookBackButton = nullptr;
     Button* m_nextGameButton = nullptr;
     std::function<void(const WorldEditCommit&)> m_committed;
-    std::function<void(std::unique_ptr<PffTest::PffGameSession>,WorldActor)> m_openGame;
+    std::function<void(std::unique_ptr<PffTest::GameTimeModel>,WorldActor)> m_openGame;
     WorldActor m_actor;
     std::int64_t m_teamSeasonId = 0;
     bool m_controlsSelectedTeam = false;
@@ -92,7 +92,7 @@ private:
     bool m_gameWindowReady = false, m_advancing = false;
     std::string m_windowMessage;
     std::string m_batchKickoff;
-    std::unique_ptr<PffTest::PffGameSession> m_backgroundGame;
+    std::unique_ptr<PffTest::GameTimeModel> m_backgroundGame;
     bool m_returningFromGame = false;
     bool m_batchStopped = false;
 

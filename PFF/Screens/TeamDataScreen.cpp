@@ -4,7 +4,7 @@
 #include "Styles/PFF_Theme.h"
 #include "Input/Event.h"
 #include "Rendering/Surface.h"
-#include "Screens/LeagueFooter.h"
+#include "Screens/LeagueScreenLayout.h"
 #include "Rendering/Composition/PageComposer.h"
 #include "Rendering/Objects/BannerFactory.h"
 #include "Utilities/Text/TextClip.h"
@@ -999,11 +999,6 @@ void TeamDataScreen::synchronizeModal()
 }
 void TeamDataScreen::draw(Surface& surface)
 {
-    // Page background, banner and normal footer/instruction text.
-    const Style& headerOuter = PFF_Colors::HeaderOuterColor;
-    const Style& headerInner = PFF_Colors::HeaderInnerColor;
-    const Style& background = PFF_Colors::MainBackgroundColor;
-    const Style& title = PFF_Colors::ProFootballTitleColor;
     const Style& text = PFF_Colors::TextHighlightColor;
     // Form panels, borders, headings and field labels.
     const Style& panel = PFF_Colors::FormPanelColor;
@@ -1016,36 +1011,12 @@ void TeamDataScreen::draw(Surface& surface)
     const Style& message = PFF_Colors::TextHighlightColor;
     refreshContext();
     auto& buffer = surface.buffer();
-    buffer.clear(background);
     Composition::PageComposer page(buffer);
-    page.createFullScreenRegion("Screen");
-    const auto screen = page.resolveRegion("Screen");
-    const auto [header, rest] = page.splitTop(screen, 12);
-    const auto [footer, body] = page.splitBottom(rest, PffLeagueFooter::Height);
-    const auto [controls, content] = page.splitRight(body, std::min(34, std::max(28, body.size.width / 3)));
-    page.createRegion("Header", header);
-    page.createInsetRegion("HeaderInner", "Header", 2, 1, 2, 1);
-    page.createInsetRegion("Title", "HeaderInner", 4, 2, 2, 1);
-    page.drawPanel("Header", headerOuter, headerOuter, ObjectFactory::doubleLineBorder());
-    buffer.fillRect(page.resolveRegion("HeaderInner"), U' ', headerInner);
-    const auto titleArea = page.resolveRegion("Title");
-    if (!m_banner.isEmpty() && m_banner.getWidth() <= titleArea.size.width &&
-        m_banner.getHeight() <= titleArea.size.height)
-        page.writeObjectInRegion(m_banner, "Title", Composition::Align::center());
-    else
-        page.writeLine(titleArea, 0,
-                       std::string(std::max(0, (titleArea.size.width - 9) / 2), ' ') + "Team Data", title);
+    const auto [screen, body, content, controls, footer] = PffLeagueScreen::drawFrame(page, m_banner, "Team Data");
     synchronize();
     layout(screen, content, controls, footer);
-    const auto footerText = PffLeagueFooter::textBounds(footer);
-    page.writeLine(footerText, 0, TextClip::clipUtf8Text(m_selectedWorld.worldName, footerText.size.width),
-                   text);
-    page.writeLine(
-        footerText, 1,
-        TextClip::clipUtf8Text(PffGameTime::formatGameTimeEastern(
-                                   m_available ? m_saved.currentTimeUtc : m_selectedWorld.currentTimeUtc),
-                               footerText.size.width),
-        text);
+    PffLeagueScreen::drawFooter(page, footer, m_selectedWorld.worldName,
+        PffGameTime::formatGameTimeEastern(m_available ? m_saved.currentTimeUtc : m_selectedWorld.currentTimeUtc));
     {
         const auto group = [&](const char* key, const char* caption, int y, int height) {
             page.createRegion(key, Rect{Point{content.position.x + 2, content.position.y + y},

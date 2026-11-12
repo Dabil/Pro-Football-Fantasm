@@ -46,7 +46,7 @@ LeagueScheduleScreen::LeagueScheduleScreen(
     std::function<LoadedWorldContext()> loadedWorldContextProvider,
     std::function<void(const LoadedWorldContext&,std::int64_t)> openTeam,
     std::function<void(const WorldEditCommit&)> committed,
-    std::function<void(std::unique_ptr<PffTest::PffGameSession>,WorldActor)> openGame, std::int64_t teamSeasonId)
+    std::function<void(std::unique_ptr<PffTest::GameTimeModel>,WorldActor)> openGame, std::int64_t teamSeasonId)
     : m_assetLibrary(assetLibrary)
     , m_commandDispatcher(std::move(commandDispatcher))
     , m_loadedWorldContextProvider(std::move(loadedWorldContextProvider))
@@ -545,7 +545,7 @@ void LeagueScheduleScreen::openResult(std::int64_t gameId)
 {
     try
     {
-        auto game = std::make_unique<PffTest::PffGameSession>(
+        auto game = std::make_unique<PffTest::GameTimeModel>(
             m_dataContext.databasePath, m_dataContext.activeCompetitionSeasonId);
         const auto result = game->viewFinal(m_actor, gameId);
         if (result.success)
@@ -630,7 +630,7 @@ void LeagueScheduleScreen::runBatch()
                 stop({});
                 return;
             }
-            auto game = std::make_unique<PffTest::PffGameSession>(
+            auto game = std::make_unique<PffTest::GameTimeModel>(
                 m_dataContext.databasePath, m_dataContext.activeCompetitionSeasonId);
             const auto previousRevision = m_gameWindow.revision;
             const auto started = game->start(m_actor, previousRevision);
