@@ -2,6 +2,7 @@
 
 #pragma once
 #include "Screens/GameTimeController.h"
+#include "Screens/ScoreboardView.h"
 #include "Screens/Screen.h"
 #include "UI/Widgets/Button.h"
 #include "UI/Widgets/ContainerWidget.h"
@@ -11,8 +12,11 @@
 class GameTimeView : public Screen
 {
   public:
-    GameTimeView(std::unique_ptr<PffTest::GameTimeModel>, WorldActor,
-                   std::function<void(const WorldEditCommit &)>, std::function<void()> returnToCaller);
+    static constexpr bool DefaultShowScoreboardArtwork = true;
+
+    GameTimeView(Assets::AssetLibrary &, std::unique_ptr<PffTest::GameTimeModel>, WorldActor,
+                 std::function<void(const WorldEditCommit &)>, std::function<void()> returnToCaller,
+                 bool showScoreboardArtwork = DefaultShowScoreboardArtwork);
     void onEnter() override;
     bool handleEvent(const Input::Event &) override;
     void update(const Animation::TickEvent &) override;
@@ -23,6 +27,7 @@ class GameTimeView : public Screen
     void returnToCallerIfReady();
     void rebuildLog(int width);
     GameTimeController m_controller;
+    ScoreboardView::Artwork m_scoreboard;
     std::function<void()> m_return;
     ContainerWidget m_root;
     ScrollBox *m_log = nullptr;

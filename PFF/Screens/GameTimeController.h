@@ -7,6 +7,11 @@
 #include <functional>
 
 // Read-only state for one render. Read it again after issuing a command.
+struct GameTimeTeamName
+{
+    std::string city, nickname;
+};
+
 struct GameTimeDisplayState
 {
     const PffTest::State &game;
@@ -17,6 +22,7 @@ struct GameTimeDisplayState
     PffBroadcast::View view;
     std::size_t playIndex, playCount, logRevision;
     bool replay, running, canNext, canPrevious, canRun, canPause, canResume, canReturn;
+    const std::array<GameTimeTeamName, 2> &teamNames;
 };
 
 // Translates screen commands into session operations or read-only replay navigation.
@@ -46,6 +52,7 @@ class GameTimeController
     std::vector<PffBroadcast::Play> m_plays;
     std::vector<PffTest::State> m_replayStates;
     PffTest::State m_emptyReplay{};
+    std::array<GameTimeTeamName, 2> m_teamNames;
     std::size_t m_playIndex = 0, m_logRevision = 0;
     bool m_replay = false, m_running = false, m_returnPending = false;
     std::string m_error;

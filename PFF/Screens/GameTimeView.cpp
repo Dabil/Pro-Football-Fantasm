@@ -13,10 +13,12 @@
 #include <algorithm>
 #include <string>
 
-GameTimeView::GameTimeView(std::unique_ptr<PffTest::GameTimeModel> game, WorldActor actor,
-                               std::function<void(const WorldEditCommit &)> committed,
-                               std::function<void()> back)
-    : m_controller(std::move(game), std::move(actor), std::move(committed)), m_return(std::move(back))
+GameTimeView::GameTimeView(Assets::AssetLibrary &assets, std::unique_ptr<PffTest::GameTimeModel> game, WorldActor actor,
+                           std::function<void(const WorldEditCommit &)> committed,
+                           std::function<void()> back, bool showScoreboardArtwork)
+    : m_controller(std::move(game), std::move(actor), std::move(committed)),
+      m_scoreboard(showScoreboardArtwork ? ScoreboardView::loadArtwork(assets) : ScoreboardView::Artwork{}),
+      m_return(std::move(back))
 {
     auto log = std::make_unique<ScrollBox>();
     auto scrollStyle = log->styleSet();
@@ -195,13 +197,29 @@ void GameTimeView::draw(Surface &surface)
     const auto &state = display.game;
     const int y = std::max(20, bounds.size.height - 5);
     const auto gameArea = page.splitTop(bounds, y).first;
-    const auto [summary, viewer] = page.splitTop(gameArea, gameArea.size.height / 2);
-    const auto [scoreboard, statistics] = page.splitLeft(summary, summary.size.width / 2);
+    constexpr int SummaryHorizontalInset = 3;
+    constexpr int SummaryTopInset = 1;
+    constexpr int ViewerGap = 1;
+    constexpr int MinimumViewerHeight = 6;
+    int summaryHeight = gameArea.size.height / 2;
+    int scoreboardWidth = gameArea.size.width / 2;
+    if (!small)
+        scoreboardWidth = std::max(scoreboardWidth, ScoreboardView::boxScoreWidth(state.quarter) + SummaryHorizontalInset);
+    const auto artworkSize = ScoreboardView::artworkSummarySize(m_scoreboard, display);
+    const int artworkSummaryHeight = artworkSize.height + SummaryTopInset + ViewerGap;
+    if (!small && artworkSize.height > 0 &&
+        artworkSummaryHeight + MinimumViewerHeight <= gameArea.size.height)
+    {
+        summaryHeight = artworkSummaryHeight;
+        scoreboardWidth = std::max(scoreboardWidth, artworkSize.width + SummaryHorizontalInset);
+    }
+    const auto [summary, viewer] = page.splitTop(gameArea, summaryHeight);
+    const auto [scoreboard, statistics] = page.splitLeft(summary, scoreboardWidth);
     const auto inset = [](const Rect &pane) {
         return Rect{Point{pane.position.x + 2, pane.position.y + 1},
-                    Size{std::max(0, pane.size.width - 3), std::max(0, pane.size.height - 1)}};
+                    Size{std::max(0, pane.size.width - SummaryHorizontalInset), std::max(0, pane.size.height - SummaryTopInset)}};
     };
-    ScoreboardView::draw(page, inset(scoreboard), display);
+    ScoreboardView::draw(page, inset(scoreboard), display, m_scoreboard);
     StatisticsView::draw(page, inset(statistics), state);
 
     const int tabsY = viewer.position.y + (display.interruption ? 1 : 0);

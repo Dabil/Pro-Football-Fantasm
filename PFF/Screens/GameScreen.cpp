@@ -1,11 +1,11 @@
 ﻿#include "Screens/GameScreen.h"
+#include "Screens/ScoreboardView.h"
 
 #include <algorithm>
 #include <sstream>
 #include <utility>
 
 #include "Core/Rect.h"
-#include "Rendering/Objects/TextObjectBuilder.h"
 #include "Rendering/ScreenBuffer.h"
 #include "Rendering/Styles/Color.h"
 #include "Rendering/Styles/StyleBuilder.h"
@@ -29,11 +29,6 @@ namespace
 
     constexpr int ExpectedScoreBoardFontHeight = ScoreBoardFontDigitHeight;
 
-    constexpr int ScoreDigitSpacing = 1;
-
-    constexpr int AwayScoreOffsetX = 2;
-    constexpr int HomeScoreOffsetX = 27;
-    constexpr int ScoreOffsetY = 2;
 }
 
 GameScreen::GameScreen(Assets::AssetLibrary& assetLibrary)
@@ -121,49 +116,14 @@ bool GameScreen::buildScoreBoardDigits()
         return false;
     }
 
-    m_scoreBoardDigits.reserve(ScoreBoardFontDigitCount);
-
-    for (int digitIndex = 0; digitIndex < ScoreBoardFontDigitCount; ++digitIndex)
+    m_scoreBoardDigits = ScoreboardView::buildDigits(m_scoreBoardFontObject);
+    if (m_scoreBoardDigits.empty())
     {
-        TextObjectBuilder builder(ScoreBoardFontDigitWidth, ScoreBoardFontDigitHeight);
-
-        const int sourceStartX =
-            digitIndex * (ScoreBoardFontDigitWidth + ScoreBoardFontSeparatorWidth);
-
-        for (int y = 0; y < ScoreBoardFontDigitHeight; ++y)
-        {
-            for (int x = 0; x < ScoreBoardFontDigitWidth; ++x)
-            {
-                const TextObjectCell* sourceCell =
-                    m_scoreBoardFontObject.tryGetCell(sourceStartX + x, y);
-
-                if (sourceCell == nullptr)
-                {
-                    std::ostringstream error;
-                    error << "ScoreBoardFont.xp digit extraction failed at digit "
-                        << digitIndex << ", source cell ("
-                        << (sourceStartX + x) << ", " << y << ").";
-
-                    m_loadErrorMessage = error.str();
-                    m_statusMessage = error.str();
-                    m_scoreBoardDigits.clear();
-                    return false;
-                }
-
-                builder.setCell(
-                    x,
-                    y,
-                    sourceCell->glyph,
-                    sourceCell->kind,
-                    sourceCell->width,
-                    sourceCell->style);
-            }
-        }
-
-        m_scoreBoardDigits.push_back(builder.build());
+        m_loadErrorMessage = "ScoreBoardFont.xp digit extraction failed.";
+        m_statusMessage = m_loadErrorMessage;
+        return false;
     }
-
-    return static_cast<int>(m_scoreBoardDigits.size()) == ScoreBoardFontDigitCount;
+    return true;
 }
 
 void GameScreen::onEnter()
@@ -236,47 +196,6 @@ void GameScreen::update(const Animation::TickEvent& event)
     m_elapsedSeconds += event.deltaSeconds;
 }
 
-std::string GameScreen::formatScoreValue(int score) const
-{
-    score = std::clamp(score, 0, 99);
-
-    if (score < 10)
-    {
-        return "0" + std::to_string(score);
-    }
-
-    return std::to_string(score);
-}
-
-void GameScreen::drawNumber(ScreenBuffer& buffer, int x, int y, const std::string& value) const
-{
-    if (m_scoreBoardDigits.size() != ScoreBoardFontDigitCount)
-    {
-        return;
-    }
-
-    int cursorX = x;
-
-    for (char ch : value)
-    {
-        if (ch < '0' || ch > '9')
-        {
-            continue;
-        }
-
-        const int digitIndex = ch - '0';
-        const TextObject& digitObject = m_scoreBoardDigits[static_cast<std::size_t>(digitIndex)];
-
-        digitObject.draw(buffer, cursorX, y);
-        cursorX += digitObject.getWidth() + ScoreDigitSpacing;
-    }
-}
-
-void GameScreen::drawScore(ScreenBuffer& buffer, int x, int y, int score) const
-{
-    drawNumber(buffer, x, y, formatScoreValue(score));
-}
-
 void GameScreen::draw(Surface& surface)
 {
     ScreenBuffer& buffer = surface.buffer();
@@ -307,19 +226,8 @@ void GameScreen::draw(Surface& surface)
 
     const int scoreBoardX = std::max(0, (screenWidth - m_scoreBoardObject.getWidth()) / 2);
     const int scoreBoardY = m_fieldObject.getHeight();
-    m_scoreBoardObject.draw(buffer, scoreBoardX, scoreBoardY);
-
-    drawScore(
-        buffer,
-        scoreBoardX + AwayScoreOffsetX,
-        scoreBoardY + ScoreOffsetY,
-        m_awayScore);
-
-    drawScore(
-        buffer,
-        scoreBoardX + HomeScoreOffsetX,
-        scoreBoardY + ScoreOffsetY,
-        m_homeScore);
+    ScoreboardView::drawArtwork(buffer, scoreBoardX, scoreBoardY, m_scoreBoardObject,
+                                m_scoreBoardDigits, m_awayScore, m_homeScore);
 
     const std::string resolutionText =
         std::to_string(buffer.getWidth()) + "x" + std::to_string(buffer.getHeight());

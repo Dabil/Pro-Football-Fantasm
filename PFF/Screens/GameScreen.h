@@ -29,9 +29,6 @@ private:
         const std::string& assetLabel);
 
     bool buildScoreBoardDigits();
-    void drawScore(ScreenBuffer& buffer, int x, int y, int score) const;
-    void drawNumber(ScreenBuffer& buffer, int x, int y, const std::string& value) const;
-    std::string formatScoreValue(int score) const;
     void drawLoadError(Surface& surface) const;
 
 private:

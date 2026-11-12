@@ -1,6 +1,7 @@
 // GameTime controller implementation. Coordinates play advancement, replay navigation, and save-before-return.
 
 #include "Screens/GameTimeController.h"
+#include "GCE/Database/WorldTeamData.h"
 #include <algorithm>
 #include <sstream>
 #include <utility>
@@ -109,6 +110,14 @@ GameTimeController::GameTimeController(std::unique_ptr<PffTest::GameTimeModel> g
 }
 void GameTimeController::enter()
 {
+    const auto &matchup = m_game->matchup();
+    const std::array teamIds{matchup.awayId, matchup.homeId};
+    for (std::size_t team = 0; team < teamIds.size(); ++team)
+    {
+        const auto data = loadTeamData(m_actor, teamIds[team]);
+        if (data.success)
+            m_teamNames[team] = {data.value.city, data.value.nickname};
+    }
     ++m_logRevision;
     m_replay = m_game->state().final;
     if (m_replay)
@@ -235,7 +244,7 @@ GameTimeDisplayState GameTimeController::display() const
             m_logRevision, m_replay, m_running,
             m_replay ? m_playIndex + 1 < m_plays.size() : canAdvance,
             m_replay && m_playIndex > 0, canAdvance, !live.final && !m_returnPending && m_running,
-            bool(interruption) && !m_returnPending, !m_returnPending};
+            bool(interruption) && !m_returnPending, !m_returnPending, m_teamNames};
 }
 
 void GameTimeController::nextPlay()
