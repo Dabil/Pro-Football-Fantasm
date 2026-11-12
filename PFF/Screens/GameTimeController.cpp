@@ -102,7 +102,7 @@ std::vector<PffTest::State> replayStates(const std::vector<PffBroadcast::Play> &
 }
 } // namespace
 
-GameTimeController::GameTimeController(std::unique_ptr<PffTest::PffGameSession> game, WorldActor actor,
+GameTimeController::GameTimeController(std::unique_ptr<PffTest::GameTimeModel> game, WorldActor actor,
                                        std::function<void(const WorldEditCommit &)> committed)
     : m_game(std::move(game)), m_actor(std::move(actor)), m_committed(std::move(committed))
 {

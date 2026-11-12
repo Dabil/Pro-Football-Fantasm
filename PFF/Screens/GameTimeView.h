@@ -8,10 +8,10 @@
 #include "UI/Widgets/ScrollBox.h"
 #include <functional>
 
-class GameTimeScreen : public Screen
+class GameTimeView : public Screen
 {
   public:
-    GameTimeScreen(std::unique_ptr<PffTest::PffGameSession>, WorldActor,
+    GameTimeView(std::unique_ptr<PffTest::GameTimeModel>, WorldActor,
                    std::function<void(const WorldEditCommit &)>, std::function<void()> returnToCaller);
     void onEnter() override;
     bool handleEvent(const Input::Event &) override;

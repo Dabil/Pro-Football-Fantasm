@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Database/PffGameSession.h"
+#include "Database/GameTimeModel.h"
 #include "Screens/PffBroadcast.h"
 #include <functional>
 
@@ -23,7 +23,7 @@ struct GameTimeDisplayState
 class GameTimeController
 {
   public:
-    GameTimeController(std::unique_ptr<PffTest::PffGameSession> game, WorldActor actor,
+    GameTimeController(std::unique_ptr<PffTest::GameTimeModel> game, WorldActor actor,
                        std::function<void(const WorldEditCommit &)> committed);
     void enter();
     void tick();
@@ -39,7 +39,7 @@ class GameTimeController
 
   private:
     void advance();
-    std::unique_ptr<PffTest::PffGameSession> m_game;
+    std::unique_ptr<PffTest::GameTimeModel> m_game;
     WorldActor m_actor;
     std::function<void(const WorldEditCommit &)> m_committed;
     PffBroadcast::View m_view = PffBroadcast::View::Broadcast;

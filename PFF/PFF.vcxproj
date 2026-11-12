@@ -142,9 +142,9 @@
     <ClCompile Include="App\PFFApplication.cpp" />
     <ClCompile Include="Database\PFFDatabase.cpp" />
     <ClCompile Include="Database\WorldFormationBook.cpp" />
-    <ClCompile Include="Database\PffGameSession.cpp" />
+    <ClCompile Include="Database\GameTimeModel.cpp" />
     <ClCompile Include="Screens\GameTimeController.cpp" />
-    <ClCompile Include="Screens\GameTimeScreen.cpp" />
+    <ClCompile Include="Screens\GameTimeView.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Screens\CommissionersOfficeScreen.cpp" />
     <ClCompile Include="Screens\Developer\RendererDiagnosticsScreen.cpp" />
@@ -196,11 +196,12 @@
     <ClInclude Include="Screens\GameScreen.h" />
     <ClInclude Include="Screens\GameTimeFormatting.h" />
     <ClInclude Include="Screens\GameTimeController.h" />
-    <ClInclude Include="Screens\GameTimeScreen.h" />
+    <ClInclude Include="Screens\GameTimeView.h" />
     <ClInclude Include="Screens\PffBroadcast.h" />
-    <ClInclude Include="Database\PffGameSession.h" />
+    <ClInclude Include="Database\GameTimeModel.h" />
     <ClInclude Include="Database\PbpRecorder.h" />
     <ClInclude Include="Screens\LeagueFooter.h" />
+    <ClInclude Include="Screens\LeagueScreenLayout.h" />
     <ClInclude Include="Screens\TeamsAndStandingsScreen.h" />
     <ClInclude Include="Screens\TeamDataScreen.h" />
     <ClInclude Include="Screens\FormCheckBox.h" />

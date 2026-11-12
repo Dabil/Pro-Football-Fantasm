@@ -11,7 +11,7 @@
 // PFF Screen Includes
 #include "Screens/IntroScreen.h"
 #include "Screens/GameScreen.h"
-#include "Screens/GameTimeScreen.h"
+#include "Screens/GameTimeView.h"
 #include "Screens/CommissionersOfficeScreen.h"
 #include "Screens/LeaguePlayScreen.h"
 #include "Screens/LeagueNewsScreen.h"
@@ -225,9 +225,9 @@ void PFFApplication::openScheduleScreen(std::int64_t teamId)
         [this]{return loadedWorldContext();},
         [this](const LoadedWorldContext& world,std::int64_t id){openTeamScreen(world,id);},
         [this](const WorldEditCommit& edit){m_loadedWorldContext.applyCommittedEdit(edit);requestRender();},
-        [this](std::unique_ptr<PffTest::PffGameSession> game,WorldActor actor)
+        [this](std::unique_ptr<PffTest::GameTimeModel> game,WorldActor actor)
         {
-            screenManager().pushScreen(std::make_unique<GameTimeScreen>(std::move(game),std::move(actor),
+            screenManager().pushScreen(std::make_unique<GameTimeView>(std::move(game),std::move(actor),
                 [this](const WorldEditCommit& edit){m_loadedWorldContext.applyCommittedEdit(edit);requestRender();},
                 [this]{screenManager().popScreen();requestRender();}));
             requestRender();
@@ -409,9 +409,9 @@ bool PFFApplication::onInitialize()
                     openTeamScreen(world,teamId);
                 },
                 [this](const WorldEditCommit& edit){m_loadedWorldContext.applyCommittedEdit(edit);requestRender();},
-                [this](std::unique_ptr<PffTest::PffGameSession> game,WorldActor actor)
+                [this](std::unique_ptr<PffTest::GameTimeModel> game,WorldActor actor)
                 {
-                    screenManager().pushScreen(std::make_unique<GameTimeScreen>(std::move(game),std::move(actor),
+                    screenManager().pushScreen(std::make_unique<GameTimeView>(std::move(game),std::move(actor),
                         [this](const WorldEditCommit& edit){m_loadedWorldContext.applyCommittedEdit(edit);requestRender();},
                         [this]{screenManager().popScreen();requestRender();}));
                     requestRender();

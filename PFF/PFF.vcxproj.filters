@@ -35,9 +35,9 @@
     <ClCompile Include="App\PFFApplication.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Database\PffGameSession.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="Database\GameTimeModel.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="Screens\GameTimeController.cpp"><Filter>Source Files</Filter></ClCompile>
-    <ClCompile Include="Screens\GameTimeScreen.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="Screens\GameTimeView.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="Screens\Developer\RendererDiagnosticsScreen.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -93,9 +93,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Screens\GameTimeController.h"><Filter>Header Files</Filter></ClInclude>
-    <ClInclude Include="Screens\GameTimeScreen.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Screens\GameTimeView.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Screens\PffBroadcast.h"><Filter>Header Files</Filter></ClInclude>
-    <ClInclude Include="Database\PffGameSession.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\GameTimeModel.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Database\PbpRecorder.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Screens\GameScreen.h">
       <Filter>Header Files</Filter>
@@ -157,6 +157,7 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Screens\LeagueFooter.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Screens\LeagueScreenLayout.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Screens\TeamsAndStandingsScreen.h">
       <Filter>Header Files</Filter>
     </ClInclude>

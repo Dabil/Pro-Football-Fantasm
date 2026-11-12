@@ -1,6 +1,6 @@
 // GameTime model implementation. Resolves football plays, records tagged PBP, and saves or restores matchups.
 
-#include "Database/PffGameSession.h"
+#include "Database/GameTimeModel.h"
 #include "Database/PbpRecorder.h"
 #include "GCE/Database/ClockTime.h"
 #include "GCE/Database/TeamDataSql.h"
@@ -79,7 +79,7 @@ std::string clockText(int seconds)
     return o.str();
 }
 } // namespace
-struct PffGameSession::Impl
+struct GameTimeModel::Impl
 {
     std::filesystem::path world;
     std::int64_t season = 0;
@@ -959,7 +959,7 @@ struct PffGameSession::Impl
         return p;
     }
 };
-PffGameSession::PffGameSession(const std::filesystem::path &world, std::int64_t season, std::uint32_t seed)
+GameTimeModel::GameTimeModel(const std::filesystem::path &world, std::int64_t season, std::uint32_t seed)
     : m(std::make_unique<Impl>())
 {
     m->world = world;
@@ -968,8 +968,8 @@ PffGameSession::PffGameSession(const std::filesystem::path &world, std::int64_t 
     m->random.seed(m->seed);
     m->load();
 }
-PffGameSession::~PffGameSession() = default;
-WorldEditResult<WorldTestMatchup> PffGameSession::start(const WorldActor &actor, std::int64_t revision)
+GameTimeModel::~GameTimeModel() = default;
+WorldEditResult<WorldTestMatchup> GameTimeModel::start(const WorldActor &actor, std::int64_t revision)
 {
     auto r = beginTestMatchup(actor, m->season, revision, m->bindings);
     if (r.success)
@@ -1007,7 +1007,7 @@ WorldEditResult<WorldTestMatchup> PffGameSession::start(const WorldActor &actor,
     }
     return r;
 }
-WorldEditResult<WorldTestMatchup> PffGameSession::viewFinal(const WorldActor &actor, std::int64_t game)
+WorldEditResult<WorldTestMatchup> GameTimeModel::viewFinal(const WorldActor &actor, std::int64_t game)
 {
     auto result = loadFinalTestMatchup(actor, game);
     if (result.success)
@@ -1029,7 +1029,7 @@ WorldEditResult<WorldTestMatchup> PffGameSession::viewFinal(const WorldActor &ac
     }
     return result;
 }
-WorldEditResult<WorldEditCommit> PffGameSession::next(const WorldActor &actor)
+WorldEditResult<WorldEditCommit> GameTimeModel::next(const WorldActor &actor)
 {
     WorldEditResult<WorldEditCommit> result;
     if (m->suspended)
@@ -1156,7 +1156,7 @@ WorldEditResult<WorldEditCommit> PffGameSession::next(const WorldActor &actor)
     result.value.changed = false;
     return result;
 }
-WorldEditResult<WorldEditCommit> PffGameSession::save(const WorldActor &actor)
+WorldEditResult<WorldEditCommit> GameTimeModel::save(const WorldActor &actor)
 {
     if (m->computed && !m->s.final)
         return next(actor);
@@ -1188,7 +1188,7 @@ WorldEditResult<WorldEditCommit> PffGameSession::save(const WorldActor &actor)
     }
     return result;
 }
-WorldEditResult<WorldTestMatchup> PffGameSession::resume(const WorldActor &actor)
+WorldEditResult<WorldTestMatchup> GameTimeModel::resume(const WorldActor &actor)
 {
     WorldEditResult<WorldTestMatchup> result;
     if (!m->interruption)
@@ -1216,29 +1216,29 @@ WorldEditResult<WorldTestMatchup> PffGameSession::resume(const WorldActor &actor
     }
     return start(actor, current.value.revision);
 }
-const std::optional<WorldTestQueuedEvent> &PffGameSession::interruption() const
+const std::optional<WorldTestQueuedEvent> &GameTimeModel::interruption() const
 {
     return m->interruption;
 }
-const State &PffGameSession::state() const
+const State &GameTimeModel::state() const
 {
     return m->s;
 }
-const WorldTestMatchup &PffGameSession::matchup() const
+const WorldTestMatchup &GameTimeModel::matchup() const
 {
     return m->game;
 }
-const std::vector<std::string> &PffGameSession::log() const
+const std::vector<std::string> &GameTimeModel::log() const
 {
     return m->lines;
 }
-std::string_view PffGameSession::taggedHistory() const
+std::string_view GameTimeModel::taggedHistory() const
 {
     if (m->s.final && m->game.saved && m->game.saved->game.final)
         return m->game.saved->replayHistory;
     return m->pbp.history();
 }
-std::string PffGameSession::statistics() const
+std::string GameTimeModel::statistics() const
 {
     return m->stats();
 }

@@ -1,6 +1,6 @@
 // GameTime view implementation. Renders the controller's display state and forwards widget input as commands.
 
-#include "Screens/GameTimeScreen.h"
+#include "Screens/GameTimeView.h"
 #include "Input/Event.h"
 #include "Rendering/Composition/PageComposer.h"
 #include "Rendering/Surface.h"
@@ -13,7 +13,7 @@
 #include <sstream>
 #include <string>
 
-GameTimeScreen::GameTimeScreen(std::unique_ptr<PffTest::PffGameSession> game, WorldActor actor,
+GameTimeView::GameTimeView(std::unique_ptr<PffTest::GameTimeModel> game, WorldActor actor,
                                std::function<void(const WorldEditCommit &)> committed,
                                std::function<void()> back)
     : m_controller(std::move(game), std::move(actor), std::move(committed)), m_return(std::move(back))
@@ -85,13 +85,13 @@ GameTimeScreen::GameTimeScreen(std::unique_ptr<PffTest::PffGameSession> game, Wo
     }
     updateControls();
 }
-void GameTimeScreen::onEnter()
+void GameTimeView::onEnter()
 {
     m_root.resetFocus();
     m_controller.enter();
     updateControls();
 }
-void GameTimeScreen::updateControls()
+void GameTimeView::updateControls()
 {
     const auto state = m_controller.display();
     m_next->setEnabled(state.canNext);
@@ -111,7 +111,7 @@ void GameTimeScreen::updateControls()
         button->setPressedStyle(PFF_Colors::ButtonPressedColor.withDim(dim));
     }
 }
-void GameTimeScreen::returnToCallerIfReady()
+void GameTimeView::returnToCallerIfReady()
 {
     if (!m_controller.takeReturnRequest())
         return;
@@ -121,7 +121,7 @@ void GameTimeScreen::returnToCallerIfReady()
     if (back)
         back();
 }
-bool GameTimeScreen::handleEvent(const Input::Event &event)
+bool GameTimeView::handleEvent(const Input::Event &event)
 {
     // Every user exit follows the same save-before-return path.
     if (const auto *command = event.asCommand())
@@ -139,14 +139,14 @@ bool GameTimeScreen::handleEvent(const Input::Event &event)
     returnToCallerIfReady();
     return handled;
 }
-void GameTimeScreen::update(const Animation::TickEvent &event)
+void GameTimeView::update(const Animation::TickEvent &event)
 {
     m_controller.tick();
     updateControls();
     m_root.update(event);
     returnToCallerIfReady();
 }
-void GameTimeScreen::rebuildLog(int width)
+void GameTimeView::rebuildLog(int width)
 {
     const auto state = m_controller.display();
     if (state.logRevision == m_drawnLogRevision && width == m_logWidth)
@@ -177,7 +177,7 @@ void GameTimeScreen::rebuildLog(int width)
     m_logWidth = width;
     m_drawnLogRevision = state.logRevision;
 }
-void GameTimeScreen::draw(Surface &surface)
+void GameTimeView::draw(Surface &surface)
 {
     auto &buffer = surface.buffer();
     buffer.clear(PFF_Colors::MainBackgroundColor);

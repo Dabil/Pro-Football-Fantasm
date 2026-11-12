@@ -12,11 +12,11 @@ namespace PffTest
 using TeamStats=WorldTestTeamStats;
 using State=WorldTestRuntimeState;
 // This explicitly reduced provider is independent of TUI and can be run headlessly.
-class PffGameSession
+class GameTimeModel
 {
   public:
-    PffGameSession(const std::filesystem::path &world, std::int64_t season, std::uint32_t seed = 0);
-    ~PffGameSession();
+    GameTimeModel(const std::filesystem::path &world, std::int64_t season, std::uint32_t seed = 0);
+    ~GameTimeModel();
     WorldEditResult<WorldTestMatchup> start(const WorldActor &, std::int64_t revision);
     WorldEditResult<WorldTestMatchup> viewFinal(const WorldActor &, std::int64_t game);
     WorldEditResult<WorldEditCommit> next(const WorldActor &);
