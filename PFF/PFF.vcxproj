@@ -145,6 +145,8 @@
     <ClCompile Include="Database\GameTimeModel.cpp" />
     <ClCompile Include="Screens\GameTimeController.cpp" />
     <ClCompile Include="Screens\GameTimeView.cpp" />
+    <ClCompile Include="Screens\ScoreboardView.cpp" />
+    <ClCompile Include="Screens\StatisticsView.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Screens\CommissionersOfficeScreen.cpp" />
     <ClCompile Include="Screens\Developer\RendererDiagnosticsScreen.cpp" />
@@ -201,6 +203,8 @@
     <ClInclude Include="Screens\GameTimeFormatting.h" />
     <ClInclude Include="Screens\GameTimeController.h" />
     <ClInclude Include="Screens\GameTimeView.h" />
+    <ClInclude Include="Screens\ScoreboardView.h" />
+    <ClInclude Include="Screens\StatisticsView.h" />
     <ClInclude Include="Screens\PffBroadcast.h" />
     <ClInclude Include="Database\GameTimeModel.h" />
     <ClInclude Include="Database\PbpRecorder.h" />

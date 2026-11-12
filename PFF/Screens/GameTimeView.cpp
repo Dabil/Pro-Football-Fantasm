@@ -1,6 +1,8 @@
 // GameTime view implementation. Renders the controller's display state and forwards widget input as commands.
 
 #include "Screens/GameTimeView.h"
+#include "Screens/ScoreboardView.h"
+#include "Screens/StatisticsView.h"
 #include "Input/Event.h"
 #include "Rendering/Composition/PageComposer.h"
 #include "Rendering/Surface.h"
@@ -9,8 +11,6 @@
 #include "Utilities/Text/TextClip.h"
 #include "Utilities/Text/TextWrap.h"
 #include <algorithm>
-#include <iomanip>
-#include <sstream>
 #include <string>
 
 GameTimeView::GameTimeView(std::unique_ptr<PffTest::GameTimeModel> game, WorldActor actor,
@@ -193,72 +193,32 @@ void GameTimeView::draw(Surface &surface)
     };
     const auto display = m_controller.display();
     const auto &state = display.game;
-    const auto &game = display.matchup;
-    write(1, display.replay ? "GAME TIME - Replay" : "GAME TIME - Generic Level Sim");
-    std::ostringstream clock;
-    if (state.quarter == 5)
-        clock << "Overtime";
-    else
-        clock << "Quarter " << state.quarter;
-    clock << "  " << state.remaining / 60 << ':' << std::setw(2)
-          << std::setfill('0') << state.remaining % 60;
-
-    const auto currentSpot = PffBroadcast::yardLine(state.offense ? game.homeName : game.awayName,
-                                                    state.offense ? game.awayName : game.homeName, state.spot);
-
-    write(3, game.awayName + "  " + std::to_string(state.teams[0].score()) + "    at    " +
-                 game.homeName + "  " + std::to_string(state.teams[1].score()));
-    write(5, display.replay && !display.play ? "Replay has no plays"
-                     : state.final ? "FINAL - Results and PBP saved"
-                         : state.pendingKick >= 0
-                               ? clock.str() + "  |  Kickoff pending: " +
-                                     (state.pendingKick ? game.homeName : game.awayName) + "  |  " + currentSpot
-                               : clock.str() + "  |  " + (state.offense ? game.homeName : game.awayName) +
-                               "  |  Down " + std::to_string(state.down) + " to go " +
-                               std::to_string(state.lineToGain - state.spot) + "  |  " + currentSpot);
-    write(7, "Team                         Q1   Q2   Q3   Q4   OT   Total");
-    for (int t = 0; t < 2; ++t)
-    {
-        std::ostringstream score;
-        score << std::left << std::setw(28) << TextClip::clipUtf8Text(t ? game.homeName : game.awayName, 27)
-              << std::right;
-        for (int q : state.teams[t].quarters)
-            score << std::setw(5) << q;
-        score << std::setw(7) << state.teams[t].score();
-        write(8 + t, score.str());
-    }
-    write(11, "Team statistics                   Away          Home");
-    auto stat = [&](int row, const std::string &label, const std::string &away, const std::string &home) {
-        std::ostringstream o;
-        o << std::left << std::setw(32) << label << std::setw(14) << away << home;
-        write(row, o.str());
+    const int y = std::max(20, bounds.size.height - 5);
+    const auto gameArea = page.splitTop(bounds, y).first;
+    const auto [summary, viewer] = page.splitTop(gameArea, gameArea.size.height / 2);
+    const auto [scoreboard, statistics] = page.splitLeft(summary, summary.size.width / 2);
+    const auto inset = [](const Rect &pane) {
+        return Rect{Point{pane.position.x + 2, pane.position.y + 1},
+                    Size{std::max(0, pane.size.width - 3), std::max(0, pane.size.height - 1)}};
     };
-    const auto &a = state.teams[0];
-    const auto &h = state.teams[1];
-    stat(12, "First downs", std::to_string(a.firstDowns), std::to_string(h.firstDowns));
-    stat(13, "Rushing attempts / yards", std::to_string(a.rushes) + " / " + std::to_string(a.rushYards),
-         std::to_string(h.rushes) + " / " + std::to_string(h.rushYards));
-    stat(14, "Passing complete / attempts",
-         std::to_string(a.completions) + " / " + std::to_string(a.attempts),
-         std::to_string(h.completions) + " / " + std::to_string(h.attempts));
-    stat(15, "Passing yards / sacks taken", std::to_string(a.passYards) + " / " + std::to_string(a.sacks),
-         std::to_string(h.passYards) + " / " + std::to_string(h.sacks));
-    stat(16, "Interceptions / fumbles lost",
-         std::to_string(a.interceptions) + " / " + std::to_string(a.fumblesLost),
-         std::to_string(h.interceptions) + " / " + std::to_string(h.fumblesLost));
-    stat(17, "Punts / yards", std::to_string(a.punts) + " / " + std::to_string(a.puntYards),
-         std::to_string(h.punts) + " / " + std::to_string(h.puntYards));
-    if (display.replay && display.play)
-        write(18, "Play " + std::to_string(display.playIndex + 1) + " of " + std::to_string(display.playCount));
-    constexpr int tabsY = 19;
+    ScoreboardView::draw(page, inset(scoreboard), display);
+    StatisticsView::draw(page, inset(statistics), state);
+
+    const int tabsY = viewer.position.y + (display.interruption ? 1 : 0);
     m_broadcast->setBounds(Rect{Point{2, tabsY}, Size{14, 3}});
     m_detail->setBounds(Rect{Point{18, tabsY}, Size{14, 3}});
     m_pbp->setBounds(Rect{Point{34, tabsY}, Size{14, 3}});
+    if (!small && display.replay && display.play)
+    {
+        const Rect counter{Point{50, tabsY + 1}, Size{bounds.size.width - 52, 1}};
+        page.writeLine(counter, 0, "Play " + std::to_string(display.playIndex + 1) + " of " +
+            std::to_string(display.playCount), PFF_Colors::TextHighlightColor);
+    }
     const int logY = tabsY + 3;
-    const int logHeight = std::max(1, bounds.size.height - logY - 6);
+    const int logHeight = std::max(1, viewer.position.y + viewer.size.height - logY - 1);
     m_log->setBounds(Rect{Point{2, logY}, Size{width, logHeight}});
-    rebuildLog(width);
-    const int y = std::max(20, bounds.size.height - 5);
+    if (!small)
+        rebuildLog(width);
     m_next->setBounds(Rect{Point{2, y}, Size{20, 3}});
     m_run->setBounds(Rect{Point{24, y}, Size{20, 3}});
     m_previous->setBounds(Rect{Point{24, y}, Size{20, 3}});
@@ -278,8 +238,8 @@ void GameTimeView::draw(Surface &surface)
     m_returnButton->setVisible(!small);
     if (small)
         write(19, "Enlarge the window to at least 90 x 30 to view game controls.");
-    if (display.interruption)
-        write(18, "EVENT: " + display.interruption->blocker);
+    if (!small && display.interruption)
+        write(viewer.position.y, "EVENT: " + display.interruption->blocker);
     write(bounds.size.height - 2,
           display.error.empty() ? (display.interruption ? "Waiting for event. Handle it, then Resume Game. Return keeps saved progress."
                              : display.replay      ? "Next Play and Previous Play move through the replay."

@@ -42,6 +42,8 @@
     <ClCompile Include="Database\GameTimeModel.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="Screens\GameTimeController.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="Screens\GameTimeView.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="Screens\ScoreboardView.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="Screens\StatisticsView.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="Screens\Developer\RendererDiagnosticsScreen.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -98,6 +100,8 @@
     </ClInclude>
     <ClInclude Include="Screens\GameTimeController.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Screens\GameTimeView.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Screens\ScoreboardView.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Screens\StatisticsView.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Screens\PffBroadcast.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Database\GameTimeModel.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Database\PbpRecorder.h"><Filter>Header Files</Filter></ClInclude>
