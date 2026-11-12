@@ -50,7 +50,6 @@ private:
 		std::string_view regionContent,
 		std::string_view conference,
 		std::string_view division);
-	void drawFooter(Composition::PageComposer& page, const Rect& footer) const;
 	void drawHeadingTooltip(Surface& surface) const;
 
 private:

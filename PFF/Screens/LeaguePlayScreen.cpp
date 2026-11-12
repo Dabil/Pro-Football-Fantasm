@@ -2,11 +2,11 @@
 #include "Screens/LeaguePlayScreen.h"
 #include "Styles/PFF_Theme.h"
 #include "Screens/GameTimeFormatting.h"
-#include "Utilities/Text/TextClip.h"
 
 // TUI includes
 #include "Rendering/Surface.h"
-#include "Screens/LeagueFooter.h"
+#include "Screens/FooterView.h"
+#include "Screens/HeaderView.h"
 #include "Rendering/Composition/PageComposer.h"
 #include "Rendering/Objects/BannerFactory.h"
 
@@ -76,7 +76,9 @@ void LeaguePlayScreen::draw(Surface& surface)
 	page.createFullScreenRegion("Screen");
 
 	const Rect screen = page.resolveRegion("Screen");
-    const auto [header, afterHeader] = page.splitTop(screen, 20);
+    // Keep the League Play controls at their existing vertical position.
+    const auto [headerSpace, afterHeader] = page.splitTop(screen, 20);
+    const auto header = page.splitTop(headerSpace, HeaderView::Height).first;
     const auto [footer, body] = page.splitBottom(afterHeader, PffLeagueFooter::Height);
     const auto [leftPane, remainingPanes] = page.splitLeft(body, body.size.width / 3);
     const auto [middlePane, rightPane] = page.splitLeft(remainingPanes, remainingPanes.size.width / 2);
@@ -87,26 +89,14 @@ void LeaguePlayScreen::draw(Surface& surface)
     m_root.setBounds(body);
     positionButtons(leftTopPane, leftBottomPane, middleTopPane, rightTopPane, rightBottomPane, footer);
 
-    page.createRegion("Header", header);
-    page.createInsetRegion("InnerPanel", "Header", 2, 1, 2, 1);
-    page.createInsetRegion("TitleArea", "InnerPanel", 4, 2, 2, 1);
-
     page.createRegion("Footer", footer);
     page.createRegion("Body", body);
 
-    page.drawPanel("Header", PFF_Colors::HeaderOuterColor, PFF_Colors::HeaderOuterColor, ObjectFactory::doubleLineBorder());
-    buffer.fillRect(page.resolveRegion("InnerPanel"), U' ', PFF_Colors::HeaderInnerColor);
-    page.writeObjectInRegion(m_LeaguePlayTitleObject, "TitleArea", Composition::Align::center());
+    HeaderView::draw(page, header, m_LeaguePlayTitleObject, "LEAGUE PLAY");
 
     const auto world = m_loadedWorldContextProvider ? m_loadedWorldContextProvider() : LoadedWorldContext{};
-    const auto footerText = PffLeagueFooter::textBounds(footer);
-    page.writeLine(footerText, 0, TextClip::clipUtf8Text(
-        world.isLoaded() ? world.worldName : "No league loaded", footerText.size.width),
-        PFF_Colors::TextHighlightColor);
-    if (world.isLoaded())
-        page.writeLine(footerText, 1, TextClip::clipUtf8Text(
-            PffGameTime::formatGameTimeEastern(world.currentTimeUtc), footerText.size.width),
-            PFF_Colors::TextHighlightColor);
+    FooterView::draw(page, footer, world.isLoaded() ? world.worldName : "No league loaded",
+        world.isLoaded() ? PffGameTime::formatGameTimeEastern(world.currentTimeUtc) : "");
 
     m_root.draw(surface);
 }

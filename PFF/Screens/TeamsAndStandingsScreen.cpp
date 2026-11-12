@@ -6,7 +6,8 @@
 
 // TUI includes
 #include "Rendering/Surface.h"
-#include "Screens/LeagueFooter.h"
+#include "Screens/FooterView.h"
+#include "Screens/HeaderView.h"
 #include "Rendering/Composition/PageComposer.h"
 #include "Rendering/Objects/BannerFactory.h"
 #include "Input/Event.h"
@@ -155,7 +156,7 @@ void TeamsAndStandingsScreen::draw(Surface& surface)
     page.createFullScreenRegion("Screen");
 
     const Rect screen = page.resolveRegion("Screen");
-    const auto [header, afterHeader] = page.splitTop(screen, 12);
+    const auto [header, afterHeader] = page.splitTop(screen, HeaderView::Height);
     const auto [footer, body] = page.splitBottom(afterHeader, PffLeagueFooter::Height);
     const auto [afcPane, nfcPane] = page.splitLeft(body, body.size.width / 2);
 
@@ -200,10 +201,6 @@ void TeamsAndStandingsScreen::draw(Surface& surface)
     m_root.setBounds(body);
     positionButtons(footer);
 
-    page.createRegion("Header", header);
-    page.createInsetRegion("InnerPanel", "Header", 2, 1, 2, 1);
-    page.createInsetRegion("TitleArea", "InnerPanel", 4, 2, 2, 1);
-
     page.createRegion("Footer", footer);
     page.createRegion("Body", body);
     page.createRegion("AFCEast", afcEast);
@@ -221,21 +218,7 @@ void TeamsAndStandingsScreen::draw(Surface& surface)
     page.createInsetRegion("NFCWestContent", "NFCWest", 1, 1, 1, 1);
 
 
-    page.drawPanel(
-        "Header",
-        PFF_Colors::HeaderOuterColor,
-        PFF_Colors::HeaderOuterColor,
-        ObjectFactory::doubleLineBorder());
-
-    buffer.fillRect(
-        page.resolveRegion("InnerPanel"),
-        U' ',
-        PFF_Colors::HeaderInnerColor);
-
-    page.writeObjectInRegion(
-        m_TeamsAndStandingsTitleObject,
-        "TitleArea",
-        Composition::Align::center());
+    HeaderView::draw(page, header, m_TeamsAndStandingsTitleObject, "TEAMS & STANDINGS");
 
     if (screen.size.width < 112 || body.size.height < 30)
     {
@@ -268,7 +251,8 @@ void TeamsAndStandingsScreen::draw(Surface& surface)
             PFF_Colors::TextHighlightColor);
     }
 
-    drawFooter(page, footer);
+    FooterView::draw(page, footer,
+        m_dataContext.isLoaded() ? m_dataContext.worldName : "No league loaded", m_gameTimeLabel);
     auto returnButton=m_root.removeChild(*m_leaguePlayButton);
     m_root.addChild(std::move(returnButton));
     // Cache before drawing interactive elements so hover, press and tooltip
@@ -468,16 +452,6 @@ void TeamsAndStandingsScreen::drawDivisionTeams(
 
         ++row;
     }
-}
-
-void TeamsAndStandingsScreen::drawFooter(PageComposer& page, const Rect& footer) const
-{
-    const auto textArea = PffLeagueFooter::textBounds(footer);
-    page.writeLine(textArea, 0, TextClip::clipUtf8Text(
-        m_dataContext.isLoaded() ? m_dataContext.worldName : "No league loaded",
-        textArea.size.width), PFF_Colors::TextHighlightColor);
-    page.writeLine(textArea, 1, TextClip::clipUtf8Text(m_gameTimeLabel,
-        textArea.size.width), PFF_Colors::TextHighlightColor);
 }
 
 void TeamsAndStandingsScreen::drawHeadingTooltip(Surface& surface) const
