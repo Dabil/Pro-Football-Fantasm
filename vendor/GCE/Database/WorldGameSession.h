@@ -32,6 +32,7 @@ struct WorldTestGameStep
     int period = 1, remaining = 900, elapsed = 0, awayScore = 0, homeScore = 0;
     bool final = false, play = true;
     std::string text, teamStatistics;
+    bool untimedDownPending = false;
 };
 WorldEditResult<WorldTestMatchup> beginTestMatchup(const WorldActor &, std::int64_t season,
                                                    std::int64_t expectedRevision,

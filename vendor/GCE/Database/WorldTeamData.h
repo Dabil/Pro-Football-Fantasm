@@ -1,4 +1,6 @@
 #pragma once
+
+#include <map>
 #include <cstdint>
 #include <filesystem>
 #include <optional>
@@ -173,6 +175,17 @@ struct WorldEditCommit
     std::string currentTimeUtc, worldKey;
     std::vector<std::int64_t> organizations, teamSeasons, people, venues;
 };
+struct WorldLeagueOptions
+{
+    std::string rulesProfile;
+    std::int64_t revision = 0;
+    std::map<std::string, std::int64_t> values;
+};
+
+WorldEditResult<WorldLeagueOptions> loadWorldLeagueOptions(const WorldActor&, std::int64_t season);
+WorldEditResult<WorldEditCommit> saveWorldLeagueOptions(const WorldActor&, std::int64_t season,
+    const std::map<std::string, std::int64_t>& values, std::int64_t expected);
+
 struct WorldVenueHistoryEntry
 {
     WorldVenueEvent event;

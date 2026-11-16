@@ -376,7 +376,10 @@ void persistBufferedTestStep(Session &s, std::int64_t game, const WorldTestGameS
                 (p.period == old.integer(1) + 1 && old.integer(2) == 0 && p.remaining == 900 &&
                  p.elapsed == old.integer(3)),
             WorldEditError::InvalidValue, "Invalid quarter or timing transition");
-    require(p.final == ((p.period == 4 && p.remaining == 0 && p.awayScore != p.homeScore) || (p.period == 5 && (p.remaining == 0 || p.awayScore != p.homeScore))), WorldEditError::InvalidValue,
+    const bool clockFinal = (p.period == 4 && p.remaining == 0 && p.awayScore != p.homeScore) ||
+                            (p.period == 5 && (p.remaining == 0 || p.awayScore != p.homeScore));
+    require(p.final == (clockFinal && !p.untimedDownPending) &&
+                (!p.untimedDownPending || p.remaining == 0), WorldEditError::InvalidValue,
             "Invalid final game checkpoint");
     if (p.period == 5 && old.integer(1) == 4)
         S::run(s.db, "INSERT INTO GamePeriods VALUES(?,?,5,'OVERTIME','COUNTDOWN',900,'PFF_QUEUE_TEST_TIMING')",
@@ -399,20 +402,22 @@ void persistBufferedTestStep(Session &s, std::int64_t game, const WorldTestGameS
                "VALUES(?,?,?,?,?,?,?,?,'SIMULATED','PFF_QUEUE_TEST_TIMING')",
                {s.world, game, claim, old.integer(3), std::int64_t(p.elapsed), std::int64_t(p.period),
                 old.integer(2), std::int64_t(p.remaining)});
-        if (p.play)
-        {
-            require(p.playOrdinal == S::scalar(s.db,
-                                               "SELECT COALESCE(max(PlayOrdinal),0)+1 FROM GamePlayTiming "
-                                               "WHERE WorldID=? AND GameID=?",
-                                               {s.world, game}),
-                    WorldEditError::IntegrityFailure, "Play order must continue the saved canonical history");
-            S::run(s.db,
-                   "INSERT INTO "
-                   "GamePlayTiming(WorldID,GameID,PlayOrdinal,CanonicalPlayKey,PeriodNo,RemainingSeconds,"
-                   "StartsElapsedSeconds,EndsElapsedSeconds,Certainty) VALUES(?,?,?,?,?,?,?,?,'SIMULATED')",
-                   {s.world, game, p.playOrdinal, "test-play:" + std::to_string(p.playOrdinal),
-                    std::int64_t(p.period), old.integer(2), old.integer(3), std::int64_t(p.elapsed)});
-        }
+    }
+    // A real play at 0:00 advances canonical play order without opening
+    // another world-clock timing interval.
+    if (p.play)
+    {
+        require(p.playOrdinal == S::scalar(s.db,
+                                           "SELECT COALESCE(max(PlayOrdinal),0)+1 FROM GamePlayTiming "
+                                           "WHERE WorldID=? AND GameID=?",
+                                           {s.world, game}),
+                WorldEditError::IntegrityFailure, "Play order must continue the saved canonical history");
+        S::run(s.db,
+               "INSERT INTO "
+               "GamePlayTiming(WorldID,GameID,PlayOrdinal,CanonicalPlayKey,PeriodNo,RemainingSeconds,"
+               "StartsElapsedSeconds,EndsElapsedSeconds,Certainty) VALUES(?,?,?,?,?,?,?,?,'SIMULATED')",
+               {s.world, game, p.playOrdinal, "test-play:" + std::to_string(p.playOrdinal),
+                std::int64_t(p.period), old.integer(2), old.integer(3), std::int64_t(p.elapsed)});
     }
     pbp += p.text;
     std::optional<WorldTestSavedState> finalState;

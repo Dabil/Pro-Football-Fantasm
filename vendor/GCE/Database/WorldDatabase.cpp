@@ -966,6 +966,14 @@ CREATE TABLE WorldCompetitions
     FOREIGN KEY (WorldID) REFERENCES Worlds(WorldID)
 );
 
+CREATE TABLE WorldLeagueOptions
+(
+    WorldCompetitionID INTEGER NOT NULL REFERENCES WorldCompetitions(WorldCompetitionID),
+    OptionKey          TEXT NOT NULL,
+    OptionValue        INTEGER NOT NULL,
+    PRIMARY KEY (WorldCompetitionID, OptionKey)
+);
+
 CREATE TABLE CompetitionSeasons
 (
     CompetitionSeasonID          INTEGER PRIMARY KEY,
@@ -2828,6 +2836,16 @@ VALUES(1, NULL, NULL, NULL, ?, NULL, ?, 'SHA256', ?, ?);
                 ruleset,
                 scheduleClockZoneId,
                 request.season);
+
+            for (const auto& [key, value] : request.initialLeagueOptions)
+            {
+                Statement option(world, "INSERT INTO WorldLeagueOptions "
+                    "SELECT WorldCompetitionID,?,? FROM CompetitionSeasons WHERE CompetitionSeasonID=?");
+                bindText(option.get(), 1, key);
+                bindInt64(option.get(), 2, value);
+                bindInt64(option.get(), 3, context.competitionSeasonId);
+                option.stepDone(world);
+            }
 
             instantiateGroups(context, competition.coreCompetitionSeasonId);
             instantiateVenues(context);

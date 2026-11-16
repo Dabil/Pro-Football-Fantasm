@@ -123,7 +123,8 @@ void validateTestSnapshot(Session &s, std::int64_t game, const WorldTestGameStep
     require(saved.gameId == game && saved.inputHash == q.text() && g.generation == tail.generation &&
                 g.playOrdinal == tail.playOrdinal && g.quarter == tail.period &&
                 g.remaining == tail.remaining && g.elapsed == tail.elapsed && g.final == final &&
-                tail.final == final && g.teams[0].score() == tail.awayScore &&
+                tail.final == final && g.untimedDownPending == tail.untimedDownPending &&
+                g.teams[0].score() == tail.awayScore &&
                 g.teams[1].score() == tail.homeScore,
             WorldEditError::IntegrityFailure, "Runtime state does not match the saved step");
 }
@@ -185,6 +186,7 @@ WorldEditResult<WorldEditCommit> saveTestMatchup(const WorldActor &actor, std::i
             p.elapsed = saved.game.elapsed;
             p.awayScore = saved.game.teams[0].score();
             p.homeScore = saved.game.teams[1].score();
+            p.untimedDownPending = saved.game.untimedDownPending;
             p.play = false;
             steps.push_back(p);
             require(p.generation == latest.integer() + 1, WorldEditError::StaleRevision,

@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -121,6 +122,7 @@ struct WorldDatabaseCreateRequest
     bool overwriteExisting = false;
     // Prepared Core state is adopted, never aged again by replaying past events.
     WorldInitializationPolicy initializationPolicy = WorldInitializationPolicy::PreparedSeason;
+    std::map<std::string, std::int64_t> initialLeagueOptions;
 };
 
 struct WorldDatabaseCreateResult

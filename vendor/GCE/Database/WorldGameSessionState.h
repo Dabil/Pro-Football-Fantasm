@@ -30,6 +30,7 @@ struct WorldTestRuntimeState
     bool final = false;
     int pendingKick = -1;
     std::array<WorldTestTeamStats, 2> teams;
+    bool untimedDownPending = false;
 };
 struct WorldTestSavedState
 {
@@ -59,13 +60,16 @@ inline void insist(bool good)
 inline void validate(const WorldTestSavedState &s)
 {
     const auto &g = s.game;
+    const bool clockFinal = (g.quarter == 4 && g.remaining == 0 && g.teams[0].score() != g.teams[1].score()) ||
+                            (g.quarter == 5 && (g.remaining == 0 || g.teams[0].score() != g.teams[1].score()));
     insist(s.gameId > 0 && s.inputHash.size() == 64 &&
            s.inputHash.find_first_not_of("0123456789abcdef") == std::string::npos);
     insist(g.generation >= 0 && g.playOrdinal >= 0 && g.playOrdinal <= g.generation && g.quarter >= 1 &&
            g.quarter <= 5 && g.remaining >= 0 && g.remaining <= 900 &&
            g.elapsed == (g.quarter - 1) * 900 + 900 - g.remaining && g.offense >= 0 && g.offense <= 1 &&
            g.pendingKick >= -1 && g.pendingKick <= 1 && g.spot >= 1 && g.spot <= 99 && g.down >= 1 && g.down <= 4 && g.lineToGain >= g.spot &&
-           g.lineToGain <= 100 && g.final == ((g.quarter == 4 && g.remaining == 0 && g.teams[0].score() != g.teams[1].score()) || (g.quarter == 5 && (g.remaining == 0 || g.teams[0].score() != g.teams[1].score()))));
+           g.lineToGain <= 100 && g.final == (clockFinal && !g.untimedDownPending) &&
+           (!g.untimedDownPending || (g.remaining == 0 && g.pendingKick == -1)));
     for (const auto &team : g.teams)
     {
         for (std::size_t n = 0; n < Stats.size(); ++n)
@@ -133,8 +137,12 @@ inline std::string encode(const WorldTestSavedState &s)
     n(s.log.size());
     for (const auto &line : s.log)
         p(line);
-    if (!s.replayHistory.empty())
+    // Extend the checkpoint only when necessary so existing saves retain
+    // their canonical encoding and checksums.
+    if (!s.replayHistory.empty() || g.untimedDownPending)
         p(s.replayHistory);
+    if (g.untimedDownPending)
+        n(1);
     insist(out.size() <= MaxBytes);
     return out;
 }
@@ -203,6 +211,8 @@ inline WorldTestSavedState decode(const std::string &bytes)
         s.log.push_back(p());
     if (at < bytes.size())
         s.replayHistory = p();
+    if (at < bytes.size())
+        g.untimedDownPending = boolean();
     insist(at == bytes.size());
     validate(s);
     insist(encode(s) == bytes);

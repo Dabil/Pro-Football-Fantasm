@@ -1081,3 +1081,55 @@ WorldEditResult<WorldAdvanceOutcome> beginInstalledGameWindow(const WorldActor&,
 #include "GCE/Database/WorldScheduler.inl"
 #include "GCE/Database/WorldClockServices.inl"
 #include "GCE/Database/WorldGameSession.inl"
+
+namespace
+{
+    std::int64_t leagueOptionsScope(Session& s, std::int64_t season, std::string& profile)
+    {
+        S::Query q(s.db, "SELECT c.WorldCompetitionID,cs.SimulationRulesProfileKey FROM CompetitionSeasons cs "
+                         "JOIN WorldCompetitions c ON c.WorldCompetitionID=cs.WorldCompetitionID "
+                         "WHERE c.WorldID=? AND cs.CompetitionSeasonID=?", {s.world, season});
+        require(q.row(), WorldEditError::InvalidValue, "League unavailable");
+        profile = q.text(1);
+        return q.integer(0);
+    }
+}
+
+WorldEditResult<WorldLeagueOptions> loadWorldLeagueOptions(const WorldActor& actor, std::int64_t season)
+{
+    return attempt<WorldLeagueOptions>([&] {
+        Session s(actor, false);
+        WorldLeagueOptions options;
+        options.revision = s.revision;
+        const auto competition = leagueOptionsScope(s, season, options.rulesProfile);
+        if (S::scalar(s.db, "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='WorldLeagueOptions'"))
+        {
+            S::Query q(s.db, "SELECT OptionKey,OptionValue FROM WorldLeagueOptions WHERE WorldCompetitionID=?",
+                       {competition});
+            while (q.row())
+                options.values.emplace(q.text(), q.integer(1));
+        }
+        return options;
+    });
+}
+
+WorldEditResult<WorldEditCommit> saveWorldLeagueOptions(const WorldActor& actor, std::int64_t season,
+    const std::map<std::string, std::int64_t>& values, std::int64_t expected)
+{
+    return write(actor, expected, [&](Session& s, std::int64_t, WorldEditCommit& r) {
+        require(s.enableGod, WorldEditError::NotAuthorized, "League settings require commissioner access");
+        std::string profile;
+        const auto competition = leagueOptionsScope(s, season, profile);
+        S::exec(s.db, "CREATE TABLE IF NOT EXISTS WorldLeagueOptions("
+                      "WorldCompetitionID INTEGER NOT NULL REFERENCES WorldCompetitions(WorldCompetitionID),"
+                      "OptionKey TEXT NOT NULL, OptionValue INTEGER NOT NULL,"
+                      "PRIMARY KEY(WorldCompetitionID,OptionKey))");
+        for (const auto& [key, value] : values)
+        {
+            S::run(s.db, "INSERT INTO WorldLeagueOptions VALUES(?,?,?) "
+                         "ON CONFLICT(WorldCompetitionID,OptionKey) DO UPDATE SET OptionValue=excluded.OptionValue "
+                         "WHERE OptionValue<>excluded.OptionValue", {competition, key, value});
+            r.changed = r.changed || sqlite3_changes(s.db) != 0;
+        }
+    });
+}
