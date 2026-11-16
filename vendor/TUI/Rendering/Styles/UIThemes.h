@@ -67,8 +67,7 @@ namespace UIThemes
             Color::FromRgb(135, 255, 255)));
 
     inline const Style Focused =
-        style::Bold
-        + style::Underline;
+        style::Bold;
 
     inline const Style ButtonNormal =
         style::Bold

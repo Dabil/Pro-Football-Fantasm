@@ -9,7 +9,7 @@ namespace UI
 {
     TabbedWindowPage::TabbedWindowPage()
         : m_normalTabStyle(UIThemes::PanelTitle)
-        , m_hoveredTabStyle(UIThemes::PanelTitle + style::Underline)
+        , m_hoveredTabStyle(UIThemes::PanelTitle + style::Bold)
         , m_selectedTabStyle(UIThemes::Selection)
     {
     }

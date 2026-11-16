@@ -10,13 +10,8 @@
 #include "UI/Scrolling/ScrollBehavior.h"
 
 ScrollBox::ScrollBox()
-    : ContainerWidget()
-    , m_styleSet(WidgetStyles::defaultStyleSet(WidgetStyles::Role::TextViewText))
+    : ScrollBox(Rect{})
 {
-    setFocusable(true);
-
-    m_verticalScrollbarStyle.trackStyle = m_styleSet.normal;
-    m_verticalScrollbarStyle.thumbStyle = UIThemes::Selection;
 }
 
 ScrollBox::ScrollBox(const Rect& bounds)
@@ -24,6 +19,7 @@ ScrollBox::ScrollBox(const Rect& bounds)
     , m_styleSet(WidgetStyles::defaultStyleSet(WidgetStyles::Role::TextViewText))
 {
     setFocusable(true);
+    m_styleSet.focused = m_styleSet.focused.withUnderline(false);
 
     m_verticalScrollbarStyle.trackStyle = m_styleSet.normal;
     m_verticalScrollbarStyle.thumbStyle = UIThemes::Selection;

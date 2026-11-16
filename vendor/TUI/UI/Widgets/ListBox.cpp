@@ -703,11 +703,11 @@ const Style& ListBox::resolveItemStyle(std::size_t index) const
 {
     const bool selected = m_selectedIndex.has_value() && *m_selectedIndex == index;
     // Hover is transient feedback; it never changes the committed selection.
-    if (isEnabled() && isItemEnabled(index) && isFocused() && m_hoveredIndex == index)
+    if (isEnabled() && isItemEnabled(index) && m_hoveredIndex == index)
         return m_styleSet.selectedFocused;
 
     return WidgetStyles::resolve(
         m_styleSet,
         WidgetStyles::stateFor(isEnabled() && isItemEnabled(index),
-                               isFocused() && !m_hoveredIndex.has_value(), selected));
+                               isFocused(), selected));
 }
