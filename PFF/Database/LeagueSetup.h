@@ -3,6 +3,7 @@
 #include "CoreManifest.h"
 #include "GCE/Database/WorldDatabase.h"
 #include <sqlite3.h>
+#include <array>
 #include <charconv>
 #include <memory>
 
@@ -10,6 +11,10 @@
 // remains with GCE; inspecting a Core never writes or repairs it.
 namespace LeagueSetup
 {
+    inline constexpr std::array AddonNames{
+        "Enhanced Timing", "Extended Rosters", "Extended Plays", "Team Tendency Charts"
+    };
+
     struct Core
     {
         std::filesystem::path path;
@@ -51,6 +56,9 @@ namespace LeagueSetup
         result.season=integer(result.metadata["Season"]);
         result.details={"Core: "+path.filename().u8string(),"Ruleset: "+value("Ruleset"),
             "Season: "+value("Season"),"Core schema: "+value("CoreSchemaVersion")};
+        // The current Core importer has no supported add-on payloads.
+        for (const auto* addon : AddonNames)
+            result.details.push_back(std::string(addon) + ": Unavailable");
         if(result.season<=0) result.error="Core has no usable recorded season. Choose another Core or rebuild it.";
         if(result.metadata["CoreSchemaVersion"]!="4" || result.metadata["TeamDataContractVersion"]!="1")
             result.error="UNSUPPORTED_SCHEMA: rebuild a fresh compatible Core. Existing files are not migrated.";

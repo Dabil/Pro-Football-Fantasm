@@ -26,6 +26,29 @@ GameTimeView::GameTimeView(Assets::AssetLibrary &assets, std::unique_ptr<PffTest
     log->setStyleSet(scrollStyle);
     m_log = log.get();
     m_root.addChild(std::move(log));
+    for (auto& list : m_callLists)
+    {
+        auto widget = std::make_unique<ListBox>();
+        widget->setFocusedStyle(widget->normalStyle());
+        widget->setVerticalScrollbarVisible(true);
+        list = widget.get();
+        m_callRoot.addChild(std::move(widget));
+    }
+    const auto callButton = [&](const char* label, auto callback) {
+        auto button = std::make_unique<Button>(label);
+        button->setNormalStyle(PFF_Colors::ButtonNormalColor);
+        button->setFocusedStyle(PFF_Colors::ButtonHoverColor);
+        button->setHoverStyle(PFF_Colors::ButtonHoverColor);
+        button->setActivationCallback([callback](const ButtonActivationResult& result) {
+            if (result.activated) callback();
+        });
+        auto* result = button.get();
+        m_callRoot.addChild(std::move(button));
+        return result;
+    };
+    m_makeCall = callButton("Make the Call", [this] { makeSelectedCall(); });
+    m_timeout = callButton("Time-Out", [this] { m_controller.timeout(); });
+    m_pauseCall = callButton("Pause", [this] { m_controller.toggleDecisionPause(); });
     for (const auto &command : {std::pair<const char *, const char *>{"Next Play", "next"},
                                 {"Run to Final", "run"},
                                 {"Previous Play", "previous"},
@@ -95,6 +118,7 @@ void GameTimeView::onEnter()
 }
 void GameTimeView::updateControls()
 {
+    refreshCallWindow();
     const auto state = m_controller.display();
     m_next->setEnabled(state.canNext);
     m_previous->setEnabled(state.canPrevious);
@@ -137,15 +161,134 @@ bool GameTimeView::handleEvent(const Input::Event &event)
             return true;
         }
     }
-    const bool handled = m_root.handleEvent(event);
+    bool routeToCall = m_callActive && m_callFocused;
+    if (const auto* mouse = event.asMouse())
+    {
+        const auto point = mouse->position;
+        const bool inside = m_callActive && m_callBounds.contains(point.x, point.y);
+        if (mouse->isMove() && !inside)
+            for (auto* list : m_callLists) list->clearPointerState();
+        routeToCall = m_callPointerCaptured || inside;
+        if (mouse->button == Input::MouseButton::Left && (mouse->isPress() || mouse->isClick()))
+        {
+            m_callFocused = inside;
+            if (inside)
+                m_root.clearChildFocus();
+            else
+                m_callRoot.clearChildFocus();
+            m_callPointerCaptured = inside && mouse->isPress();
+        }
+        if (m_dragOffset)
+        {
+            if (mouse->isMove() || mouse->isDrag())
+                m_callPosition = Point{point.x - m_dragOffset->x, point.y - m_dragOffset->y};
+            if (mouse->isRelease())
+            {
+                m_dragOffset.reset();
+                m_callPointerCaptured = false;
+            }
+            return true;
+        }
+        if (inside && mouse->button == Input::MouseButton::Left && mouse->isPress() &&
+            point.y <= m_callBounds.position.y + 1 && !m_callRoot.hitTest(point))
+        {
+            m_dragOffset = Point{point.x - m_callBounds.position.x, point.y - m_callBounds.position.y};
+            return true;
+        }
+        if (mouse->isRelease()) m_callPointerCaptured = false;
+    }
+    else if (m_callActive)
+    {
+        if (const auto* command = event.asCommand())
+        {
+            const auto code = command->command.code;
+            if (code == Input::CommandCode::NextFocus || code == Input::CommandCode::PreviousFocus)
+            {
+                const bool forward = code == Input::CommandCode::NextFocus;
+                auto& current = m_callFocused ? m_callRoot : m_root;
+                const int index = current.focusedChild() ? current.indexOfChild(*current.focusedChild()) : -1;
+                bool hasNext = index < 0;
+                for (int i = index + (forward ? 1 : -1); !hasNext && i >= 0 &&
+                     i < static_cast<int>(current.childCount()); i += forward ? 1 : -1)
+                    hasNext = current.childAt(i)->canReceiveFocus();
+                if (!hasNext)
+                {
+                    current.clearChildFocus();
+                    m_callFocused = !m_callFocused;
+                    auto& next = m_callFocused ? m_callRoot : m_root;
+                    if (forward) next.focusFirstChild();
+                    else next.focusLastChild();
+                    if (auto* list = dynamic_cast<ListBox*>(next.focusedChild())) selectCallList(*list);
+                    updateControls();
+                    return true;
+                }
+            }
+        }
+    }
+    const bool handled = routeToCall ? handleCallWindowEvent(event) : m_root.handleEvent(event);
     returnToCallerIfReady();
     return handled;
+}
+
+bool GameTimeView::handleCallWindowEvent(const Input::Event& event)
+{
+    if (const auto* mouse = event.asMouse(); mouse && (mouse->isMove() || mouse->isWheel()))
+    {
+        for (auto* list : m_callLists)
+        {
+            if (list->isVisible() && list->bounds().contains(mouse->position.x, mouse->position.y))
+                list->handleEvent(event);
+            else
+                list->clearPointerState();
+        }
+        return true;
+    }
+    if (const auto* command = event.asCommand())
+    {
+        if (command->command.code == Input::CommandCode::MoveRight)
+        {
+            m_callRoot.handleEvent(Input::Event::command(Input::Command{Input::CommandCode::NextFocus}));
+            if (auto* list = dynamic_cast<ListBox*>(m_callRoot.focusedChild()))
+                selectCallList(*list);
+            updateControls();
+            return true;
+        }
+        if (command->command.code == Input::CommandCode::Confirm &&
+            dynamic_cast<ListBox*>(m_callRoot.focusedChild()))
+        {
+            selectCallList(*static_cast<ListBox*>(m_callRoot.focusedChild()));
+            makeSelectedCall();
+            return true;
+        }
+    }
+    const bool handled = m_callRoot.handleEvent(event);
+    if (auto* list = dynamic_cast<ListBox*>(m_callRoot.focusedChild()))
+    {
+        if (event.asCommand())
+            selectCallList(*list);
+        if (const auto* mouse = event.asMouse())
+            if (handled && mouse->button == Input::MouseButton::Left && (mouse->isPress() || mouse->isClick()) &&
+                list->bounds().contains(mouse->position.x, mouse->position.y))
+            {
+                selectCallList(*list);
+                const auto now = std::chrono::steady_clock::now();
+                const auto point = mouse->position;
+                const bool repeated = m_lastCallClick && m_lastCallClick->x == point.x &&
+                    m_lastCallClick->y == point.y && now - m_lastCallClickTime <= std::chrono::milliseconds(500);
+                m_lastCallClick = point;
+                m_lastCallClickTime = now;
+                if (mouse->clickCount == 2 || repeated) makeSelectedCall();
+            }
+    }
+    updateControls();
+    return true;
 }
 void GameTimeView::update(const Animation::TickEvent &event)
 {
     m_controller.tick();
     updateControls();
     m_root.update(event);
+    if (m_callActive) m_callRoot.update(event);
     returnToCallerIfReady();
 }
 void GameTimeView::rebuildLog(int width)
@@ -266,4 +409,113 @@ void GameTimeView::draw(Surface &surface)
                                            : "Next Play advances once. Return saves and exits.")
                           : display.error);
     m_root.draw(surface);
+    if (m_callActive) drawCallWindow(surface);
+}
+
+void GameTimeView::refreshCallWindow()
+{
+    const auto state = m_controller.display();
+    m_pauseCall->setLabel(m_controller.decisionPaused() ? "Resume" : "Pause");
+    m_makeCall->setEnabled(m_selectedList && !m_controller.decisionPaused());
+    m_timeout->setEnabled(m_controller.canTimeout());
+    if (m_callGeneration == state.game.generation && m_callActive && !state.running && !state.interruption && !state.game.final)
+        return;
+    m_callGeneration = state.game.generation;
+    const auto calls = m_controller.playCalls();
+    if (calls.empty())
+    {
+        m_callActive = m_callFocused = m_callPointerCaptured = false;
+        m_dragOffset.reset();
+        m_callBounds = {};
+        return;
+    }
+    if (!m_callActive)
+    {
+        m_callFocused = true;
+        m_root.clearChildFocus();
+    }
+    m_callActive = true;
+    m_callRoot.resetFocus();
+    m_lastCallClick.reset();
+    m_selectedList = nullptr;
+    for (std::size_t i = 0; i < m_callLists.size(); ++i)
+    {
+        auto& keys = m_callKeys[i];
+        auto* list = m_callLists[i];
+        keys.clear();
+        std::vector<ListBoxItem> items;
+        for (const auto& call : calls)
+            if (static_cast<std::size_t>(call.group) == i)
+            {
+                keys.push_back(call.key);
+                items.push_back({call.name});
+            }
+        list->setItems(std::move(items));
+        list->clearSelection();
+        list->setVisible(!keys.empty());
+        list->setEnabled(!keys.empty());
+    }
+    m_makeCall->setEnabled(false);
+}
+
+void GameTimeView::selectCallList(ListBox& list)
+{
+    for (auto* other : m_callLists)
+        if (other != &list) other->clearSelection();
+    if (!list.selectedIndex()) list.moveToFirst();
+    m_selectedList = &list;
+}
+
+void GameTimeView::makeSelectedCall()
+{
+    if (!m_selectedList || m_controller.decisionPaused()) return;
+    const auto selected = m_selectedList->selectedIndex();
+    if (!selected) return;
+    const auto list = std::find(m_callLists.begin(), m_callLists.end(), m_selectedList) - m_callLists.begin();
+    const auto key = m_callKeys[list][*selected];
+    m_controller.makeCall(key);
+    updateControls();
+}
+
+void GameTimeView::drawCallWindow(Surface& surface)
+{
+    auto& buffer = surface.buffer();
+    constexpr int width = 88, height = 19;
+    const int maxX = std::max(0, buffer.getWidth() - width);
+    const int maxY = std::max(0, buffer.getHeight() - 5 - height);
+    const auto requested = m_callPosition.value_or(Point{maxX / 2, maxY / 2});
+    const int x = std::clamp(requested.x, 0, maxX), y = std::clamp(requested.y, 0, maxY);
+    const Rect panel{Point{x, y}, Size{width, height}};
+    m_callBounds = panel;
+    buffer.fillRect(panel, U' ', PFF_Colors::FormPanelColor);
+    buffer.writeString(x + 2, y + 1, "Call a Play", PFF_Colors::FormPanelHeadingColor);
+    const auto clock = m_controller.playClockRemaining();
+    if (clock >= 0)
+        buffer.writeString(x + 19, y + 1, "Play clock " + std::to_string(clock) + "s", PFF_Colors::FormPanelHeadingColor);
+    if (clock >= 0 && width >= 65)
+    {
+        const int seconds = m_controller.gameClockRemaining();
+        buffer.writeString(x + 39, y + 1, "Game clock " + std::to_string(seconds / 60) + ":" +
+            (seconds % 60 < 10 ? "0" : "") + std::to_string(seconds % 60), PFF_Colors::FormPanelHeadingColor);
+    }
+    m_callRoot.setBounds(panel);
+    const std::array<const char*, 5> headings{"Running", "Passing", "Special Teams", "Kickoff", "Defense"};
+    const auto count = std::count_if(m_callLists.begin(), m_callLists.end(), [](auto* list) { return list->isVisible(); });
+    const int column = (width - 4) / std::max(1, static_cast<int>(count));
+    int left = x + 2;
+    for (std::size_t i = 0; i < m_callLists.size(); ++i)
+        if (m_callLists[i]->isVisible())
+        {
+            buffer.writeString(left, y + 3, headings[i], PFF_Colors::FormPanelHeadingColor);
+            m_callLists[i]->setBounds({Point{left, y + 4}, Size{column - 1, height - 8}});
+            left += column;
+        }
+    m_pauseCall->setBounds({Point{x + width - 9, y + 1}, Size{8, 1}});
+    m_makeCall->setBounds({Point{x + width / 2 - 15, y + height - 3}, Size{16, 2}});
+    m_timeout->setBounds({Point{x + width / 2 + 3, y + height - 3}, Size{12, 2}});
+    const auto& error = m_controller.display().error;
+    if (!error.empty())
+        buffer.writeString(x + 2, y + height - 4, TextClip::clipUtf8Text(error, width - 4),
+            PFF_Colors::FormPanelHeadingColor);
+    m_callRoot.draw(surface);
 }

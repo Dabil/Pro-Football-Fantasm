@@ -624,10 +624,11 @@ void LeagueScheduleScreen::runBatch()
                 return;
             }
             m_committed(started.value.commit);
-            const bool show = started.value.kickoffUtc == m_batchKickoff &&
-                (controlsTeam(started.value.awayId) || controlsTeam(started.value.homeId));
+            const std::array<bool, 2> humanTeams{controlsTeam(started.value.awayId), controlsTeam(started.value.homeId)};
+            const bool show = started.value.kickoffUtc == m_batchKickoff && (humanTeams[0] || humanTeams[1]);
             if (show)
             {
+                game->setHumanTeams(humanTeams);
                 m_returningFromGame = true;
                 const auto open = m_openGame;
                 const auto actor = m_actor;

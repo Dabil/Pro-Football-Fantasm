@@ -14,9 +14,15 @@
 
 // C++ library includes
 #include <algorithm>
+#include <charconv>
 #include <filesystem>
 #include <optional>
 #include <utility>
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <Windows.h>
 
 namespace
 {
@@ -25,9 +31,42 @@ namespace
     constexpr std::string_view BuildCoreDbCommand = "action:pff:build_core_db";
     constexpr std::string_view NewLeagueCommand = "action:pff:new_league";
     constexpr std::string_view LoadLeagueCommand = "action:pff:load_league";
+    constexpr std::string_view DeleteLeagueCommand = "action:pff:delete_league";
+    constexpr std::string_view AddonsCommand = "action:pff:addons";
 
     const std::filesystem::path WorldRoot =
         std::filesystem::path("Data") / "World";
+
+    bool ordinarySavePath(const std::filesystem::path& path, bool directory)
+    {
+        const auto attributes = GetFileAttributesW(path.c_str());
+        return attributes != INVALID_FILE_ATTRIBUTES &&
+            !(attributes & FILE_ATTRIBUTE_REPARSE_POINT) &&
+            bool(attributes & FILE_ATTRIBUTE_DIRECTORY) == directory;
+    }
+
+    std::filesystem::path checkedLeagueFolder(const std::filesystem::path& database)
+    {
+        const auto root = std::filesystem::absolute(WorldRoot).lexically_normal();
+        const auto folder = std::filesystem::absolute(database.parent_path()).lexically_normal();
+        if (folder == root || folder.parent_path() != root ||
+            !ordinarySavePath(root.parent_path(), true) || !ordinarySavePath(root, true) ||
+            !ordinarySavePath(folder, true) || !ordinarySavePath(folder / "World.db", false))
+            throw std::runtime_error("This save is missing or is not a regular league folder in Data/World.");
+
+        const auto resolvedRoot = std::filesystem::canonical(root);
+        const auto resolvedFolder = std::filesystem::canonical(folder);
+        if (resolvedFolder.parent_path() != resolvedRoot)
+            throw std::runtime_error("The selected league folder is outside Data/World.");
+
+        for (const auto& entry : std::filesystem::recursive_directory_iterator(resolvedFolder))
+        {
+            const auto attributes = GetFileAttributesW(entry.path().c_str());
+            if (attributes == INVALID_FILE_ATTRIBUTES || (attributes & FILE_ATTRIBUTE_REPARSE_POINT))
+                throw std::runtime_error("The selected league contains a linked or unreadable entry.");
+        }
+        return resolvedFolder;
+    }
 }
 
 CommissionersOfficeScreen::CommissionersOfficeScreen(
@@ -75,10 +114,31 @@ void CommissionersOfficeScreen::onExit()
     closeCoreBuild();
     m_CommissionersOfficeTitleObject.clear();
     cancelLoadLeagueSelection();
+    cancelDeleteLeague();
+    closeAddons();
+    m_groundRulesActive = false;
 }
 
 bool CommissionersOfficeScreen::handleEvent(const Input::Event& event)
 {
+    if (m_groundRulesActive)
+    {
+        if (const auto* command = event.asCommand())
+        {
+            const auto code = command->command.code;
+            if (code == Input::CommandCode::Cancel || code == Input::CommandCode::Back || code == Input::CommandCode::Close)
+            {
+                m_groundRulesActive = false;
+                return true;
+            }
+        }
+        m_groundRulesRoot.handleEvent(event);
+        return true;
+    }
+    if (m_addonsActive)
+        return handleAddonsEvent(event);
+    if (m_deleteLeagueActive)
+        return handleDeleteEvent(event);
     if (m_leagueStage != LeagueStage::Closed)
     {
         if (const auto* command=event.asCommand())
@@ -217,6 +277,9 @@ void CommissionersOfficeScreen::update(const Animation::TickEvent& event)
     }
     if (m_coreStage != CoreStage::Closed) m_coreRoot.update(event);
     else if(m_loadLeagueSelectionActive) m_loadRoot.update(event);
+    else if (m_groundRulesActive) m_groundRulesRoot.update(event);
+    else if (m_addonsActive) m_addonsRoot.update(event);
+    else if (m_deleteLeagueActive) m_deleteRoot.update(event);
     else m_root.update(event);
 }
 
@@ -302,6 +365,7 @@ void CommissionersOfficeScreen::draw(Surface& surface)
         return;
     }
 
+
     if (m_loadLeagueSelectionActive)
     {
         drawLoadLeagueSelection(page,controlPane);
@@ -333,6 +397,22 @@ void CommissionersOfficeScreen::draw(Surface& surface)
         for(std::size_t i=0;i<lines.size()&&i<6;++i)page.writeLine(controlPane,25+static_cast<int>(i),"  "+lines[i],officeModeStyle);
     }
     m_root.draw(surface);
+    if (m_groundRulesActive)
+    {
+        drawGroundRules(page);
+        m_groundRulesRoot.draw(surface);
+        return;
+    }
+    if (m_deleteLeagueActive)
+    {
+        drawDeleteLeague(page);
+        m_deleteRoot.draw(surface);
+    }
+    else if (m_addonsActive)
+    {
+        drawAddons(page);
+        m_addonsRoot.draw(surface);
+    }
 }
 
 void CommissionersOfficeScreen::buildWidgets()
@@ -538,10 +618,94 @@ void CommissionersOfficeScreen::buildWidgets()
     m_root.addChild(std::move(buildCoreDbButton));
     m_root.addChild(std::move(newLeagueButton));
     m_root.addChild(std::move(loadLeagueButton));
-    auto god=std::make_unique<FormCheckBox>("God mode");
+    const auto addOfficeButton = [&](const char* label, const char* command = "") {
+        auto button = std::make_unique<Button>(Rect{}, label, command);
+        button->setActivationCallback(
+            [this](const ButtonActivationResult& result) { handleButtonActivation(result); });
+        button->setDisabledStyle(ButtonNormalStyle.withDim(true));
+        auto* result = button.get();
+        m_root.addChild(std::move(button));
+        return result;
+    };
+    m_deleteLeagueButton = addOfficeButton("Delete League", DeleteLeagueCommand.data());
+    m_closeLeagueButton = addOfficeButton("Close League", "action:pff:close_league");
+    m_addonsButton = addOfficeButton("Addons", AddonsCommand.data());
+    m_groundRulesButton = addOfficeButton("Ground Rules");
+    m_groundRulesButton->setActivationCallback([this](const ButtonActivationResult& result) {
+        if (result.activated) openGroundRules();
+    });
+    for (std::size_t index = 0; index < m_groundRuleChecks.size(); ++index)
+    {
+        auto check = std::make_unique<FormCheckBox>(GroundRules::labels[index]);
+        styleButton(*check, checkboxNormal, checkboxActive, checkboxActive, checkboxPressed);
+        check->setChangeCallback([this](bool) { refreshGroundRulesToggle(); });
+        m_groundRuleChecks[index] = check.get();
+        m_groundRulesRoot.addChild(std::move(check));
+    }
+    auto seconds = std::make_unique<TextInput>();
+    seconds->setNormalStyle(InputNormalStyle);
+    seconds->setFocusedStyle(InputFocusedStyle);
+    seconds->setHoverStyle(InputHoverStyle);
+    seconds->setMaxLength(10);
+    m_playClockSeconds = seconds.get();
+    m_groundRulesRoot.addChild(std::move(seconds));
+    const auto addGroundRulesButton = [&](const char* label, auto callback) {
+        auto button = std::make_unique<Button>(label);
+        styleButton(*button, ButtonNormalStyle, ButtonFocusedStyle, ButtonHoverStyle, ButtonPressedStyle);
+        button->setActivationCallback([callback](const ButtonActivationResult& result) {
+            if (result.activated) callback();
+        });
+        auto* widget = button.get();
+        m_groundRulesRoot.addChild(std::move(button));
+        return widget;
+    };
+    m_groundRulesToggle = addGroundRulesButton("Check All", [this] {
+        const bool checked = std::any_of(m_groundRuleChecks.begin(), m_groundRuleChecks.end(),
+            [](const auto* check) { return check->isVisible() && !check->checked(); });
+        for (auto* check : m_groundRuleChecks)
+            if (check->isVisible()) check->setChecked(checked);
+        refreshGroundRulesToggle();
+    });
+    m_groundRulesSave = addGroundRulesButton("Save & Close", [this] { saveGroundRules(); });
+    m_groundRulesCancel = addGroundRulesButton("Cancel", [this] { m_groundRulesActive = false; });
+    auto god=std::make_unique<FormCheckBox>("God Mode");
     god->setNormalStyle(checkboxNormal);god->setFocusedStyle(checkboxActive);god->setHoverStyle(checkboxActive);god->setPressedStyle(checkboxPressed);god->setDisabledStyle(checkboxDisabled);
     god->setChangeCallback([this](bool enabled){m_requestedGod=enabled;});m_godMode=god.get();m_root.addChild(std::move(god));
     m_root.addChild(std::move(mainButton));
+    for (std::size_t index = 0; index < m_addonChecks.size(); ++index)
+    {
+        auto checkbox = std::make_unique<FormCheckBox>(LeagueSetup::AddonNames[index]);
+        styleButton(*checkbox, checkboxNormal, checkboxActive, checkboxActive, checkboxPressed);
+        checkbox->setDisabledStyle(checkboxDisabled);
+        checkbox->setEnabled(false);
+        m_addonChecks[index] = checkbox.get();
+        m_leagueRoot.addChild(std::move(checkbox));
+    }
+    auto addonsClose = std::make_unique<Button>("Close");
+    styleButton(*addonsClose, ButtonNormalStyle, ButtonFocusedStyle, ButtonHoverStyle, ButtonPressedStyle);
+    addonsClose->setActivationCallback([this](const ButtonActivationResult& result) {
+        m_closeAddonsRequested = result.activated;
+    });
+    m_addonsClose = addonsClose.get();
+    m_addonsRoot.addChild(std::move(addonsClose));
+
+    auto deleteList = std::make_unique<ScrollBox>();
+    m_deleteList = deleteList.get();
+    m_deleteRoot.addChild(std::move(deleteList));
+    const auto deleteButton = [&](const char* label, auto callback) {
+        auto button = std::make_unique<Button>(label);
+        styleButton(*button, ButtonNormalStyle, ButtonFocusedStyle, ButtonHoverStyle, ButtonPressedStyle);
+        button->setDisabledStyle(ButtonNormalStyle.withDim(true));
+        button->setActivationCallback([callback](const ButtonActivationResult& result) {
+            if (result.activated)
+                callback();
+        });
+        auto* result = button.get();
+        m_deleteRoot.addChild(std::move(button));
+        return result;
+    };
+    m_confirmDelete = deleteButton("Confirm Delete", [this] { m_deleteConfirmed = true; });
+    m_cancelDelete = deleteButton("Cancel", [this] { m_deleteCanceled = true; });
     m_loadRoot.addChild(std::move(leagueListBox));
 }
 
@@ -563,46 +727,21 @@ void CommissionersOfficeScreen::positionButtons(
     const int firstButtonY = controlPane.position.y + 5;
     constexpr int buttonSpacing = 5;
 
-    if (m_buildCoreDbButton)
-    {
-        m_buildCoreDbButton->setBounds(Rect{
-            Point{ controlX, firstButtonY },
-            controlButtonSize
-            });
-
-        m_buildCoreDbButton->setNormalStyle(ButtonNormalStyle);
-        m_buildCoreDbButton->setHoverStyle(ButtonHoverStyle);
-        m_buildCoreDbButton->setPressedStyle(ButtonPressedStyle);
-        m_buildCoreDbButton->setFocusedStyle(ButtonFocusedStyle);
-    }
-
-    if (m_newLeagueButton)
-    {
-        m_newLeagueButton->setBounds(Rect{
-            Point{ controlX, firstButtonY + buttonSpacing },
-            controlButtonSize
-            });
-
-        m_newLeagueButton->setNormalStyle(ButtonNormalStyle);
-        m_newLeagueButton->setHoverStyle(ButtonHoverStyle);
-        m_newLeagueButton->setPressedStyle(ButtonPressedStyle);
-        m_newLeagueButton->setFocusedStyle(ButtonFocusedStyle);
-    }
-
-    if (m_loadLeagueButton)
-    {
-        m_loadLeagueButton->setBounds(Rect{
-            Point{ controlX, firstButtonY + (buttonSpacing * 2) },
-            controlButtonSize
-            });
-
-        m_loadLeagueButton->setNormalStyle(ButtonNormalStyle);
-        m_loadLeagueButton->setHoverStyle(ButtonHoverStyle);
-        m_loadLeagueButton->setPressedStyle(ButtonPressedStyle);
-        m_loadLeagueButton->setFocusedStyle(ButtonFocusedStyle);
-    }
-
-    if(m_godMode)m_godMode->setBounds(Rect{Point{controlX,firstButtonY+buttonSpacing*3},controlButtonSize});
+    const auto position = [&](Button& button, int slot) {
+        button.setBounds(Rect{Point{controlX, firstButtonY + buttonSpacing * slot}, controlButtonSize});
+        button.setNormalStyle(ButtonNormalStyle);
+        button.setHoverStyle(ButtonHoverStyle);
+        button.setPressedStyle(ButtonPressedStyle);
+        button.setFocusedStyle(ButtonFocusedStyle);
+    };
+    position(*m_buildCoreDbButton, 0);
+    position(*m_newLeagueButton, 1);
+    position(*m_loadLeagueButton, 2);
+    position(*m_deleteLeagueButton, 3);
+    position(*m_closeLeagueButton, 0);
+    position(*m_addonsButton, 1);
+    position(*m_groundRulesButton, 2);
+    m_godMode->setBounds(Rect{Point{controlX, firstButtonY + buttonSpacing * 3}, controlButtonSize});
 
     if (m_mainButton)
     {
@@ -646,6 +785,18 @@ void CommissionersOfficeScreen::handleButtonActivation(
     if (result.commandId == LoadLeagueCommand)
     {
         beginLoadLeagueSelection();
+        return;
+    }
+
+    if (result.commandId == DeleteLeagueCommand)
+    {
+        beginDeleteLeague();
+        return;
+    }
+
+    if (result.commandId == AddonsCommand)
+    {
+        beginAddons();
         return;
     }
 
@@ -974,6 +1125,14 @@ void CommissionersOfficeScreen::drawLeagueSetup(PageComposer& page,const Rect& c
     field(m_existingSaves,saveStart,saveRows);field(m_coreChoices,5,std::max(1,std::min(10,content.size.height-5)));
     auto action=[&](Button* button,int row){button->setBounds(Rect{Point{controls.position.x+1,controls.position.y+row},Size{std::max(0,controls.size.width-2),3}});};
     action(m_createLeague,5);action(m_cancelLeague,configure?10:5);
+    for (std::size_t index = 0; index < m_addonChecks.size(); ++index)
+    {
+        const int row = 15 + static_cast<int>(index);
+        auto& checkbox = *m_addonChecks[index];
+        checkbox.setVisible(configure && row < controls.size.height);
+        checkbox.setBounds(Rect{Point{controls.position.x + 1, controls.position.y + row},
+                                Size{std::max(0, controls.size.width - 2), 1}});
+    }
     std::vector<std::string> details=m_leagueMessages;
     const auto key=std::to_string(static_cast<int>(m_leagueStage))+":"+std::to_string(m_chosenCore)+":"+std::to_string(content.size.width);
     if(configure)
@@ -1014,6 +1173,355 @@ void CommissionersOfficeScreen::drawLeagueSetup(PageComposer& page,const Rect& c
     if(m_leagueRoot.focusedChild() && !m_leagueRoot.focusedChild()->canReceiveFocus())
         m_leagueRoot.setFocusedChild(configure?static_cast<Widget&>(*m_leagueName):m_leagueStage==LeagueStage::Result?static_cast<Widget&>(*m_cancelLeague):static_cast<Widget&>(*m_leagueDetails));
 }
+
+void CommissionersOfficeScreen::beginAddons()
+{
+    if (!m_loadedWorldContextProvider || !m_loadedWorldContextProvider().isLoaded())
+        return;
+    m_addonsActive = true;
+    m_addonsRoot.resetFocus();
+    m_addonsRoot.setFocusedChild(*m_addonsClose);
+}
+
+void CommissionersOfficeScreen::openGroundRules()
+{
+    refreshEditState(true);
+    if (!m_editReady || !m_editContext.hasActiveCompetitionSeason())
+        return;
+    const auto options = loadWorldLeagueOptions(m_editActor, m_editContext.activeCompetitionSeasonId);
+    if (!options.success)
+    {
+        m_editMessage = options.message;
+        return;
+    }
+    m_groundRulesContext = m_editContext;
+    m_groundRulesRevision = options.value.revision;
+    m_groundRules = GroundRules::resolve(options.value);
+    m_groundRulesError.clear();
+    bool supported = false;
+    for (std::size_t i = 0; i < m_groundRuleChecks.size(); ++i)
+    {
+        auto* check = m_groundRuleChecks[i];
+        check->setVisible(m_groundRules.supported[i]);
+        check->setEnabled(m_groundRules.supported[i]);
+        check->setChecked(m_groundRules.enabled[i]);
+        supported = supported || m_groundRules.supported[i];
+    }
+    m_playClockSeconds->setVisible(m_groundRules.supported[GroundRules::PlayClock]);
+    m_playClockSeconds->setEnabled(m_groundRules.supported[GroundRules::PlayClock]);
+    m_playClockSeconds->setText(std::to_string(m_groundRules.clockSeconds));
+    m_groundRulesToggle->setVisible(supported);
+    m_groundRulesSave->setVisible(supported);
+    refreshGroundRulesToggle();
+    m_groundRulesRoot.resetFocus();
+    m_groundRulesRoot.setFocusedChild(*m_groundRulesCancel);
+    m_groundRulesActive = true;
+}
+
+void CommissionersOfficeScreen::refreshGroundRulesToggle()
+{
+    const bool allChecked = std::none_of(m_groundRuleChecks.begin(), m_groundRuleChecks.end(),
+        [](const auto* check) { return check->isVisible() && !check->checked(); });
+    m_groundRulesToggle->setLabel(allChecked ? "Uncheck All" : "Check All");
+}
+
+void CommissionersOfficeScreen::saveGroundRules()
+{
+    const auto context = m_loadedWorldContextProvider();
+    if (context.databasePath != m_groundRulesContext.databasePath || context.worldKey != m_groundRulesContext.worldKey ||
+        context.activeCompetitionSeasonId != m_groundRulesContext.activeCompetitionSeasonId)
+    {
+        m_groundRulesError = "League changed. Reopen Ground Rules.";
+        return;
+    }
+    auto draft = m_groundRules;
+    for (std::size_t i = 0; i < m_groundRuleChecks.size(); ++i)
+        draft.enabled[i] = m_groundRuleChecks[i]->checked();
+    if (m_groundRules.supported[GroundRules::PlayClock])
+    {
+        const auto text = m_playClockSeconds->text();
+        const auto end = text.data() + text.size();
+        int seconds = 0;
+        const auto parsed = std::from_chars(text.data(), end, seconds);
+        if (parsed.ec != std::errc{} || parsed.ptr != end || seconds <= 0)
+        {
+            m_groundRulesError = "Enter a positive whole number of seconds.";
+            m_groundRulesRoot.setFocusedChild(*m_playClockSeconds);
+            return;
+        }
+        draft.clockSeconds = seconds;
+    }
+    const auto result = saveWorldLeagueOptions(m_editActor, context.activeCompetitionSeasonId,
+        GroundRules::values(draft), m_groundRulesRevision);
+    if (!result.success)
+    {
+        m_groundRulesError = result.message;
+        return;
+    }
+    if (m_commitCallback) m_commitCallback(result.value);
+    m_groundRulesActive = false;
+}
+
+void CommissionersOfficeScreen::drawGroundRules(PageComposer& page)
+{
+    const auto pane = page.resolveRegion("ContentPane");
+    const int width = std::min(54, pane.size.width);
+    const int rows = static_cast<int>(std::count(m_groundRules.supported.begin(), m_groundRules.supported.end(), true));
+    const int height = rows + 10;
+    const Rect popup{Point{pane.position.x + std::max(0, (pane.size.width - width) / 2),
+                           pane.position.y + std::max(0, (pane.size.height - height) / 2)}, Size{width, height}};
+    page.createRegion("GroundRulesPopup", popup);
+    page.drawPanel("GroundRulesPopup", PFF_Colors::FormPanelColor, PFF_Colors::MainBorderColor,
+                   ObjectFactory::singleLineBorder());
+    page.writePanelTitle("GroundRulesPopup", " GROUND RULES ", PFF_Colors::FormPanelHeadingColor, 2, 1);
+    m_groundRulesRoot.setBounds(popup);
+    const auto box = [&](int x, int y, int w, int h = 1) {
+        return Rect{Point{popup.position.x + x, popup.position.y + y}, Size{w, h}};
+    };
+    int row = 2;
+    for (auto* check : m_groundRuleChecks)
+        if (check->isVisible()) check->setBounds(box(2, row++, 22));
+    if (m_playClockSeconds->isVisible())
+    {
+        page.writeLine(box(2, row, 25), 0, "Play clock (seconds)", PFF_Colors::FormPanelHeadingColor);
+        m_playClockSeconds->setBounds(box(26, row, 12));
+    }
+    if (!rows)
+        page.writeLine(box(2, 2, width - 4), 0, "This ruleset has no supported Ground Rules.", PFF_Colors::FormPanelHeadingColor);
+    const auto errors = wrapText(m_groundRulesError, std::max(1, width - 4));
+    for (std::size_t i = 0; i < errors.size() && i < 2; ++i)
+        page.writeLine(box(2, height - 6 + static_cast<int>(i), width - 4), 0, errors[i], PFF_Colors::FormPanelHeadingColor);
+    m_groundRulesToggle->setBounds(box(2, height - 4, 14, 3));
+    m_groundRulesSave->setBounds(box(17, height - 4, 16, 3));
+    m_groundRulesCancel->setBounds(box(34, height - 4, 12, 3));
+}
+
+void CommissionersOfficeScreen::closeAddons()
+{
+    if (!m_addonsActive)
+        return;
+    m_addonsActive = false;
+    m_closeAddonsRequested = false;
+    m_addonsRoot.resetFocus();
+    m_root.clearPointerState();
+    m_root.setFocusedChild(*m_addonsButton);
+}
+
+bool CommissionersOfficeScreen::handleAddonsEvent(const Input::Event& event)
+{
+    if (const auto* command = event.asCommand())
+    {
+        const auto code = command->command.code;
+        if (code == Input::CommandCode::Cancel || code == Input::CommandCode::Back || code == Input::CommandCode::Close)
+        {
+            closeAddons();
+            return true;
+        }
+    }
+    m_addonsRoot.handleEvent(event);
+    if (m_closeAddonsRequested)
+        closeAddons();
+    return true;
+}
+
+void CommissionersOfficeScreen::drawAddons(PageComposer& page)
+{
+    const auto pane = page.resolveRegion("ContentPane");
+    if (pane.size.width < 6 || pane.size.height < 6)
+    {
+        m_addonsClose->setBounds(Rect{});
+        return;
+    }
+    constexpr std::string_view message = "No add-ons were incorporated when this league was built.";
+    const int width = std::min(62, pane.size.width);
+    const auto lines = wrapText(message, width - 4);
+    const int height = std::min(pane.size.height, static_cast<int>(lines.size()) + 6);
+    const Rect popup{Point{pane.position.x + (pane.size.width - width) / 2,
+                           pane.position.y + (pane.size.height - height) / 2}, Size{width, height}};
+    page.createRegion("AddonsPopup", popup);
+    page.drawPanel("AddonsPopup", PFF_Colors::FormPanelColor, PFF_Colors::MainBorderColor,
+                   ObjectFactory::singleLineBorder());
+    page.writePanelTitle("AddonsPopup", " ADDONS ", PFF_Colors::FormPanelHeadingColor, 2, 1);
+    const Rect content{Point{popup.position.x + 2, popup.position.y + 2}, Size{width - 4, height - 6}};
+    for (int row = 0; row < content.size.height; ++row)
+        page.writeLine(content, row, lines[row], PFF_Colors::FormPanelHeadingColor);
+    m_addonsRoot.setBounds(popup);
+    const int buttonWidth = std::min(16, width - 2);
+    m_addonsClose->setBounds(Rect{Point{popup.position.x + (width - buttonWidth) / 2,
+                                      popup.position.y + height - 4}, Size{buttonWidth, 3}});
+}
+
+
+void CommissionersOfficeScreen::beginDeleteLeague()
+{
+    if (m_loadedWorldContextProvider && m_loadedWorldContextProvider().isLoaded())
+        return;
+    m_deleteLeagueActive = true;
+    refreshDeleteList();
+}
+
+void CommissionersOfficeScreen::cancelDeleteLeague()
+{
+    if (!m_deleteLeagueActive)
+        return;
+    m_deleteLeagueActive = false;
+    m_deleteConfirmed = m_deleteCanceled = false;
+    m_leagueToDelete.reset();
+    m_deleteRoot.resetFocus();
+    m_deleteList->clearChildren();
+    m_availableLeagues.clear();
+    m_root.clearPointerState();
+    m_root.setFocusedChild(*m_deleteLeagueButton);
+}
+
+void CommissionersOfficeScreen::refreshDeleteList()
+{
+    refreshLeagueSaveList();
+    m_deleteMessage = m_loadLeagueMessage;
+    m_leagueToDelete.reset();
+    m_confirmDelete->setEnabled(false);
+    m_deleteRoot.resetFocus();
+    m_deleteList->clearChildren();
+    m_deleteList->viewport().scrollTo(0, 0);
+    for (std::size_t index = 0; index < m_availableLeagues.size(); ++index)
+    {
+        auto button = std::make_unique<Button>(m_availableLeagues[index].displayName);
+        button->setHoverStyle(PFF_Colors::ButtonHoverColor);
+        button->setFocusedStyle(PFF_Colors::ButtonHoverColor);
+        button->setPressedStyle(PFF_Colors::ButtonPressedColor);
+        button->setNormalStyle(PFF_Colors::ButtonNormalColor);
+        button->setActivationCallback([this, index](const ButtonActivationResult& result) {
+            if (result.activated)
+                selectLeagueToDelete(index);
+        });
+        m_deleteList->addChild(std::move(button));
+    }
+}
+
+void CommissionersOfficeScreen::selectLeagueToDelete(std::size_t index)
+{
+    if (m_leagueToDelete)
+        static_cast<Button*>(m_deleteList->childAt(*m_leagueToDelete))->setNormalStyle(PFF_Colors::ButtonNormalColor);
+    m_leagueToDelete = index;
+    static_cast<Button*>(m_deleteList->childAt(index))->setNormalStyle(PFF_Colors::ButtonHoverColor);
+    m_confirmDelete->setEnabled(true);
+    m_deleteMessage.clear();
+}
+
+void CommissionersOfficeScreen::confirmDeleteLeague()
+{
+    if (!m_leagueToDelete || (m_loadedWorldContextProvider && m_loadedWorldContextProvider().isLoaded()))
+        return;
+    const auto save = m_availableLeagues[*m_leagueToDelete];
+    try
+    {
+        const auto folder = checkedLeagueFolder(save.databasePath);
+        if (std::filesystem::remove_all(folder) == 0)
+            throw std::runtime_error("The selected league folder no longer exists.");
+        refreshDeleteList();
+        m_deleteMessage = "Deleted " + save.displayName + ".";
+    }
+    catch (const std::exception& error)
+    {
+        m_deleteMessage = "Unable to delete " + save.displayName + ": " + error.what();
+    }
+}
+
+bool CommissionersOfficeScreen::handleDeleteEvent(const Input::Event& event)
+{
+    const int count = static_cast<int>(m_deleteList->childCount());
+    if (const auto* command = event.asCommand())
+    {
+        const auto code = command->command.code;
+        if (code == Input::CommandCode::Cancel || code == Input::CommandCode::Back ||
+            code == Input::CommandCode::Close)
+        {
+            cancelDeleteLeague();
+            return true;
+        }
+        if (code == Input::CommandCode::NextFocus || code == Input::CommandCode::PreviousFocus)
+        {
+            const bool forward = code == Input::CommandCode::NextFocus;
+            const bool canConfirm = m_confirmDelete->isEnabled();
+            const int slots = count + 1 + (canConfirm ? 1 : 0);
+            int focused = forward ? -1 : 0;
+            const auto* rootFocus = m_deleteRoot.focusedChild();
+            if (rootFocus == m_cancelDelete)
+                focused = slots - 1;
+            else if (rootFocus == m_confirmDelete)
+                focused = count;
+            else if (rootFocus == m_deleteList)
+            {
+                for (int i = 0; i < count; ++i)
+                    if (m_deleteList->childAt(i) == m_deleteList->focusedChild())
+                    {
+                        focused = i;
+                        break;
+                    }
+            }
+            const int next = (focused + slots + (forward ? 1 : -1)) % slots;
+            m_deleteRoot.clearPointerState();
+            if (next < count)
+            {
+                m_deleteRoot.setFocusedChild(*m_deleteList);
+                auto& entry = *m_deleteList->childAt(next);
+                m_deleteList->setFocusedChild(entry);
+                auto& viewport = m_deleteList->viewport();
+                const int first = entry.bounds().position.y;
+                const int last = first + entry.bounds().size.height;
+                const int earliest = std::clamp(last - viewport.viewSize().height, 0, first);
+                viewport.scrollTo(0, std::clamp(viewport.scrollY(), earliest, first));
+            }
+            else
+                m_deleteRoot.setFocusedChild(*(canConfirm && next == count ? m_confirmDelete : m_cancelDelete));
+            return true;
+        }
+    }
+    if (const auto* key = event.asKey())
+    {
+        if (key->pressed && !key->modifiers.ctrl && !key->modifiers.alt &&
+            (key->code == Input::KeyCode::Space || key->character == U' ') &&
+            m_deleteRoot.focusedChild() == m_deleteList && m_deleteList->focusedChild())
+        {
+            m_deleteList->focusedChild()->handleEvent(Input::Event::command(Input::Command{Input::CommandCode::Confirm}));
+            return true;
+        }
+    }
+
+    m_deleteRoot.handleEvent(event);
+    if (std::exchange(m_deleteCanceled, false))
+        cancelDeleteLeague();
+    else if (std::exchange(m_deleteConfirmed, false))
+        confirmDeleteLeague();
+    return true;
+}
+
+void CommissionersOfficeScreen::drawDeleteLeague(PageComposer& page)
+{
+    page.drawPanel("LeaguePanel", PFF_Colors::FormPanelColor, PFF_Colors::MainBorderColor,
+                   ObjectFactory::singleLineBorder());
+    page.writePanelTitle("LeaguePanel", " DELETE LEAGUE ", PFF_Colors::FormPanelHeadingColor, 3, 1);
+    const auto content = page.resolveRegion("LeagueContent");
+    const auto line = [&](int row, std::string_view text) {
+        page.writeLine(content, row, TextClip::clipUtf8Text(text, content.size.width), PFF_Colors::FormPanelHeadingColor);
+    };
+    line(0, "Choose a saved league. Confirm Delete permanently removes its folder.");
+    const int listHeight = std::max(0, content.size.height - 7);
+    const int entryWidth = std::max(0, content.size.width - 1);
+    m_deleteRoot.setBounds(page.resolveRegion("Body"));
+    m_deleteList->setBounds(Rect{Point{content.position.x, content.position.y + 1},
+                                 Size{content.size.width, listHeight}});
+    for (std::size_t index = 0; index < m_deleteList->childCount(); ++index)
+        m_deleteList->childAt(index)->setBounds(Rect{Point{0, static_cast<int>(index) * 3}, Size{entryWidth, 3}});
+    m_deleteList->setContentSize(entryWidth, static_cast<int>(m_deleteList->childCount()) * 3);
+    line(listHeight + 1, m_leagueToDelete ? "Selected: " + m_availableLeagues[*m_leagueToDelete].displayName : "Select a league to enable Confirm Delete.");
+    line(listHeight + 2, m_deleteMessage);
+    const int y = content.position.y + listHeight + 4;
+    const int buttonWidth = std::min(24, std::max(0, (content.size.width - 2) / 2));
+    m_confirmDelete->setBounds(Rect{Point{content.position.x, y}, Size{buttonWidth, 3}});
+    m_cancelDelete->setBounds(Rect{Point{content.position.x + buttonWidth + 2, y}, Size{buttonWidth, 3}});
+}
+
 
 void CommissionersOfficeScreen::beginLoadLeagueSelection()
 {
@@ -1313,6 +1821,20 @@ void CommissionersOfficeScreen::refreshEditState(bool force)
     if(!force&&m_editChecked&&c.loaded==m_editContext.loaded&&c.databasePath==m_editContext.databasePath&&c.worldKey==m_editContext.worldKey&&c.dataRevision==m_editContext.dataRevision)return;
     m_editChecked=true;m_editContext=c;m_editReady=false;m_editMessage.clear();m_editState={};
     if(c.isLoaded()){const auto actor=openLocalWorldActor(c.databasePath);if(!actor.success)m_editMessage=actor.message;else{m_editActor=actor.value;auto state=loadWorldEditState(m_editActor);if(state.success){m_editState=state.value;m_editReady=true;}else m_editMessage=state.message;}}
+    const bool loaded = c.isLoaded();
+    for (auto* button : {m_buildCoreDbButton, m_newLeagueButton, m_loadLeagueButton})
+    {
+        button->setVisible(!loaded);
+        button->setEnabled(!loaded);
+    }
+    m_deleteLeagueButton->setVisible(!loaded);
+    m_deleteLeagueButton->setEnabled(!loaded);
+    m_closeLeagueButton->setVisible(loaded);
+    m_closeLeagueButton->setEnabled(loaded);
+    m_addonsButton->setVisible(loaded);
+    m_addonsButton->setEnabled(loaded);
+    m_groundRulesButton->setVisible(loaded);
+    m_groundRulesButton->setEnabled(loaded);
     m_godMode->setVisible(c.isLoaded());m_godMode->setEnabled(m_editReady&&m_editState.canEnableGodMode&&static_cast<bool>(m_commitCallback));m_godMode->setChecked(m_editState.godMode);
 }
 void CommissionersOfficeScreen::toggleGodMode(bool enabled)

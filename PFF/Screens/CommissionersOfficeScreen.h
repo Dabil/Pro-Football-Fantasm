@@ -7,10 +7,12 @@
 #include "Screens/FormCheckBox.h"
 #include "UI/Widgets/ContainerWidget.h"
 #include "UI/Widgets/ListBox.h"
+#include "UI/Widgets/ScrollBox.h"
 #include "UI/Widgets/TextInput.h"
 #include "Database/CoreManifest.h"
 #include "Database/PFFDatabase.h"
 #include "Database/LeagueSetup.h"
+#include "Database/GroundRules.h"
 
 #include <filesystem>
 #include <functional>
@@ -76,6 +78,23 @@ private:
     void createSelectedLeague();
     void drawLeagueSetup(Composition::PageComposer& page, const Rect& controls);
 
+    void beginAddons();
+    void closeAddons();
+    bool handleAddonsEvent(const Input::Event& event);
+    void drawAddons(Composition::PageComposer& page);
+    void openGroundRules();
+    void drawGroundRules(Composition::PageComposer& page);
+    void refreshGroundRulesToggle();
+    void saveGroundRules();
+
+    void beginDeleteLeague();
+    void cancelDeleteLeague();
+    void refreshDeleteList();
+    void selectLeagueToDelete(std::size_t index);
+    void confirmDeleteLeague();
+    bool handleDeleteEvent(const Input::Event& event);
+    void drawDeleteLeague(Composition::PageComposer& page);
+
     void beginLoadLeagueSelection();
     void openSavedLeagueDropdown();
     void closeSavedLeagueDropdown(bool accept);
@@ -120,6 +139,33 @@ private:
     std::vector<LeagueSaveEntry> m_availableLeagues;
     std::string m_loadLeagueMessage;
 
+    bool m_addonsActive = false;
+    bool m_closeAddonsRequested = false;
+    ContainerWidget m_addonsRoot;
+    std::array<FormCheckBox*, LeagueSetup::AddonNames.size()> m_addonChecks{};
+    Button* m_addonsClose = nullptr;
+
+    bool m_groundRulesActive = false;
+    ContainerWidget m_groundRulesRoot;
+    std::array<FormCheckBox*, GroundRules::keys.size()> m_groundRuleChecks{};
+    TextInput* m_playClockSeconds = nullptr;
+    Button* m_groundRulesToggle = nullptr;
+    Button* m_groundRulesSave = nullptr;
+    Button* m_groundRulesCancel = nullptr;
+    GroundRules::Settings m_groundRules;
+    LoadedWorldContext m_groundRulesContext;
+    std::int64_t m_groundRulesRevision = 0;
+    std::string m_groundRulesError;
+
+    bool m_deleteLeagueActive = false;
+    bool m_deleteConfirmed = false, m_deleteCanceled = false;
+    std::optional<std::size_t> m_leagueToDelete;
+    ContainerWidget m_deleteRoot;
+    ScrollBox* m_deleteList = nullptr;
+    Button* m_confirmDelete = nullptr;
+    Button* m_cancelDelete = nullptr;
+    std::string m_deleteMessage;
+
     // Widgets
     ContainerWidget m_root;
     ListBox* m_leagueListBox = nullptr;
@@ -127,6 +173,10 @@ private:
     Button* m_buildCoreDbButton = nullptr;
     Button* m_newLeagueButton = nullptr;
     Button* m_loadLeagueButton = nullptr;
+    Button* m_deleteLeagueButton = nullptr;
+    Button* m_closeLeagueButton = nullptr;
+    Button* m_addonsButton = nullptr;
+    Button* m_groundRulesButton = nullptr;
     Button* m_mainButton = nullptr;
     FormCheckBox* m_godMode=nullptr;
     std::function<void(const WorldEditCommit&)> m_commitCallback;

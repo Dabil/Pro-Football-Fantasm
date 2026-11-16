@@ -5,6 +5,7 @@
 #include "Database/GameTimeModel.h"
 #include "Screens/PffBroadcast.h"
 #include <functional>
+#include <chrono>
 
 // Read-only state for one render. Read it again after issuing a command.
 struct GameTimeTeamName
@@ -34,6 +35,14 @@ class GameTimeController
     void enter();
     void tick();
     void nextPlay();
+    std::vector<PffTest::PlayCall> playCalls() const;
+    void makeCall(std::string_view key);
+    void toggleDecisionPause();
+    bool decisionPaused() const;
+    bool canTimeout() const;
+    void timeout();
+    int playClockRemaining() const;
+    int gameClockRemaining() const;
     void previousPlay();
     void selectView(PffBroadcast::View view);
     void run();
@@ -44,7 +53,9 @@ class GameTimeController
     GameTimeDisplayState display() const;
 
   private:
-    void advance();
+    void advance(std::string_view call = {});
+    void syncDecisionClock();
+    int elapsedDecisionSeconds() const;
     std::unique_ptr<PffTest::GameTimeModel> m_game;
     WorldActor m_actor;
     std::function<void(const WorldEditCommit &)> m_committed;
@@ -55,5 +66,10 @@ class GameTimeController
     std::array<GameTimeTeamName, 2> m_teamNames;
     std::size_t m_playIndex = 0, m_logRevision = 0;
     bool m_replay = false, m_running = false, m_returnPending = false;
+    bool m_decisionPaused = false;
+    std::int64_t m_decisionGeneration = -1;
+    bool m_decisionClockRunning = false;
+    using Clock = std::chrono::steady_clock;
+    Clock::time_point m_deadline{}, m_pausedAt{}, m_decisionStart{};
     std::string m_error;
 };

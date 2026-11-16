@@ -141,6 +141,11 @@ void PFFApplication::clearLoadedWorldContext()
 
 bool PFFApplication::handlePffCommandId(std::string_view commandId)
 {
+    if (commandId == "action:pff:close_league")
+    {
+        clearLoadedWorldContext();
+        return true;
+    }
     if (commandId == NewLeagueCommand)
     {
         const bool created = createNewLeague();

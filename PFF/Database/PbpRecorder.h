@@ -146,8 +146,9 @@ class Recorder
         append(current, "SequenceNo", std::to_string(id));
         append(current, "RecordKind", kind);
         if (kind == "PLAY")
-        {
             append(current, "PLAY_ID", std::to_string(id));
+        if (kind == "PLAY" || kind == "PENALTY")
+        {
             block("START_STATE", state);
         }
     }

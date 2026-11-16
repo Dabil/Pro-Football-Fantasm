@@ -18,6 +18,11 @@ std::vector<PffTest::State> replayStates(const std::vector<PffBroadcast::Play> &
     for (const auto &play : plays)
     {
         const auto field = [&](std::string_view name) { return play.value("START_STATE", name); };
+        if (field("QUARTER").empty())
+        {
+            states.push_back(state);
+            continue;
+        }
         state.quarter = std::clamp(PffBroadcast::number(field("QUARTER")), 1, 5);
         const auto clock = field("CLOCK");
         const auto colon = clock.find(':');
@@ -41,6 +46,12 @@ std::vector<PffTest::State> replayStates(const std::vector<PffBroadcast::Play> &
         states.push_back(state);
 
         // Accumulate only recorded outcomes from plays already shown.
+        if (play.value("PENALTY_ENFORCEMENT", "PlayResultStands") == "0")
+        {
+            if (play.value("PENALTY_ENFORCEMENT", "FirstDownAwarded") == "1")
+                ++state.teams[state.offense].firstDowns;
+            continue;
+        }
         std::string kind, detail;
         int team = state.offense, value = 0;
         for (const auto &tag : play.tags)
@@ -129,10 +140,11 @@ void GameTimeController::enter()
     else
         m_plays = PffBroadcast::latestPlay(m_game->taggedHistory());
     m_running = false;
-    if (!m_replay && m_plays.empty() && !m_game->interruption())
+    if (!m_replay && m_plays.empty() && !m_game->interruption() && playCalls().empty())
         advance();
+    syncDecisionClock();
 }
-void GameTimeController::advance()
+void GameTimeController::advance(std::string_view call)
 {
     if (m_replay)
     {
@@ -146,15 +158,17 @@ void GameTimeController::advance()
     if (m_game->state().final)
         return;
     const bool wasRunning = m_running;
+    const auto generation = m_game->state().generation;
     const auto ordinal = m_game->state().playOrdinal;
-    auto result = m_game->next(m_actor);
-    if (result.success && m_game->state().playOrdinal == ordinal && !m_game->state().final && !m_game->interruption())
+    auto result = m_game->next(m_actor, call, call.empty() ? 0 : elapsedDecisionSeconds());
+    if (result.success && m_game->state().playOrdinal == ordinal && !m_game->state().final &&
+        !m_game->interruption() && m_game->playCalls().empty())
     {
         if (m_committed && result.value.changed)
             m_committed(result.value);
         result = m_game->next(m_actor);
     }
-    if (m_game->state().playOrdinal != ordinal)
+    if (m_game->state().generation != generation)
         m_plays = PffBroadcast::latestPlay(m_game->taggedHistory());
     ++m_logRevision;
     if (result.success)
@@ -169,6 +183,7 @@ void GameTimeController::advance()
                   (m_game->interruption() ? "  Resume Game or Return retries the save."
                                           : "  Next Play retries without rerolling.");
         m_running = false;
+        m_game->setCpuTakeover(false);
     }
     const bool final = m_game->state().final;
     if (m_game->interruption())
@@ -200,6 +215,7 @@ void GameTimeController::resumeGame()
     if (!display().canResume)
         return;
     m_running = false;
+    m_game->setCpuTakeover(false);
     const auto result = m_game->resume(m_actor);
     ++m_logRevision;
     if (!result.success)
@@ -210,6 +226,8 @@ void GameTimeController::resumeGame()
             m_committed(result.value.commit);
         m_error.clear();
         m_plays = PffBroadcast::latestPlay(m_game->taggedHistory());
+        m_decisionGeneration = -1;
+        syncDecisionClock();
     }
 }
 void GameTimeController::saveAndReturn()
@@ -249,14 +267,114 @@ GameTimeDisplayState GameTimeController::display() const
 
 void GameTimeController::nextPlay()
 {
-    if (display().canNext)
+    if (display().canNext && playCalls().empty())
         advance();
+    syncDecisionClock();
 }
 
 void GameTimeController::tick()
 {
-    if (m_running)
+    syncDecisionClock();
+    if (!m_decisionPaused && (playClockRemaining() == 0 ||
+        (m_decisionClockRunning && gameClockRemaining() == m_game->decisionClockBoundary())))
+    {
+        advance("DELAY_OF_GAME");
+        syncDecisionClock();
+    }
+    else if (m_running && playCalls().empty())
         advance();
+}
+
+std::vector<PffTest::PlayCall> GameTimeController::playCalls() const
+{
+    return m_replay ? std::vector<PffTest::PlayCall>{} : m_game->playCalls();
+}
+
+void GameTimeController::makeCall(std::string_view key)
+{
+    syncDecisionClock();
+    if (m_decisionPaused) return;
+    advance(playClockRemaining() == 0 || (m_decisionClockRunning &&
+        gameClockRemaining() == m_game->decisionClockBoundary())
+        ? std::string_view("DELAY_OF_GAME") : key);
+    syncDecisionClock();
+}
+
+void GameTimeController::syncDecisionClock()
+{
+    const auto& game = m_game->state();
+    if (playCalls().empty())
+    {
+        m_deadline = {};
+        m_decisionClockRunning = false;
+        m_decisionGeneration = -1;
+        return;
+    }
+    if (m_decisionGeneration == game.generation) return;
+    m_decisionGeneration = game.generation;
+    const int seconds = m_game->decisionPlayClockSeconds();
+    m_decisionStart = Clock::now();
+    m_decisionClockRunning = seconds > 0 && m_game->decisionGameClockRunning();
+    m_deadline = seconds < 0 ? Clock::time_point{} : m_decisionStart + std::chrono::seconds(seconds);
+}
+
+int GameTimeController::elapsedDecisionSeconds() const
+{
+    if (!m_decisionClockRunning) return 0;
+    const auto now = m_decisionPaused ? m_pausedAt : Clock::now();
+    const auto cutoff = m_deadline == Clock::time_point{} ? now : std::min(now, m_deadline);
+    return std::clamp(static_cast<int>(std::chrono::duration_cast<std::chrono::seconds>(cutoff - m_decisionStart).count()),
+        0, m_game->state().remaining - m_game->decisionClockBoundary());
+}
+
+int GameTimeController::gameClockRemaining() const
+{
+    return m_game->state().remaining - elapsedDecisionSeconds();
+}
+
+int GameTimeController::playClockRemaining() const
+{
+    if (m_deadline == Clock::time_point{}) return -1;
+    const auto now = m_decisionPaused ? m_pausedAt : Clock::now();
+    return std::max(0, static_cast<int>(std::chrono::ceil<std::chrono::seconds>(m_deadline - now).count()));
+}
+
+bool GameTimeController::decisionPaused() const
+{
+    return m_decisionPaused;
+}
+
+void GameTimeController::toggleDecisionPause()
+{
+    syncDecisionClock();
+    const auto now = Clock::now();
+    if (m_decisionPaused && m_deadline != Clock::time_point{})
+    {
+        m_deadline += now - m_pausedAt;
+        m_decisionStart += now - m_pausedAt;
+    }
+    m_pausedAt = now;
+    m_decisionPaused = !m_decisionPaused;
+}
+
+bool GameTimeController::canTimeout() const
+{
+    return !m_decisionPaused && !m_replay && m_game->canCallTimeout();
+}
+
+void GameTimeController::timeout()
+{
+    syncDecisionClock();
+    if (!canTimeout()) return;
+    if (playClockRemaining() == 0 || (m_decisionClockRunning &&
+        gameClockRemaining() == m_game->decisionClockBoundary()))
+    {
+        advance("DELAY_OF_GAME");
+        syncDecisionClock();
+        return;
+    }
+    advance("TIMEOUT");
+    syncDecisionClock();
 }
 
 void GameTimeController::run()
@@ -264,13 +382,18 @@ void GameTimeController::run()
     if (display().canRun)
     {
         m_error.clear();
+        m_game->setCpuTakeover(true);
+        m_decisionPaused = false;
         m_running = true;
+        syncDecisionClock();
     }
 }
 
 void GameTimeController::pause()
 {
     m_running = false;
+    m_game->setCpuTakeover(false);
+    syncDecisionClock();
 }
 
 bool GameTimeController::takeReturnRequest()

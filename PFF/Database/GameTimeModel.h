@@ -11,6 +11,13 @@ namespace PffTest
 {
 using TeamStats=WorldTestTeamStats;
 using State=WorldTestRuntimeState;
+enum class CallGroup { Running, Passing, SpecialTeams, Kickoff, Defense };
+struct PlayCall
+{
+    CallGroup group;
+    std::string name;
+    std::string key;
+};
 // This explicitly reduced provider is independent of TUI and can be run headlessly.
 class GameTimeModel
 {
@@ -19,7 +26,15 @@ class GameTimeModel
     ~GameTimeModel();
     WorldEditResult<WorldTestMatchup> start(const WorldActor &, std::int64_t revision);
     WorldEditResult<WorldTestMatchup> viewFinal(const WorldActor &, std::int64_t game);
-    WorldEditResult<WorldEditCommit> next(const WorldActor &);
+    void setHumanTeams(std::array<bool, 2> teams);
+    void setCpuTakeover(bool enabled);
+    std::vector<PlayCall> playCalls() const;
+    int playClockSeconds() const;
+    int decisionPlayClockSeconds() const;
+    bool decisionGameClockRunning() const;
+    int decisionClockBoundary() const;
+    bool canCallTimeout() const;
+    WorldEditResult<WorldEditCommit> next(const WorldActor &, std::string_view call = {}, int decisionSeconds = 0);
     WorldEditResult<WorldEditCommit> save(const WorldActor &);
     WorldEditResult<WorldTestMatchup> resume(const WorldActor &);
     const std::optional<WorldTestQueuedEvent> &interruption() const;
