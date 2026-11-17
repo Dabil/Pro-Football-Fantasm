@@ -173,7 +173,7 @@ void GameTimeController::advance(std::string_view call)
     ++m_logRevision;
     if (result.success)
     {
-        m_error.clear();
+        m_error = result.message;
         if (m_committed)
             m_committed(result.value);
     }
@@ -191,7 +191,7 @@ void GameTimeController::advance(std::string_view call)
     if (final)
     {
         m_running = false;
-        m_returnPending = wasRunning;
+        m_returnPending = wasRunning && result.message.empty();
     }
 }
 void GameTimeController::previousPlay()

@@ -143,6 +143,8 @@
     <ClCompile Include="Database\PFFDatabase.cpp" />
     <ClCompile Include="Database\WorldFormationBook.cpp" />
     <ClCompile Include="Database\GameTimeModel.cpp" />
+    <ClCompile Include="Database\Nfl1989PostseasonPairing.cpp" />
+    <ClCompile Include="Database\Nfl1989PostseasonSeeding.cpp" />
     <ClCompile Include="Screens\GameTimeController.cpp" />
     <ClCompile Include="Screens\GameTimeView.cpp" />
     <ClCompile Include="Screens\ScoreboardView.cpp" />
@@ -188,6 +190,9 @@
     <ClInclude Include="Database\LeagueSetup.h" />
     <ClInclude Include="Database\PFFChartImport.inl" />
     <ClInclude Include="Database\PFFStandings.h" />
+    <ClInclude Include="Database\Nfl1989PostseasonPairing.h" />
+    <ClInclude Include="Database\Nfl1989PostseasonSeeding.h" />
+    <ClInclude Include="Database\Nfl1989PostseasonCalendar.h" />
     <ClInclude Include="Screens\CommissionersOfficeScreen.h" />
     <ClInclude Include="Screens\Developer\RendererDiagnosticsScreen.h" />
     <ClInclude Include="Screens\Developer\TerminalCapabilitiesScreen.h" />

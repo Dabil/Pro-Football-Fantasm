@@ -503,6 +503,8 @@ WorldGameWindow previewInstalledWindow(Session &s, std::int64_t season)
             r.canResume = r.advance->state == "RUNNING";
             r.canStart = r.advance->reason == "GAME_WINDOW_ADMISSION_REQUIRED" ||
                          active.text(3) == "UNSUPPORTED_EVENT" ||
+                         (r.advance->reason == "UNSATISFIED_DEPENDENCY" &&
+                          clockEventUnsupported(s, r.advance->stopEventId)) ||
                          s.revision > r.advance->outcomeRevision;
             r.reason = r.advance->reason;
         }
@@ -512,12 +514,22 @@ WorldGameWindow previewInstalledWindow(Session &s, std::int64_t season)
     r.canStart = r.canStart && canAdvance(s);
     r.canResume = r.canResume && canAdvance(s);
     S::Query disclosure(s.db,
-                        "SELECT k.ScheduledWorldEventID FROM GameKickoffOccurrences k JOIN "
-                        "WorldScheduledGames g ON g.WorldScheduledGameID=k.WorldScheduledGameID WHERE "
-                        "k.WorldID=? AND k.IsCurrent=1 AND g.CompetitionSeasonID=? AND g.ScheduledUtc=?",
+                        "SELECT k.ScheduledWorldEventID,COALESCE(r.ScheduledWorldEventID,0) "
+                        "FROM GameKickoffOccurrences k JOIN "
+                        "WorldScheduledGames g ON g.WorldScheduledGameID=k.WorldScheduledGameID "
+                        "JOIN ScheduledWorldEvents e ON e.WorldID=k.WorldID AND "
+                        "e.ScheduledWorldEventID=k.ScheduledWorldEventID "
+                        "LEFT JOIN ScheduledWorldEvents r ON r.WorldID=e.WorldID "
+                        "AND r.ScheduledWorldEventID=e.SupersedesEventID AND r.StartsUtc=e.StartsUtc "
+                        "AND r.State='SUPERSEDED' AND r.ResolutionReason='POSTSEASON_PAIRED' "
+                        "WHERE k.WorldID=? AND k.IsCurrent=1 AND g.CompetitionSeasonID=? AND g.ScheduledUtc=?",
                         {s.world, season, r.kickoffUtc});
     while (disclosure.row())
-        if (!visibleEvent(s, disclosure.integer()))
+        // The visible reservation already announced this kickoff. It may be
+        // targeted for advancement while the paired game's event awaits
+        // disclosure. Actual admission still verifies visibility at kickoff.
+        if (!visibleEvent(s, disclosure.integer()) &&
+            (!disclosure.integer(1) || !visibleEvent(s, disclosure.integer(1))))
         {
             r.canStart = false;
             r.canResume = false;

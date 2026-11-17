@@ -43,6 +43,9 @@ void buildCoreClockData(BuildContext& c,const CoreDatabaseBuildRequest& request,
         const auto source=S::scalar(c.db,"SELECT SourceFileID FROM SourceFiles WHERE RelativePath=?",{pathUtf8(std::filesystem::relative(file,c.sourceRoot))});
         std::map<std::string,TagLine> header,record; bool begun=false,closed=false,inRecord=false;
         std::size_t line=0,count=0; std::vector<std::pair<std::string,std::string>> dependencies;
+        const std::set<std::string> postseasonRoles{"WC_NFC","WC_AFC","DIV_AFC_1","DIV_AFC_2",
+            "DIV_NFC_1","DIV_NFC_2","CONF_AFC","CONF_NFC","SUPER_BOWL"};
+        std::set<std::string> importedPostseasonRoles;
         const std::set<std::string> headerKeys={"FORMAT_VERSION","DATA_VERSION","LEAGUE","SEASON","TIME_ZONE","PROVENANCE","GENERATED_LEAGUE_DATE_POLICY"};
         const std::set<std::string> recordKeys={"EVENT_KEY","DISPLAY_NAME","EVENT_TYPE","TRIGGER","LOCAL_DATETIME","SCHEDULED_UTC","PRIORITY","ACTION","DESCRIPTION","TARGET_LEAGUE_YEAR","REQUIRES_EVENT_KEY","ACTIVITY_KEY","BOUNDARY","RELATED_EVENT_KEY","SESSION_NUMBER","FIRST_ROUND","LAST_ROUND","TIME_BASIS","EXPAND_PER","TIME_ZONE_SOURCE","MATCHUP_ROLE","CLOSE_SCOPE","ELIGIBLE_PLAYER_STATUS","ELIGIBLE_STAFF_CATEGORY","INCLUDED_COACH_ROLES","VOTER_ENTITY","MATCHUP_SEASON","EFFECTIVE_TIME_SOURCE","MEDIA_ONLY"};
         auto get=[&](const auto& fields,const char* name)->std::string {const auto i=fields.find(name); if(i==fields.end()||i->second.value.empty()) throw BuildException(std::string("Missing season-event field ")+name,file,line); return i->second.value;};
@@ -83,19 +86,42 @@ void buildCoreClockData(BuildContext& c,const CoreDatabaseBuildRequest& request,
                         throw BuildException("Unsupported finalization template",file,line);
                 }
                 else throw BuildException("Unsupported season-event trigger",file,line);
+                std::string scope=kind=="TEAM_HOME_LOCAL"?"EACH_ACTIVE_TEAM":"LEAGUE";
+                const auto eventType=get(record,"EVENT_TYPE");
+                if(eventType=="POSTSEASON_SLOT")
+                {
+                    const auto role=get(record,"MATCHUP_ROLE");
+                    if(kind!="FIXED" || action!="NFL_1989_POSTSEASON_V1" ||
+                       get(header,"LEAGUE")!="NFL" || get(header,"SEASON")!="1989" ||
+                       key!="PFF_NFL_1989_"+role || !postseasonRoles.count(role) ||
+                       !importedPostseasonRoles.insert(role).second ||
+                       (record.count("NEUTRAL_VENUE_KEY")!=0)!=(role=="SUPER_BOWL"))
+                        throw BuildException("Invalid 1989 postseason slot",file,line);
+                    if(role=="SUPER_BOWL")
+                    {
+                        const auto venue=get(record,"NEUTRAL_VENUE_KEY");
+                        if(!S::scalar(c.db,"SELECT count(*) FROM Venues WHERE VenueKey=?",{venue}))
+                            throw BuildException("Unknown postseason neutral venue",file,line);
+                        scope="VENUE:"+venue;
+                    }
+                }
+                else if(record.count("NEUTRAL_VENUE_KEY"))
+                    throw BuildException("Neutral venue requires a postseason slot",file,line);
                 std::string raw;for(std::size_t i=line-1;i<t.line;++i)raw+=sourceLines.at(i)+"\n";
                 S::run(c.db,"INSERT INTO CoreSeasonEventDefinitions VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     {key,get(header,"LEAGUE")+"_"+get(header,"SEASON"),get(record,"EVENT_TYPE"),kind,
                      local.empty()?S::Value(nullptr):S::Value(local),zone.empty()?S::Value(nullptr):S::Value(zone),utc.empty()?S::Value(nullptr):S::Value(utc),std::int64_t(priority),action,std::int64_t(1),
-                     kind=="TEAM_HOME_LOCAL"?std::string("EACH_ACTIVE_TEAM"):std::string("LEAGUE"),record.count("VOTER_ENTITY")?S::Value("SOURCE_PERSON_ELIGIBILITY_V1"):S::Value(nullptr),std::int64_t(record.count("MEDIA_ONLY")&&get(record,"MEDIA_ONLY")=="TRUE"),source,std::int64_t(line),raw});
+                     scope,record.count("VOTER_ENTITY")?S::Value("SOURCE_PERSON_ELIGIBILITY_V1"):S::Value(nullptr),std::int64_t(record.count("MEDIA_ONLY")&&get(record,"MEDIA_ONLY")=="TRUE"),source,std::int64_t(line),raw});
                 if(record.count("REQUIRES_EVENT_KEY"))dependencies.emplace_back(key,get(record,"REQUIRES_EVENT_KEY"));
                 ++count;c.inserted();inRecord=false;continue;
             }
             auto& fields=inRecord?record:header;const auto& keys=inRecord?recordKeys:headerKeys;
-            if(!keys.count(t.tag)||t.value.empty()||!fields.emplace(t.tag,t).second||(!inRecord&&count))
+            if((!keys.count(t.tag)&&!(inRecord&&t.tag=="NEUTRAL_VENUE_KEY"))||t.value.empty()||!fields.emplace(t.tag,t).second||(!inRecord&&count))
                 throw BuildException("Unknown, duplicate or misplaced season-event field: "+t.tag,file,t.line);
         }
         if(!closed||inRecord||!count)throw BuildException("Incomplete/empty season-events source",file,line);
+        if(!importedPostseasonRoles.empty() && importedPostseasonRoles!=postseasonRoles)
+            throw BuildException("Incomplete 1989 postseason calendar",file,line);
         for(const auto& d:dependencies)S::run(c.db,"INSERT INTO CoreSeasonEventDependencies VALUES(?,?)",{d.first,d.second});
         if(S::scalar(c.db,"WITH RECURSIVE reach(a,b) AS (SELECT EventKey,RequiresEventKey FROM CoreSeasonEventDependencies UNION SELECT r.a,d.RequiresEventKey FROM reach r JOIN CoreSeasonEventDependencies d ON d.EventKey=r.b) SELECT count(*) FROM reach WHERE a=b"))throw BuildException("Season-event dependencies contain a cycle",file);
         S::run(c.db,"UPDATE SourceFiles SET RecordsImported=? WHERE SourceFileID=?",{std::int64_t(count),source});

@@ -127,6 +127,10 @@ struct CoreDatabaseBuildRequest
     std::vector<CoreClockProfileInput> clockProfiles;
     // Source evidence is mandatory; venue UTC offsets never imply home-city zones.
     std::vector<CoreTeamHomeZoneInput> teamHomeTimeZones;
+    // Explicit Core composition inputs. Features describe the target engine
+    // capabilities the caller has verified for this build.
+    std::vector<std::filesystem::path> addOnManifests;
+    std::vector<std::string> supportedAddOnFeatures;
 };
 
 enum class DatabaseDiagnosticSeverity

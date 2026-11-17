@@ -28,10 +28,28 @@ void instantiateClockScheduler(CreationContext& c,std::int64_t coreSeason,const 
     const auto seasonKey=[&]{S::Query q(c.core,"SELECT p.CompetitionKey||'_'||s.SeasonYear FROM CompetitionSeasons s JOIN Competitions p ON p.CompetitionID=s.CompetitionID WHERE s.CompetitionSeasonID=?",{coreSeason});if(!q.row())throw WorldDatabaseException("Missing source competition season");return q.text();};
     std::map<std::string,std::int64_t> definitions,occurrences;
     std::int64_t trading=-1; std::string tradingAt;
-    S::Query events(c.core,"SELECT EventKey,EventType,TriggerKind,LocalDateTime,SourceZone,FixedUtc,Priority,HandlerPolicyKey,HandlerPolicyVersion,SourceLine FROM CoreSeasonEventDefinitions WHERE SeasonKey=? ORDER BY FixedUtc,Priority,EventKey",{seasonKey()});
+    S::Query events(c.core,"SELECT EventKey,EventType,TriggerKind,LocalDateTime,SourceZone,FixedUtc,Priority,HandlerPolicyKey,HandlerPolicyVersion,SourceLine,ScopeKey FROM CoreSeasonEventDefinitions WHERE SeasonKey=? ORDER BY FixedUtc,Priority,EventKey",{seasonKey()});
     while(events.row())
     {
         const auto kind=events.text(2),fixed=events.text(5),policy=events.text(7);
+        std::string fixedScope="LEAGUE";
+        if(events.text(1)=="POSTSEASON_SLOT")
+        {
+            if(kind!="FIXED" || fixed<utc)
+                throw WorldDatabaseException("Postseason slot requires a future fixed kickoff");
+            S::run(db,"UPDATE CompetitionSeasons SET CompetitionPolicyProfileKey=? WHERE CompetitionSeasonID=? AND CompetitionPolicyProfileKey IS NULL",
+                   {policy,c.competitionSeasonId});
+            if(!S::scalar(db,"SELECT count(*) FROM CompetitionSeasons WHERE CompetitionSeasonID=? AND CompetitionPolicyProfileKey=?",
+                          {c.competitionSeasonId,policy}))
+                throw WorldDatabaseException("Conflicting postseason slot policies");
+            const auto scope=events.text(10);
+            if(scope.compare(0,6,"VENUE:")==0)
+            {
+                const auto venue=S::scalar(db,"SELECT WorldVenueID FROM WorldVenues WHERE WorldID=? AND CoreVenueKey=?",
+                                           {c.worldId,scope.substr(6)});
+                fixedScope="VENUE:"+std::to_string(venue);
+            }
+        }
         // A local calendar label alone cannot establish an absolute past instant.
         // Unresolved team-local definitions remain pending/readiness-blocked.
         const bool past=kind=="FIXED"&&fixed<utc;
@@ -51,7 +69,7 @@ void instantiateClockScheduler(CreationContext& c,std::int64_t coreSeason,const 
             if(scope=="LEAGUE")occurrences[events.text()]=id;
         };
         if(past||kind=="AFTER_CHAMPIONSHIP_FINAL"||policy=="DISPATCH_MATCHUP_EVENT")continue;
-        if(kind=="FIXED")instance("LEAGUE",fixed,nullptr,nullptr,events.text(4));
+        if(kind=="FIXED")instance(fixedScope,fixed,nullptr,nullptr,events.text(4));
         else
         {
             for(const auto& pair:c.teamSeasonByCoreId)

@@ -2483,6 +2483,7 @@ VALUES(?, ?, ?, ?, ?, ?, ?, ?);
     #include "Database/CoreTeamDataImport.inl"
     #include "Database/CoreClockImport.inl"
     #include "Database/CorePersonNicknamesImport.inl"
+    #include "Database/CoreAddOnImport.inl"
 
 }
 
@@ -2677,7 +2678,7 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
     {
         std::vector<CoreManifest::Package> packages;
         std::map<std::string, std::filesystem::path> selectedFiles;
-        std::vector<std::pair<std::filesystem::path, std::string>> sourceBytes;
+        CoreSourceBytes sourceBytes;
         const bool manifestMode = !request.rulesetManifest.empty() || !request.seasonManifest.empty();
         if (manifestMode)
         {
@@ -2770,6 +2771,8 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
                 "Source root does not exist or is not a directory: " +
                 pathUtf8(request.sourceRoot));
         }
+
+        const auto addOns = resolveCoreAddOns(request, packages, sourceBytes);
 
         const std::filesystem::path rulesetDirectory = manifestMode ? packages[0].path.parent_path() :
             request.sourceRoot /
@@ -3153,6 +3156,7 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
             buildCoreTeamData(context, selectedFiles, league);
             buildCoreClockData(context, request, selectedFiles);
             buildCorePersonNicknames(context, selectedFiles);
+            buildCoreAddOns(context, addOns, sourceBytes, packages.size());
             PersonNicknames::validateCore(db);
             validateDatabase(db);
             context.diagnostic(DatabaseDiagnosticSeverity::Info,

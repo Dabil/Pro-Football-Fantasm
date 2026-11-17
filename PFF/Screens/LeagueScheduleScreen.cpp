@@ -3,6 +3,7 @@
 #include "Screens/TeamLink.h"
 #include "Styles/PFF_Theme.h"
 #include "Screens/GameTimeFormatting.h"
+#include "Database/Nfl1989PostseasonCalendar.h"
 
 // TUI includes
 #include "Rendering/Surface.h"
@@ -21,6 +22,50 @@
 namespace
 {
     using Composition::PageComposer;
+    constexpr int PostseasonPage = -1;
+
+    void appendPostseasonSlots(const LoadedWorldContext& context,
+                               std::vector<WorldScheduleGameRecord>& games)
+    {
+        namespace S = TeamDataSql;
+        sqlite3* raw = nullptr;
+        const auto opened = sqlite3_open_v2(context.databasePath.u8string().c_str(),
+                                            &raw, SQLITE_OPEN_READONLY, nullptr);
+        const std::unique_ptr<sqlite3, decltype(&sqlite3_close)> db(raw, sqlite3_close);
+        if (opened != SQLITE_OK)
+            throw std::runtime_error("Unable to read postseason reservations.");
+        if (!S::scalar(raw, "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='SeasonEventDefinitions'"))
+            return;
+        S::Query q(raw, "SELECT d.EventKey,e.StartsUtc,COALESCE(v.VenueName,'TBD') "
+            "FROM SeasonEventDefinitions d JOIN SeasonEventInstances i "
+            "ON i.WorldID=d.WorldID AND i.DefinitionID=d.DefinitionID "
+            "JOIN ScheduledWorldEvents e ON e.WorldID=i.WorldID AND e.ScheduledWorldEventID=i.ScheduledWorldEventID "
+            "LEFT JOIN WorldVenues v ON v.WorldID=i.WorldID AND i.InstanceScopeKey='VENUE:'||v.WorldVenueID "
+            "WHERE d.WorldID=? AND d.CompetitionSeasonID=? AND d.EventType='POSTSEASON_SLOT' "
+            "AND e.State='PENDING'", {context.worldId, context.activeCompetitionSeasonId});
+        while (q.row())
+        {
+            WorldScheduleGameRecord slot;
+            slot.sourceGameId = q.text();
+            slot.scheduledKickoffUtc = q.text(1);
+            slot.venueName = q.text(2);
+            slot.stage = "POSTSEASON";
+            games.push_back(std::move(slot));
+        }
+    }
+
+    std::string scheduleMatchup(const WorldScheduleGameRecord& game)
+    {
+        if (game.scheduledGameId)
+            return game.matchupDisplayName();
+        const auto& key = game.sourceGameId;
+        if (key == "PFF_NFL_1989_SUPER_BOWL")
+            return "Super Bowl";
+        const auto conference = key.find("AFC") != std::string::npos ? "AFC " : "NFC ";
+        const char* round = key.find("_WC_") != std::string::npos ? "Wild Card" :
+            key.find("_DIV_") != std::string::npos ? "Divisional" : "Championship";
+        return std::string(conference) + round;
+    }
 
     std::string displayResult(const WorldScheduleGameRecord& game)
     {
@@ -406,6 +451,15 @@ void LeagueScheduleScreen::loadSchedule()
 
     m_availableWeeks = std::move(result.regularSeasonWeeks);
     m_scheduleGames = std::move(result.games);
+    const auto regularWeekCount = m_availableWeeks.size();
+    if (!m_teamSeasonId)
+    {
+        try { appendPostseasonSlots(m_dataContext, m_scheduleGames); }
+        catch (const std::exception& error) { m_scheduleLoadMessage = error.what(); }
+        if (std::any_of(m_scheduleGames.begin(), m_scheduleGames.end(),
+                        [](const auto& game) { return game.stage == "POSTSEASON"; }))
+            m_availableWeeks.push_back(PostseasonPage);
+    }
     std::stable_sort(m_scheduleGames.begin(),m_scheduleGames.end(),
         [](const WorldScheduleGameRecord& left,const WorldScheduleGameRecord& right)
         {
@@ -427,7 +481,7 @@ void LeagueScheduleScreen::loadSchedule()
     {
         // A new view starts at the earliest unfinished regular-season week.
         auto firstUnfinished=m_availableWeeks.end();
-        for (auto week=m_availableWeeks.begin();week!=m_availableWeeks.end();++week)
+        for (auto week=m_availableWeeks.begin();week!=m_availableWeeks.begin()+regularWeekCount;++week)
         {
             if (std::any_of(m_scheduleGames.begin(),m_scheduleGames.end(),[&](const auto& game)
                 {return game.stage=="REGULAR" && game.weekNumber==*week && game.status!="FINAL" &&
@@ -440,7 +494,7 @@ void LeagueScheduleScreen::loadSchedule()
         m_currentWeekIndex=firstUnfinished==m_availableWeeks.end() ? m_availableWeeks.size()-1 :
             static_cast<std::size_t>(firstUnfinished-m_availableWeeks.begin());
     }
-    else if (sameSeason && previousWeek > 0)
+    else if (sameSeason && previousWeek != 0)
     {
         const auto previous = std::find(m_availableWeeks.begin(), m_availableWeeks.end(), previousWeek);
         if (previous != m_availableWeeks.end())
@@ -494,6 +548,29 @@ void LeagueScheduleScreen::loadGameWindow()
     m_gameWindowReady=true;
     m_advancing=m_gameWindow.canResume;
     m_windowMessage=m_gameWindow.reason;
+    if (m_gameWindow.reason == "NO_MORE_GAMES")
+    {
+        WorldEditCommit edit;
+        edit.worldId = m_gameWindow.worldId;
+        edit.worldKey = m_gameWindow.worldKey;
+        try
+        {
+            scheduleNfl1989PostseasonRound(m_dataContext.databasePath,
+                                           m_dataContext.activeCompetitionSeasonId, edit);
+            if (edit.changed)
+            {
+                if (m_committed) m_committed(edit);
+                loadSchedule();
+            }
+            else if (std::any_of(m_scheduleGames.begin(), m_scheduleGames.end(),
+                [](const auto& game) { return game.stage == "POSTSEASON" && !game.scheduledGameId; }))
+                m_windowMessage = "The next playoff round is awaiting pairings.";
+        }
+        catch (const std::exception& error)
+        {
+            m_windowMessage = std::string("Postseason scheduling pending: ") + error.what();
+        }
+    }
 }
 
 void LeagueScheduleScreen::publishAdvance(const WorldAdvanceOutcome& outcome)
@@ -690,6 +767,7 @@ void LeagueScheduleScreen::drawGameWindowStatus(Composition::PageComposer& page,
     else if(m_windowMessage=="UNSUPPORTED_CODEC") message="Current games need a supported game executor before continuing.";
     else if(m_windowMessage=="REQUIRED_DECISION") message="Game participation needs your attention before continuing.";
     else if(m_windowMessage=="WAITING_FOR_WORLD_WORK") message="An earlier event needs attention before continuing.";
+    else if(m_windowMessage=="POSTSEASON_PAIRING_REQUIRED") message="Playoff teams must be assigned before advancing.";
     else if(m_windowMessage=="CURRENT_WINDOW_UNFINISHED" || m_windowMessage=="EARLIER_GAME_UNRESOLVED") message="Finish all games in the current window before advancing.";
     else if(m_windowMessage=="NO_MORE_GAMES") message="No more scheduled game windows.";
     else if(m_windowMessage=="NOT_AUTHORIZED") message="You do not have permission to advance this league.";
@@ -714,13 +792,13 @@ void LeagueScheduleScreen::drawCurrentWeek(
 {
     const std::int32_t week = currentWeek();
 
-    if (!m_teamSeasonId && week <= 0)
+    if (!m_teamSeasonId && week == 0)
     {
         return;
     }
 
     const std::string weekTitle =
-        m_teamSeasonId ? "SCHEDULE" : "WEEK " + std::to_string(week);
+        m_teamSeasonId ? "SCHEDULE" : week == PostseasonPage ? "POSTSEASON" : "WEEK " + std::to_string(week);
 
     page.writePanelTitle(
         panelRegionName,
@@ -741,12 +819,13 @@ void LeagueScheduleScreen::drawCurrentWeek(
     const auto displayed = [&](const WorldScheduleGameRecord& game)
     {
         return m_teamSeasonId ? game.awayTeamSeasonId == m_teamSeasonId || game.homeTeamSeasonId == m_teamSeasonId
-                              : game.stage == "REGULAR" && game.weekNumber == week;
+                              : week == PostseasonPage ? game.stage == "POSTSEASON"
+                                                       : game.stage == "REGULAR" && game.weekNumber == week;
     };
     int matchupWidth=24;
     for(const auto& game:m_scheduleGames)
         if(displayed(game))
-            matchupWidth=std::max(matchupWidth,TextClip::measureDisplayWidth(UnicodeConversion::utf8ToU32(game.matchupDisplayName())));
+            matchupWidth=std::max(matchupWidth,TextClip::measureDisplayWidth(UnicodeConversion::utf8ToU32(scheduleMatchup(game))));
     // Keep the full matchup on one line. Other columns may wrap within their
     // own cells; reserve enough space for both complete, independently linked names.
     const int requiredWidth=matchupWidth+64;
@@ -809,8 +888,10 @@ void LeagueScheduleScreen::drawCurrentWeek(
             (game.gameDate.empty()?"Date unavailable":game.dayLabel+" "+game.gameDate);
         const std::string time=kickoff ? PffGameTime::clock(*kickoff) :
             (game.timeLabel.empty()?"Unavailable":game.timeLabel);
-        appendRow({{game.matchupDisplayName(),date,time,
-            game.venueName.empty()?"Venue unavailable":game.venueName,displayResult(game)}},&game);
+        const bool reserved = !game.scheduledGameId;
+        appendRow({{scheduleMatchup(game),date,time,
+            game.venueName.empty()?"Venue unavailable":game.venueName,
+            reserved ? "Teams TBD" : displayResult(game)}},reserved ? nullptr : &game);
     }
 
     m_visibleRows=std::max(1,content.size.height-4);

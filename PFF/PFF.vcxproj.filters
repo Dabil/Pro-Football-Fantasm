@@ -40,6 +40,8 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Database\GameTimeModel.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="Database\Nfl1989PostseasonPairing.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="Database\Nfl1989PostseasonSeeding.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="Screens\GameTimeController.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="Screens\GameTimeView.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="Screens\ScoreboardView.cpp"><Filter>Source Files</Filter></ClCompile>
@@ -104,6 +106,9 @@
     <ClInclude Include="Screens\StatisticsView.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Screens\PffBroadcast.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Database\GameTimeModel.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\Nfl1989PostseasonPairing.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\Nfl1989PostseasonSeeding.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\Nfl1989PostseasonCalendar.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Database\PbpRecorder.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Screens\GameScreen.h">
       <Filter>Header Files</Filter>

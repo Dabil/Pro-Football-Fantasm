@@ -2,6 +2,7 @@
 
 #include "Database/GameTimeModel.h"
 #include "Database/GroundRules.h"
+#include "Database/Nfl1989PostseasonCalendar.h"
 #include "Database/PbpRecorder.h"
 #include "GCE/Database/ClockTime.h"
 #include "GCE/Database/TeamDataSql.h"
@@ -1150,15 +1151,10 @@ struct GameTimeModel::Impl
             bool outOfBounds = false;
             bool safety = false;
             std::string detail;
-            const auto situation = down == 1   ? (s.lineToGain - s.spot > 10    ? "A"
-                                                  : s.lineToGain - s.spot == 10 ? "B"
-                                                                                : "C")
-                                   : down == 2 ? (s.lineToGain - s.spot > 7    ? "A"
-                                                  : s.lineToGain - s.spot >= 4 ? "B"
-                                                                               : "C")
-                                               : (s.lineToGain - s.spot > 6    ? "A"
-                                                  : s.lineToGain - s.spot >= 3 ? "B"
-                                                                               : "C");
+            const auto situation = down == 1 ? (toGo > 10 ? "A" : toGo == 10 ? "B" : "C")
+                                 : down == 2 ? (toGo > 7 ? "A" : toGo >= 4 ? "B" : "C")
+                                 : down == 4 ? (toGo > 5 ? "A" : toGo >= 2 ? "B" : "C")
+                                             : (toGo > 6 ? "A" : toGo >= 3 ? "B" : "C");
             if (fieldGoal || punt)
             {
                 seconds = 20;
@@ -2000,6 +1996,14 @@ WorldEditResult<WorldEditCommit> GameTimeModel::next(const WorldActor &actor, st
             for (std::string line; std::getline(input, line);)
                 m->lines.push_back(std::move(line));
             m->s.final = true;
+            try
+            {
+                scheduleNfl1989PostseasonRound(m->world, m->season, result.value);
+            }
+            catch (const std::exception& error)
+            {
+                result.message = std::string("Postseason scheduling pending: ") + error.what();
+            }
             m->game.commit = result.value;
         }
         else

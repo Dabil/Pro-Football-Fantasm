@@ -9,6 +9,37 @@ bool clockDependenciesReady(Session& s, std::int64_t occurrence)
             "AND (p.State<>'COMPLETED' OR p.ResolutionReason='SUPPORT_PENDING')",
             {s.world,occurrence})==0;
 }
+bool clockEventUnsupported(Session& s, std::int64_t occurrence)
+{
+    S::Query event(s.db,"SELECT e.KindKey,k.HandlerVersion,COALESCE(d.PolicyKey,''),"
+        "COALESCE(d.PolicyVersion,0),COALESCE(d.EventType,'') "
+        "FROM ScheduledWorldEvents e JOIN WorldEventKinds k ON k.WorldID=e.WorldID AND k.KindKey=e.KindKey "
+        "LEFT JOIN SeasonEventInstances i ON i.WorldID=e.WorldID AND i.ScheduledWorldEventID=e.ScheduledWorldEventID "
+        "LEFT JOIN SeasonEventDefinitions d ON d.WorldID=i.WorldID AND d.DefinitionID=i.DefinitionID "
+        "WHERE e.WorldID=? AND e.ScheduledWorldEventID=? AND e.State='PENDING'",
+        {s.world,occurrence});
+    if(!event.row() || event.text(0)=="GAME_KICKOFF" || event.text(4)=="POSTSEASON_SLOT")
+        return false;
+    const auto kind=event.text(0);
+    const auto policy=event.text(2);
+    if(event.integer(1)!=1 || (kind!="VENUE_APPLY" &&
+       (event.integer(3)!=1 || (policy!="OPEN_TRADING" && policy!="CLOSE_TRADING" &&
+                               policy!="ANNOUNCE_LEAGUE_SEASON_ENDED"))))
+        return true;
+    // A skipped prerequisite cannot supply effects for a supported handler.
+    // Treat its dependent as unsupported too and preserve the skip receipt.
+    return S::scalar(s.db,
+        "SELECT EXISTS(SELECT 1 FROM ScheduledWorldEvents p WHERE p.WorldID=? "
+        "AND p.State='COMPLETED' AND p.ResolutionReason='SUPPORT_PENDING' AND ("
+        "EXISTS(SELECT 1 FROM EventDependencies x WHERE x.WorldID=p.WorldID "
+        "AND x.ScheduledWorldEventID=? AND x.RequiresEventID=p.ScheduledWorldEventID) OR "
+        "EXISTS(SELECT 1 FROM SeasonEventInstances child JOIN SeasonEventInstances parent "
+        "ON parent.WorldID=child.WorldID JOIN WorldSettings setting ON setting.WorldID=child.WorldID "
+        "AND setting.SettingKey='Clock.SourceDependency:'||child.DefinitionID||':'||parent.DefinitionID "
+        "WHERE child.WorldID=p.WorldID AND child.ScheduledWorldEventID=? "
+        "AND parent.ScheduledWorldEventID=p.ScheduledWorldEventID)))",
+        {s.world,occurrence,occurrence}) != 0;
+}
 std::int64_t clockAttention(Session& s,std::int64_t occurrence)
 {
     S::Query q(s.db,"SELECT p.ParticipationID,p.WorldUserID,p.ScheduledWorldEventID,e.KindKey "
@@ -121,22 +152,25 @@ WorldAdvanceOutcome clockAdvanceUnit(Session& s,S::Transaction& tx,std::int64_t 
     // Scan all automatic work at this instant so a ready prerequisite can run
     // before a nominally higher-priority dependent. Never skip to a later date.
     S::Query due(s.db,"SELECT e.ScheduledWorldEventID,e.KindKey,k.HandlerVersion,"
-        "COALESCE(d.PolicyKey,''),COALESCE(d.PolicyVersion,0) FROM ScheduledWorldEvents e "
+        "COALESCE(d.PolicyKey,''),COALESCE(d.PolicyVersion,0),COALESCE(d.EventType,'') FROM ScheduledWorldEvents e "
         "JOIN WorldEventKinds k ON k.WorldID=e.WorldID AND k.KindKey=e.KindKey "
         "LEFT JOIN SeasonEventInstances i ON i.WorldID=e.WorldID AND i.ScheduledWorldEventID=e.ScheduledWorldEventID "
         "LEFT JOIN SeasonEventDefinitions d ON d.WorldID=i.WorldID AND d.DefinitionID=i.DefinitionID "
         "WHERE e.WorldID=? AND e.State='PENDING' AND e.StartsUtc=? AND e.KindKey<>'GAME_KICKOFF' "
         "ORDER BY e.DispatchPriority,k.PhaseCode,e.ScheduledWorldEventID",{s.world,s.now});
-    std::int64_t blocked=0;
+    std::int64_t blocked=0, pendingPairing=0;
     while(due.row())
     {
         const auto event=due.integer();
-        if(!clockDependenciesReady(s,event)){if(!blocked)blocked=event;continue;}
-        if(clockAttention(s,event))return finish("PAUSED","REQUIRED_ATTENTION",event,1);
+        if(due.text(5)=="POSTSEASON_SLOT")
+        {
+            if(!pendingPairing)pendingPairing=event;
+            continue;
+        }
+        const bool unsupported=clockEventUnsupported(s,event);
+        if(!unsupported && !clockDependenciesReady(s,event)){if(!blocked)blocked=event;continue;}
+        if(!unsupported && clockAttention(s,event))return finish("PAUSED","REQUIRED_ATTENTION",event,1);
         const auto handler=due.text(1)=="VENUE_APPLY"?std::string("VENUE_APPLY"):due.text(3);
-        const bool unsupported=due.integer(2)!=1 || (handler!="VENUE_APPLY" && due.integer(4)!=1) ||
-            (handler!="VENUE_APPLY" && handler!="OPEN_TRADING" && handler!="CLOSE_TRADING" &&
-             handler!="ANNOUNCE_LEAGUE_SEASON_ENDED");
         if(unsupported && (intent.text(3)!="UNSUPPORTED_EVENT" || intent.integer(4)!=event))
             return finish("BLOCKED","UNSUPPORTED_EVENT",event,1);
         if(!unsupported && handler=="ANNOUNCE_LEAGUE_SEASON_ENDED" && !S::scalar(s.db,
@@ -147,6 +181,7 @@ WorldAdvanceOutcome clockAdvanceUnit(Session& s,S::Transaction& tx,std::int64_t 
         clockDispatch(s,id,event,unsupported?"SUPPORT_PENDING":handler,rev);
         return finish("RUNNING","",0,1);
     }
+    if(pendingPairing)return finish("BLOCKED","POSTSEASON_PAIRING_REQUIRED",pendingPairing,1);
     if(blocked)return finish("BLOCKED","UNSATISFIED_DEPENDENCY",blocked,1);
     S::Query kickoff(s.db,"SELECT ScheduledWorldEventID FROM ScheduledWorldEvents WHERE WorldID=? "
         "AND State='PENDING' AND StartsUtc=? AND KindKey='GAME_KICKOFF' ORDER BY ScheduledWorldEventID LIMIT 1",
