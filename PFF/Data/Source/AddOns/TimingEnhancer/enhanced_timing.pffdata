@@ -1,0 +1,4920 @@
+# Pro Football Fantasm Enhanced Timing add-on
+[PFFDATA_BEGIN]
+[FORMAT_REVISION] 2
+[DATA_TYPE] ADDON
+[ADDON_NAME] Enhanced Timing
+[DICE] 20D_ROW_1_TO_20_AND_10D_COLUMN_0_TO_9
+[VALUE_UNIT] SECONDS
+[TIMING_LOOKUP] AFTER_EACH_PLAY
+[OFFENSIVE_MODE_COUNT] 4
+[INSTRUCTIONS_BEGIN]
+Pro Football Fantasm
+Enhanced Timing
+
+How To Use The Enhanced Timer:
+
+1. The offense must choose which mode of offense they are playing.  You may choose from Regular, Hurry-Up, Slow Down, or No-Huddle. 
+
+2. At the conclusion of each play, roll a 10-sided die and a 20-sided die to determine exactly how many seconds to subtract from the game clock.  The 10-sided die will go across the top of the chart and the 20-sided die is the number on the left side of the chart. 
+
+3. After matchig up the proper column and row, use the number indicated to subtract the amount of time off of the game clock. 
+
+Note: In situations of Hurry-up or No-Huddle offense modes are being used, you do not make any adjustments for clock stoppages in cases of penalties, out-of-bounds or timeouts, UNLESS the time was over 15 seconds.  IF THE TIME IS OVER 15 SECONDS, use 14 seconds as the timing of the play.  (All Professional Rules Apply where Needed. We have taken into account the starting of the clock after an official timeout and other rare times in which the clock stops and re-starts in between snaps). 
+[INSTRUCTIONS_END]
+
+[SCHEMA_BEGIN]
+[TABLE_BEGIN] EnhancedTimingSource
+[FIELD_BEGIN] Mode
+[TYPE] TEXT
+[REQUIRED] YES
+[ALLOWED_VALUES] REGULAR|NO_HUDDLE|HURRY_UP|SLOW_DOWN
+[FIELD_END]
+
+[FIELD_BEGIN] SourceTitle
+[TYPE] TEXT
+[REQUIRED] YES
+[FIELD_END]
+
+[FIELD_BEGIN] SourceFile
+[TYPE] TEXT
+[REQUIRED] YES
+[FIELD_END]
+
+[FIELD_BEGIN] SourceSha256
+[TYPE] TEXT
+[REQUIRED] YES
+[FIELD_END]
+
+[PRIMARY_KEY] Mode
+[EXPECTED_RECORD_COUNT] 4
+[TABLE_END]
+
+[TABLE_BEGIN] EnhancedTimingResult
+[FIELD_BEGIN] Mode
+[TYPE] TEXT
+[REQUIRED] YES
+[ALLOWED_VALUES] REGULAR|NO_HUDDLE|HURRY_UP|SLOW_DOWN
+[FIELD_END]
+
+[FIELD_BEGIN] D20
+[TYPE] INTEGER
+[REQUIRED] YES
+[MIN] 1
+[MAX] 20
+[FIELD_END]
+
+[FIELD_BEGIN] D10
+[TYPE] INTEGER
+[REQUIRED] YES
+[MIN] 0
+[MAX] 9
+[FIELD_END]
+
+[FIELD_BEGIN] Seconds
+[TYPE] INTEGER
+[REQUIRED] YES
+[MIN] 0
+[FIELD_END]
+
+[PRIMARY_KEY] Mode|D20|D10
+[EXPECTED_RECORD_COUNT] 800
+
+[FOREIGN_KEY_BEGIN]
+[FIELDS] Mode
+[REFERENCES_TABLE] EnhancedTimingSource
+[REFERENCES_FIELDS] Mode
+[FOREIGN_KEY_END]
+[TABLE_END]
+[SCHEMA_END]
+
+[RECORDS_BEGIN] EnhancedTimingSource
+[RECORD_BEGIN]
+[Mode] REGULAR
+[SourceTitle] Normal Offense Mode
+[SourceFile] Normal Offense Mode Chart.ods
+[SourceSha256] 7b13f5a0251afd3ac84372257669568e1fb5d99ef99e42509c29d8f050c722e5
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[SourceTitle] Hurry Up Offense Mode
+[SourceFile] Hurry Up Offense Mode.ods
+[SourceSha256] 4f72b1e88181c0ef5f4a6a66dbd3be31f794f3e138e669bc0046bfcde0f7a8ff
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[SourceTitle] Slow Down Offense Mode
+[SourceFile] Slow Down Offense Mode.ods
+[SourceSha256] f9085bc030ceea27974b5c67d548775eac64ac46e04b2db002f52cf3b7f69650
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[SourceTitle] No Huddle Offense Mode
+[SourceFile] No Huddle Offense Mode.ods
+[SourceSha256] 70e585a9d3f083d688a3eb09d05ac676a34f1d5ac6fc4b00c61daa5147a8741a
+[RECORD_END]
+[RECORDS_END]
+
+[RECORDS_BEGIN] EnhancedTimingResult
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 1
+[D10] 0
+[Seconds] 19
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 1
+[D10] 1
+[Seconds] 22
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 1
+[D10] 2
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 1
+[D10] 3
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 1
+[D10] 4
+[Seconds] 32
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 1
+[D10] 5
+[Seconds] 36
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 1
+[D10] 6
+[Seconds] 40
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 1
+[D10] 7
+[Seconds] 41
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 1
+[D10] 8
+[Seconds] 44
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 1
+[D10] 9
+[Seconds] 46
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 2
+[D10] 0
+[Seconds] 20
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 2
+[D10] 1
+[Seconds] 22
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 2
+[D10] 2
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 2
+[D10] 3
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 2
+[D10] 4
+[Seconds] 32
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 2
+[D10] 5
+[Seconds] 36
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 2
+[D10] 6
+[Seconds] 40
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 2
+[D10] 7
+[Seconds] 41
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 2
+[D10] 8
+[Seconds] 45
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 2
+[D10] 9
+[Seconds] 46
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 3
+[D10] 0
+[Seconds] 20
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 3
+[D10] 1
+[Seconds] 22
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 3
+[D10] 2
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 3
+[D10] 3
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 3
+[D10] 4
+[Seconds] 33
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 3
+[D10] 5
+[Seconds] 36
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 3
+[D10] 6
+[Seconds] 40
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 3
+[D10] 7
+[Seconds] 41
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 3
+[D10] 8
+[Seconds] 45
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 3
+[D10] 9
+[Seconds] 46
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 4
+[D10] 0
+[Seconds] 20
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 4
+[D10] 1
+[Seconds] 23
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 4
+[D10] 2
+[Seconds] 26
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 4
+[D10] 3
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 4
+[D10] 4
+[Seconds] 33
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 4
+[D10] 5
+[Seconds] 37
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 4
+[D10] 6
+[Seconds] 41
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 4
+[D10] 7
+[Seconds] 41
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 4
+[D10] 8
+[Seconds] 45
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 4
+[D10] 9
+[Seconds] 46
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 5
+[D10] 0
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 5
+[D10] 1
+[Seconds] 23
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 5
+[D10] 2
+[Seconds] 26
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 5
+[D10] 3
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 5
+[D10] 4
+[Seconds] 33
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 5
+[D10] 5
+[Seconds] 37
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 5
+[D10] 6
+[Seconds] 41
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 5
+[D10] 7
+[Seconds] 41
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 5
+[D10] 8
+[Seconds] 45
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 5
+[D10] 9
+[Seconds] 46
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 6
+[D10] 0
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 6
+[D10] 1
+[Seconds] 23
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 6
+[D10] 2
+[Seconds] 26
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 6
+[D10] 3
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 6
+[D10] 4
+[Seconds] 34
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 6
+[D10] 5
+[Seconds] 37
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 6
+[D10] 6
+[Seconds] 41
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 6
+[D10] 7
+[Seconds] 42
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 6
+[D10] 8
+[Seconds] 45
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 6
+[D10] 9
+[Seconds] 46
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 7
+[D10] 0
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 7
+[D10] 1
+[Seconds] 23
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 7
+[D10] 2
+[Seconds] 26
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 7
+[D10] 3
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 7
+[D10] 4
+[Seconds] 34
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 7
+[D10] 5
+[Seconds] 37
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 7
+[D10] 6
+[Seconds] 41
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 7
+[D10] 7
+[Seconds] 42
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 7
+[D10] 8
+[Seconds] 45
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 7
+[D10] 9
+[Seconds] 46
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 8
+[D10] 0
+[Seconds] 22
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 8
+[D10] 1
+[Seconds] 24
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 8
+[D10] 2
+[Seconds] 27
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 8
+[D10] 3
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 8
+[D10] 4
+[Seconds] 34
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 8
+[D10] 5
+[Seconds] 37
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 8
+[D10] 6
+[Seconds] 41
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 8
+[D10] 7
+[Seconds] 42
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 8
+[D10] 8
+[Seconds] 45
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 8
+[D10] 9
+[Seconds] 47
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 9
+[D10] 0
+[Seconds] 22
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 9
+[D10] 1
+[Seconds] 24
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 9
+[D10] 2
+[Seconds] 27
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 9
+[D10] 3
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 9
+[D10] 4
+[Seconds] 34
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 9
+[D10] 5
+[Seconds] 37
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 9
+[D10] 6
+[Seconds] 41
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 9
+[D10] 7
+[Seconds] 42
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 9
+[D10] 8
+[Seconds] 45
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 9
+[D10] 9
+[Seconds] 47
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 10
+[D10] 0
+[Seconds] 22
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 10
+[D10] 1
+[Seconds] 24
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 10
+[D10] 2
+[Seconds] 27
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 10
+[D10] 3
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 10
+[D10] 4
+[Seconds] 34
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 10
+[D10] 5
+[Seconds] 37
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 10
+[D10] 6
+[Seconds] 41
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 10
+[D10] 7
+[Seconds] 42
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 10
+[D10] 8
+[Seconds] 45
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 10
+[D10] 9
+[Seconds] 47
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 11
+[D10] 0
+[Seconds] 22
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 11
+[D10] 1
+[Seconds] 24
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 11
+[D10] 2
+[Seconds] 27
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 11
+[D10] 3
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 11
+[D10] 4
+[Seconds] 34
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 11
+[D10] 5
+[Seconds] 38
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 11
+[D10] 6
+[Seconds] 41
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 11
+[D10] 7
+[Seconds] 42
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 11
+[D10] 8
+[Seconds] 45
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 11
+[D10] 9
+[Seconds] 47
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 12
+[D10] 0
+[Seconds] 23
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 12
+[D10] 1
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 12
+[D10] 2
+[Seconds] 27
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 12
+[D10] 3
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 12
+[D10] 4
+[Seconds] 35
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 12
+[D10] 5
+[Seconds] 38
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 12
+[D10] 6
+[Seconds] 41
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 12
+[D10] 7
+[Seconds] 42
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 12
+[D10] 8
+[Seconds] 45
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 12
+[D10] 9
+[Seconds] 47
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 13
+[D10] 0
+[Seconds] 23
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 13
+[D10] 1
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 13
+[D10] 2
+[Seconds] 28
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 13
+[D10] 3
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 13
+[D10] 4
+[Seconds] 35
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 13
+[D10] 5
+[Seconds] 38
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 13
+[D10] 6
+[Seconds] 41
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 13
+[D10] 7
+[Seconds] 42
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 13
+[D10] 8
+[Seconds] 45
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 13
+[D10] 9
+[Seconds] 47
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 14
+[D10] 0
+[Seconds] 23
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 14
+[D10] 1
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 14
+[D10] 2
+[Seconds] 28
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 14
+[D10] 3
+[Seconds] 30
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 14
+[D10] 4
+[Seconds] 35
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 14
+[D10] 5
+[Seconds] 38
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 14
+[D10] 6
+[Seconds] 41
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 14
+[D10] 7
+[Seconds] 43
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 14
+[D10] 8
+[Seconds] 45
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 14
+[D10] 9
+[Seconds] 47
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 15
+[D10] 0
+[Seconds] 23
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 15
+[D10] 1
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 15
+[D10] 2
+[Seconds] 28
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 15
+[D10] 3
+[Seconds] 30
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 15
+[D10] 4
+[Seconds] 35
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 15
+[D10] 5
+[Seconds] 38
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 15
+[D10] 6
+[Seconds] 41
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 15
+[D10] 7
+[Seconds] 43
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 15
+[D10] 8
+[Seconds] 45
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 15
+[D10] 9
+[Seconds] 47
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 16
+[D10] 0
+[Seconds] 24
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 16
+[D10] 1
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 16
+[D10] 2
+[Seconds] 28
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 16
+[D10] 3
+[Seconds] 30
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 16
+[D10] 4
+[Seconds] 35
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 16
+[D10] 5
+[Seconds] 38
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 16
+[D10] 6
+[Seconds] 41
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 16
+[D10] 7
+[Seconds] 43
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 16
+[D10] 8
+[Seconds] 45
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 16
+[D10] 9
+[Seconds] 47
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 17
+[D10] 0
+[Seconds] 24
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 17
+[D10] 1
+[Seconds] 26
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 17
+[D10] 2
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 17
+[D10] 3
+[Seconds] 31
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 17
+[D10] 4
+[Seconds] 35
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 17
+[D10] 5
+[Seconds] 38
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 17
+[D10] 6
+[Seconds] 41
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 17
+[D10] 7
+[Seconds] 43
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 17
+[D10] 8
+[Seconds] 46
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 17
+[D10] 9
+[Seconds] 47
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 18
+[D10] 0
+[Seconds] 24
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 18
+[D10] 1
+[Seconds] 26
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 18
+[D10] 2
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 18
+[D10] 3
+[Seconds] 31
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 18
+[D10] 4
+[Seconds] 35
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 18
+[D10] 5
+[Seconds] 38
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 18
+[D10] 6
+[Seconds] 42
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 18
+[D10] 7
+[Seconds] 43
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 18
+[D10] 8
+[Seconds] 46
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 18
+[D10] 9
+[Seconds] 48
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 19
+[D10] 0
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 19
+[D10] 1
+[Seconds] 26
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 19
+[D10] 2
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 19
+[D10] 3
+[Seconds] 31
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 19
+[D10] 4
+[Seconds] 36
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 19
+[D10] 5
+[Seconds] 39
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 19
+[D10] 6
+[Seconds] 42
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 19
+[D10] 7
+[Seconds] 44
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 19
+[D10] 8
+[Seconds] 46
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 19
+[D10] 9
+[Seconds] 48
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 20
+[D10] 0
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 20
+[D10] 1
+[Seconds] 26
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 20
+[D10] 2
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 20
+[D10] 3
+[Seconds] 31
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 20
+[D10] 4
+[Seconds] 36
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 20
+[D10] 5
+[Seconds] 39
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 20
+[D10] 6
+[Seconds] 42
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 20
+[D10] 7
+[Seconds] 44
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 20
+[D10] 8
+[Seconds] 46
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] REGULAR
+[D20] 20
+[D10] 9
+[Seconds] 48
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 1
+[D10] 0
+[Seconds] 5
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 1
+[D10] 1
+[Seconds] 6
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 1
+[D10] 2
+[Seconds] 10
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 1
+[D10] 3
+[Seconds] 13
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 1
+[D10] 4
+[Seconds] 14
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 1
+[D10] 5
+[Seconds] 18
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 1
+[D10] 6
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 1
+[D10] 7
+[Seconds] 22
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 1
+[D10] 8
+[Seconds] 24
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 1
+[D10] 9
+[Seconds] 26
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 2
+[D10] 0
+[Seconds] 5
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 2
+[D10] 1
+[Seconds] 6
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 2
+[D10] 2
+[Seconds] 10
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 2
+[D10] 3
+[Seconds] 13
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 2
+[D10] 4
+[Seconds] 15
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 2
+[D10] 5
+[Seconds] 18
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 2
+[D10] 6
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 2
+[D10] 7
+[Seconds] 22
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 2
+[D10] 8
+[Seconds] 24
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 2
+[D10] 9
+[Seconds] 26
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 3
+[D10] 0
+[Seconds] 5
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 3
+[D10] 1
+[Seconds] 7
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 3
+[D10] 2
+[Seconds] 10
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 3
+[D10] 3
+[Seconds] 13
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 3
+[D10] 4
+[Seconds] 15
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 3
+[D10] 5
+[Seconds] 18
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 3
+[D10] 6
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 3
+[D10] 7
+[Seconds] 23
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 3
+[D10] 8
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 3
+[D10] 9
+[Seconds] 26
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 4
+[D10] 0
+[Seconds] 6
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 4
+[D10] 1
+[Seconds] 7
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 4
+[D10] 2
+[Seconds] 10
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 4
+[D10] 3
+[Seconds] 13
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 4
+[D10] 4
+[Seconds] 15
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 4
+[D10] 5
+[Seconds] 18
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 4
+[D10] 6
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 4
+[D10] 7
+[Seconds] 23
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 4
+[D10] 8
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 4
+[D10] 9
+[Seconds] 26
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 5
+[D10] 0
+[Seconds] 6
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 5
+[D10] 1
+[Seconds] 7
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 5
+[D10] 2
+[Seconds] 10
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 5
+[D10] 3
+[Seconds] 13
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 5
+[D10] 4
+[Seconds] 15
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 5
+[D10] 5
+[Seconds] 19
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 5
+[D10] 6
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 5
+[D10] 7
+[Seconds] 23
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 5
+[D10] 8
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 5
+[D10] 9
+[Seconds] 26
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 6
+[D10] 0
+[Seconds] 6
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 6
+[D10] 1
+[Seconds] 7
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 6
+[D10] 2
+[Seconds] 11
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 6
+[D10] 3
+[Seconds] 13
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 6
+[D10] 4
+[Seconds] 16
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 6
+[D10] 5
+[Seconds] 19
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 6
+[D10] 6
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 6
+[D10] 7
+[Seconds] 23
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 6
+[D10] 8
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 6
+[D10] 9
+[Seconds] 26
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 7
+[D10] 0
+[Seconds] 6
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 7
+[D10] 1
+[Seconds] 8
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 7
+[D10] 2
+[Seconds] 11
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 7
+[D10] 3
+[Seconds] 13
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 7
+[D10] 4
+[Seconds] 16
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 7
+[D10] 5
+[Seconds] 19
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 7
+[D10] 6
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 7
+[D10] 7
+[Seconds] 23
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 7
+[D10] 8
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 7
+[D10] 9
+[Seconds] 27
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 8
+[D10] 0
+[Seconds] 6
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 8
+[D10] 1
+[Seconds] 8
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 8
+[D10] 2
+[Seconds] 11
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 8
+[D10] 3
+[Seconds] 13
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 8
+[D10] 4
+[Seconds] 16
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 8
+[D10] 5
+[Seconds] 19
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 8
+[D10] 6
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 8
+[D10] 7
+[Seconds] 23
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 8
+[D10] 8
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 8
+[D10] 9
+[Seconds] 27
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 9
+[D10] 0
+[Seconds] 6
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 9
+[D10] 1
+[Seconds] 8
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 9
+[D10] 2
+[Seconds] 11
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 9
+[D10] 3
+[Seconds] 13
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 9
+[D10] 4
+[Seconds] 16
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 9
+[D10] 5
+[Seconds] 19
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 9
+[D10] 6
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 9
+[D10] 7
+[Seconds] 23
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 9
+[D10] 8
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 9
+[D10] 9
+[Seconds] 27
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 10
+[D10] 0
+[Seconds] 6
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 10
+[D10] 1
+[Seconds] 8
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 10
+[D10] 2
+[Seconds] 11
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 10
+[D10] 3
+[Seconds] 13
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 10
+[D10] 4
+[Seconds] 16
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 10
+[D10] 5
+[Seconds] 19
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 10
+[D10] 6
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 10
+[D10] 7
+[Seconds] 23
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 10
+[D10] 8
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 10
+[D10] 9
+[Seconds] 27
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 11
+[D10] 0
+[Seconds] 6
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 11
+[D10] 1
+[Seconds] 8
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 11
+[D10] 2
+[Seconds] 11
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 11
+[D10] 3
+[Seconds] 13
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 11
+[D10] 4
+[Seconds] 16
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 11
+[D10] 5
+[Seconds] 20
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 11
+[D10] 6
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 11
+[D10] 7
+[Seconds] 23
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 11
+[D10] 8
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 11
+[D10] 9
+[Seconds] 27
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 12
+[D10] 0
+[Seconds] 6
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 12
+[D10] 1
+[Seconds] 9
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 12
+[D10] 2
+[Seconds] 11
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 12
+[D10] 3
+[Seconds] 13
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 12
+[D10] 4
+[Seconds] 16
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 12
+[D10] 5
+[Seconds] 20
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 12
+[D10] 6
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 12
+[D10] 7
+[Seconds] 23
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 12
+[D10] 8
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 12
+[D10] 9
+[Seconds] 27
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 13
+[D10] 0
+[Seconds] 6
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 13
+[D10] 1
+[Seconds] 9
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 13
+[D10] 2
+[Seconds] 12
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 13
+[D10] 3
+[Seconds] 13
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 13
+[D10] 4
+[Seconds] 16
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 13
+[D10] 5
+[Seconds] 20
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 13
+[D10] 6
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 13
+[D10] 7
+[Seconds] 24
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 13
+[D10] 8
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 13
+[D10] 9
+[Seconds] 27
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 14
+[D10] 0
+[Seconds] 6
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 14
+[D10] 1
+[Seconds] 9
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 14
+[D10] 2
+[Seconds] 12
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 14
+[D10] 3
+[Seconds] 13
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 14
+[D10] 4
+[Seconds] 16
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 14
+[D10] 5
+[Seconds] 20
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 14
+[D10] 6
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 14
+[D10] 7
+[Seconds] 24
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 14
+[D10] 8
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 14
+[D10] 9
+[Seconds] 28
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 15
+[D10] 0
+[Seconds] 7
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 15
+[D10] 1
+[Seconds] 9
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 15
+[D10] 2
+[Seconds] 12
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 15
+[D10] 3
+[Seconds] 13
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 15
+[D10] 4
+[Seconds] 17
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 15
+[D10] 5
+[Seconds] 20
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 15
+[D10] 6
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 15
+[D10] 7
+[Seconds] 24
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 15
+[D10] 8
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 15
+[D10] 9
+[Seconds] 28
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 16
+[D10] 0
+[Seconds] 7
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 16
+[D10] 1
+[Seconds] 9
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 16
+[D10] 2
+[Seconds] 12
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 16
+[D10] 3
+[Seconds] 14
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 16
+[D10] 4
+[Seconds] 17
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 16
+[D10] 5
+[Seconds] 20
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 16
+[D10] 6
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 16
+[D10] 7
+[Seconds] 24
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 16
+[D10] 8
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 16
+[D10] 9
+[Seconds] 28
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 17
+[D10] 0
+[Seconds] 7
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 17
+[D10] 1
+[Seconds] 9
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 17
+[D10] 2
+[Seconds] 12
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 17
+[D10] 3
+[Seconds] 14
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 17
+[D10] 4
+[Seconds] 17
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 17
+[D10] 5
+[Seconds] 20
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 17
+[D10] 6
+[Seconds] 22
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 17
+[D10] 7
+[Seconds] 24
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 17
+[D10] 8
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 17
+[D10] 9
+[Seconds] 28
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 18
+[D10] 0
+[Seconds] 7
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 18
+[D10] 1
+[Seconds] 10
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 18
+[D10] 2
+[Seconds] 12
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 18
+[D10] 3
+[Seconds] 14
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 18
+[D10] 4
+[Seconds] 17
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 18
+[D10] 5
+[Seconds] 20
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 18
+[D10] 6
+[Seconds] 22
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 18
+[D10] 7
+[Seconds] 24
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 18
+[D10] 8
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 18
+[D10] 9
+[Seconds] 28
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 19
+[D10] 0
+[Seconds] 7
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 19
+[D10] 1
+[Seconds] 10
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 19
+[D10] 2
+[Seconds] 12
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 19
+[D10] 3
+[Seconds] 14
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 19
+[D10] 4
+[Seconds] 17
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 19
+[D10] 5
+[Seconds] 20
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 19
+[D10] 6
+[Seconds] 22
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 19
+[D10] 7
+[Seconds] 24
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 19
+[D10] 8
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 19
+[D10] 9
+[Seconds] 28
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 20
+[D10] 0
+[Seconds] 7
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 20
+[D10] 1
+[Seconds] 10
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 20
+[D10] 2
+[Seconds] 13
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 20
+[D10] 3
+[Seconds] 14
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 20
+[D10] 4
+[Seconds] 18
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 20
+[D10] 5
+[Seconds] 20
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 20
+[D10] 6
+[Seconds] 22
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 20
+[D10] 7
+[Seconds] 24
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 20
+[D10] 8
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] HURRY_UP
+[D20] 20
+[D10] 9
+[Seconds] 28
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 1
+[D10] 0
+[Seconds] 30
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 1
+[D10] 1
+[Seconds] 32
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 1
+[D10] 2
+[Seconds] 36
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 1
+[D10] 3
+[Seconds] 42
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 1
+[D10] 4
+[Seconds] 45
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 1
+[D10] 5
+[Seconds] 48
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 1
+[D10] 6
+[Seconds] 49
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 1
+[D10] 7
+[Seconds] 50
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 1
+[D10] 8
+[Seconds] 51
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 1
+[D10] 9
+[Seconds] 53
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 2
+[D10] 0
+[Seconds] 30
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 2
+[D10] 1
+[Seconds] 33
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 2
+[D10] 2
+[Seconds] 37
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 2
+[D10] 3
+[Seconds] 42
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 2
+[D10] 4
+[Seconds] 45
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 2
+[D10] 5
+[Seconds] 48
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 2
+[D10] 6
+[Seconds] 49
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 2
+[D10] 7
+[Seconds] 50
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 2
+[D10] 8
+[Seconds] 51
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 2
+[D10] 9
+[Seconds] 53
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 3
+[D10] 0
+[Seconds] 31
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 3
+[D10] 1
+[Seconds] 33
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 3
+[D10] 2
+[Seconds] 37
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 3
+[D10] 3
+[Seconds] 42
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 3
+[D10] 4
+[Seconds] 46
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 3
+[D10] 5
+[Seconds] 48
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 3
+[D10] 6
+[Seconds] 50
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 3
+[D10] 7
+[Seconds] 50
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 3
+[D10] 8
+[Seconds] 51
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 3
+[D10] 9
+[Seconds] 53
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 4
+[D10] 0
+[Seconds] 31
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 4
+[D10] 1
+[Seconds] 34
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 4
+[D10] 2
+[Seconds] 37
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 4
+[D10] 3
+[Seconds] 43
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 4
+[D10] 4
+[Seconds] 46
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 4
+[D10] 5
+[Seconds] 49
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 4
+[D10] 6
+[Seconds] 50
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 4
+[D10] 7
+[Seconds] 50
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 4
+[D10] 8
+[Seconds] 51
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 4
+[D10] 9
+[Seconds] 53
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 5
+[D10] 0
+[Seconds] 31
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 5
+[D10] 1
+[Seconds] 34
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 5
+[D10] 2
+[Seconds] 37
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 5
+[D10] 3
+[Seconds] 43
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 5
+[D10] 4
+[Seconds] 46
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 5
+[D10] 5
+[Seconds] 49
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 5
+[D10] 6
+[Seconds] 50
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 5
+[D10] 7
+[Seconds] 50
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 5
+[D10] 8
+[Seconds] 51
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 5
+[D10] 9
+[Seconds] 54
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 6
+[D10] 0
+[Seconds] 31
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 6
+[D10] 1
+[Seconds] 34
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 6
+[D10] 2
+[Seconds] 38
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 6
+[D10] 3
+[Seconds] 43
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 6
+[D10] 4
+[Seconds] 46
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 6
+[D10] 5
+[Seconds] 49
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 6
+[D10] 6
+[Seconds] 50
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 6
+[D10] 7
+[Seconds] 51
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 6
+[D10] 8
+[Seconds] 51
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 6
+[D10] 9
+[Seconds] 54
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 7
+[D10] 0
+[Seconds] 32
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 7
+[D10] 1
+[Seconds] 34
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 7
+[D10] 2
+[Seconds] 38
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 7
+[D10] 3
+[Seconds] 43
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 7
+[D10] 4
+[Seconds] 46
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 7
+[D10] 5
+[Seconds] 49
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 7
+[D10] 6
+[Seconds] 50
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 7
+[D10] 7
+[Seconds] 51
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 7
+[D10] 8
+[Seconds] 52
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 7
+[D10] 9
+[Seconds] 54
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 8
+[D10] 0
+[Seconds] 32
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 8
+[D10] 1
+[Seconds] 34
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 8
+[D10] 2
+[Seconds] 38
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 8
+[D10] 3
+[Seconds] 43
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 8
+[D10] 4
+[Seconds] 47
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 8
+[D10] 5
+[Seconds] 49
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 8
+[D10] 6
+[Seconds] 51
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 8
+[D10] 7
+[Seconds] 51
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 8
+[D10] 8
+[Seconds] 52
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 8
+[D10] 9
+[Seconds] 54
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 9
+[D10] 0
+[Seconds] 32
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 9
+[D10] 1
+[Seconds] 34
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 9
+[D10] 2
+[Seconds] 39
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 9
+[D10] 3
+[Seconds] 44
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 9
+[D10] 4
+[Seconds] 47
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 9
+[D10] 5
+[Seconds] 49
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 9
+[D10] 6
+[Seconds] 51
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 9
+[D10] 7
+[Seconds] 51
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 9
+[D10] 8
+[Seconds] 52
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 9
+[D10] 9
+[Seconds] 54
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 10
+[D10] 0
+[Seconds] 32
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 10
+[D10] 1
+[Seconds] 35
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 10
+[D10] 2
+[Seconds] 39
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 10
+[D10] 3
+[Seconds] 44
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 10
+[D10] 4
+[Seconds] 47
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 10
+[D10] 5
+[Seconds] 49
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 10
+[D10] 6
+[Seconds] 51
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 10
+[D10] 7
+[Seconds] 51
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 10
+[D10] 8
+[Seconds] 52
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 10
+[D10] 9
+[Seconds] 54
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 11
+[D10] 0
+[Seconds] 32
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 11
+[D10] 1
+[Seconds] 35
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 11
+[D10] 2
+[Seconds] 39
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 11
+[D10] 3
+[Seconds] 44
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 11
+[D10] 4
+[Seconds] 47
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 11
+[D10] 5
+[Seconds] 49
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 11
+[D10] 6
+[Seconds] 51
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 11
+[D10] 7
+[Seconds] 51
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 11
+[D10] 8
+[Seconds] 52
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 11
+[D10] 9
+[Seconds] 54
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 12
+[D10] 0
+[Seconds] 32
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 12
+[D10] 1
+[Seconds] 35
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 12
+[D10] 2
+[Seconds] 39
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 12
+[D10] 3
+[Seconds] 44
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 12
+[D10] 4
+[Seconds] 47
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 12
+[D10] 5
+[Seconds] 49
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 12
+[D10] 6
+[Seconds] 51
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 12
+[D10] 7
+[Seconds] 51
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 12
+[D10] 8
+[Seconds] 52
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 12
+[D10] 9
+[Seconds] 54
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 13
+[D10] 0
+[Seconds] 32
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 13
+[D10] 1
+[Seconds] 35
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 13
+[D10] 2
+[Seconds] 39
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 13
+[D10] 3
+[Seconds] 44
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 13
+[D10] 4
+[Seconds] 47
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 13
+[D10] 5
+[Seconds] 49
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 13
+[D10] 6
+[Seconds] 51
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 13
+[D10] 7
+[Seconds] 52
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 13
+[D10] 8
+[Seconds] 52
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 13
+[D10] 9
+[Seconds] 54
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 14
+[D10] 0
+[Seconds] 33
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 14
+[D10] 1
+[Seconds] 35
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 14
+[D10] 2
+[Seconds] 40
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 14
+[D10] 3
+[Seconds] 45
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 14
+[D10] 4
+[Seconds] 47
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 14
+[D10] 5
+[Seconds] 49
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 14
+[D10] 6
+[Seconds] 51
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 14
+[D10] 7
+[Seconds] 52
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 14
+[D10] 8
+[Seconds] 53
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 14
+[D10] 9
+[Seconds] 54
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 15
+[D10] 0
+[Seconds] 33
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 15
+[D10] 1
+[Seconds] 35
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 15
+[D10] 2
+[Seconds] 40
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 15
+[D10] 3
+[Seconds] 45
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 15
+[D10] 4
+[Seconds] 47
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 15
+[D10] 5
+[Seconds] 49
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 15
+[D10] 6
+[Seconds] 51
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 15
+[D10] 7
+[Seconds] 52
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 15
+[D10] 8
+[Seconds] 53
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 15
+[D10] 9
+[Seconds] 55
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 16
+[D10] 0
+[Seconds] 33
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 16
+[D10] 1
+[Seconds] 35
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 16
+[D10] 2
+[Seconds] 40
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 16
+[D10] 3
+[Seconds] 45
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 16
+[D10] 4
+[Seconds] 47
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 16
+[D10] 5
+[Seconds] 49
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 16
+[D10] 6
+[Seconds] 51
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 16
+[D10] 7
+[Seconds] 52
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 16
+[D10] 8
+[Seconds] 53
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 16
+[D10] 9
+[Seconds] 55
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 17
+[D10] 0
+[Seconds] 33
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 17
+[D10] 1
+[Seconds] 35
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 17
+[D10] 2
+[Seconds] 41
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 17
+[D10] 3
+[Seconds] 45
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 17
+[D10] 4
+[Seconds] 48
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 17
+[D10] 5
+[Seconds] 49
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 17
+[D10] 6
+[Seconds] 51
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 17
+[D10] 7
+[Seconds] 52
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 17
+[D10] 8
+[Seconds] 53
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 17
+[D10] 9
+[Seconds] 55
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 18
+[D10] 0
+[Seconds] 34
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 18
+[D10] 1
+[Seconds] 36
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 18
+[D10] 2
+[Seconds] 41
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 18
+[D10] 3
+[Seconds] 45
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 18
+[D10] 4
+[Seconds] 48
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 18
+[D10] 5
+[Seconds] 50
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 18
+[D10] 6
+[Seconds] 52
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 18
+[D10] 7
+[Seconds] 52
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 18
+[D10] 8
+[Seconds] 53
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 18
+[D10] 9
+[Seconds] 55
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 19
+[D10] 0
+[Seconds] 34
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 19
+[D10] 1
+[Seconds] 36
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 19
+[D10] 2
+[Seconds] 41
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 19
+[D10] 3
+[Seconds] 46
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 19
+[D10] 4
+[Seconds] 48
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 19
+[D10] 5
+[Seconds] 50
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 19
+[D10] 6
+[Seconds] 52
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 19
+[D10] 7
+[Seconds] 52
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 19
+[D10] 8
+[Seconds] 53
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 19
+[D10] 9
+[Seconds] 55
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 20
+[D10] 0
+[Seconds] 34
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 20
+[D10] 1
+[Seconds] 36
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 20
+[D10] 2
+[Seconds] 42
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 20
+[D10] 3
+[Seconds] 46
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 20
+[D10] 4
+[Seconds] 48
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 20
+[D10] 5
+[Seconds] 50
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 20
+[D10] 6
+[Seconds] 52
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 20
+[D10] 7
+[Seconds] 52
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 20
+[D10] 8
+[Seconds] 54
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] SLOW_DOWN
+[D20] 20
+[D10] 9
+[Seconds] 56
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 1
+[D10] 0
+[Seconds] 12
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 1
+[D10] 1
+[Seconds] 15
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 1
+[D10] 2
+[Seconds] 18
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 1
+[D10] 3
+[Seconds] 20
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 1
+[D10] 4
+[Seconds] 22
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 1
+[D10] 5
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 1
+[D10] 6
+[Seconds] 28
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 1
+[D10] 7
+[Seconds] 30
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 1
+[D10] 8
+[Seconds] 32
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 1
+[D10] 9
+[Seconds] 33
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 2
+[D10] 0
+[Seconds] 12
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 2
+[D10] 1
+[Seconds] 15
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 2
+[D10] 2
+[Seconds] 18
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 2
+[D10] 3
+[Seconds] 20
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 2
+[D10] 4
+[Seconds] 22
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 2
+[D10] 5
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 2
+[D10] 6
+[Seconds] 28
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 2
+[D10] 7
+[Seconds] 30
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 2
+[D10] 8
+[Seconds] 32
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 2
+[D10] 9
+[Seconds] 34
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 3
+[D10] 0
+[Seconds] 12
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 3
+[D10] 1
+[Seconds] 15
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 3
+[D10] 2
+[Seconds] 18
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 3
+[D10] 3
+[Seconds] 20
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 3
+[D10] 4
+[Seconds] 22
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 3
+[D10] 5
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 3
+[D10] 6
+[Seconds] 28
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 3
+[D10] 7
+[Seconds] 30
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 3
+[D10] 8
+[Seconds] 32
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 3
+[D10] 9
+[Seconds] 34
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 4
+[D10] 0
+[Seconds] 12
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 4
+[D10] 1
+[Seconds] 15
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 4
+[D10] 2
+[Seconds] 18
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 4
+[D10] 3
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 4
+[D10] 4
+[Seconds] 22
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 4
+[D10] 5
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 4
+[D10] 6
+[Seconds] 28
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 4
+[D10] 7
+[Seconds] 30
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 4
+[D10] 8
+[Seconds] 32
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 4
+[D10] 9
+[Seconds] 34
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 5
+[D10] 0
+[Seconds] 12
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 5
+[D10] 1
+[Seconds] 15
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 5
+[D10] 2
+[Seconds] 18
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 5
+[D10] 3
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 5
+[D10] 4
+[Seconds] 22
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 5
+[D10] 5
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 5
+[D10] 6
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 5
+[D10] 7
+[Seconds] 30
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 5
+[D10] 8
+[Seconds] 32
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 5
+[D10] 9
+[Seconds] 34
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 6
+[D10] 0
+[Seconds] 13
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 6
+[D10] 1
+[Seconds] 15
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 6
+[D10] 2
+[Seconds] 18
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 6
+[D10] 3
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 6
+[D10] 4
+[Seconds] 23
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 6
+[D10] 5
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 6
+[D10] 6
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 6
+[D10] 7
+[Seconds] 30
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 6
+[D10] 8
+[Seconds] 33
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 6
+[D10] 9
+[Seconds] 34
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 7
+[D10] 0
+[Seconds] 13
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 7
+[D10] 1
+[Seconds] 15
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 7
+[D10] 2
+[Seconds] 18
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 7
+[D10] 3
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 7
+[D10] 4
+[Seconds] 23
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 7
+[D10] 5
+[Seconds] 26
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 7
+[D10] 6
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 7
+[D10] 7
+[Seconds] 30
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 7
+[D10] 8
+[Seconds] 33
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 7
+[D10] 9
+[Seconds] 34
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 8
+[D10] 0
+[Seconds] 13
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 8
+[D10] 1
+[Seconds] 15
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 8
+[D10] 2
+[Seconds] 19
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 8
+[D10] 3
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 8
+[D10] 4
+[Seconds] 23
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 8
+[D10] 5
+[Seconds] 26
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 8
+[D10] 6
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 8
+[D10] 7
+[Seconds] 31
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 8
+[D10] 8
+[Seconds] 33
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 8
+[D10] 9
+[Seconds] 34
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 9
+[D10] 0
+[Seconds] 13
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 9
+[D10] 1
+[Seconds] 16
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 9
+[D10] 2
+[Seconds] 19
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 9
+[D10] 3
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 9
+[D10] 4
+[Seconds] 23
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 9
+[D10] 5
+[Seconds] 26
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 9
+[D10] 6
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 9
+[D10] 7
+[Seconds] 31
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 9
+[D10] 8
+[Seconds] 33
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 9
+[D10] 9
+[Seconds] 34
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 10
+[D10] 0
+[Seconds] 13
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 10
+[D10] 1
+[Seconds] 16
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 10
+[D10] 2
+[Seconds] 19
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 10
+[D10] 3
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 10
+[D10] 4
+[Seconds] 23
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 10
+[D10] 5
+[Seconds] 26
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 10
+[D10] 6
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 10
+[D10] 7
+[Seconds] 31
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 10
+[D10] 8
+[Seconds] 33
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 10
+[D10] 9
+[Seconds] 34
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 11
+[D10] 0
+[Seconds] 13
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 11
+[D10] 1
+[Seconds] 16
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 11
+[D10] 2
+[Seconds] 19
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 11
+[D10] 3
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 11
+[D10] 4
+[Seconds] 23
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 11
+[D10] 5
+[Seconds] 26
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 11
+[D10] 6
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 11
+[D10] 7
+[Seconds] 31
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 11
+[D10] 8
+[Seconds] 33
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 11
+[D10] 9
+[Seconds] 34
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 12
+[D10] 0
+[Seconds] 13
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 12
+[D10] 1
+[Seconds] 16
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 12
+[D10] 2
+[Seconds] 19
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 12
+[D10] 3
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 12
+[D10] 4
+[Seconds] 23
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 12
+[D10] 5
+[Seconds] 26
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 12
+[D10] 6
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 12
+[D10] 7
+[Seconds] 31
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 12
+[D10] 8
+[Seconds] 33
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 12
+[D10] 9
+[Seconds] 35
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 13
+[D10] 0
+[Seconds] 13
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 13
+[D10] 1
+[Seconds] 16
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 13
+[D10] 2
+[Seconds] 19
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 13
+[D10] 3
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 13
+[D10] 4
+[Seconds] 24
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 13
+[D10] 5
+[Seconds] 26
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 13
+[D10] 6
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 13
+[D10] 7
+[Seconds] 31
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 13
+[D10] 8
+[Seconds] 33
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 13
+[D10] 9
+[Seconds] 35
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 14
+[D10] 0
+[Seconds] 13
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 14
+[D10] 1
+[Seconds] 16
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 14
+[D10] 2
+[Seconds] 19
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 14
+[D10] 3
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 14
+[D10] 4
+[Seconds] 24
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 14
+[D10] 5
+[Seconds] 26
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 14
+[D10] 6
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 14
+[D10] 7
+[Seconds] 31
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 14
+[D10] 8
+[Seconds] 33
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 14
+[D10] 9
+[Seconds] 35
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 15
+[D10] 0
+[Seconds] 13
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 15
+[D10] 1
+[Seconds] 16
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 15
+[D10] 2
+[Seconds] 19
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 15
+[D10] 3
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 15
+[D10] 4
+[Seconds] 24
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 15
+[D10] 5
+[Seconds] 27
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 15
+[D10] 6
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 15
+[D10] 7
+[Seconds] 31
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 15
+[D10] 8
+[Seconds] 33
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 15
+[D10] 9
+[Seconds] 35
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 16
+[D10] 0
+[Seconds] 14
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 16
+[D10] 1
+[Seconds] 17
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 16
+[D10] 2
+[Seconds] 19
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 16
+[D10] 3
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 16
+[D10] 4
+[Seconds] 24
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 16
+[D10] 5
+[Seconds] 27
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 16
+[D10] 6
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 16
+[D10] 7
+[Seconds] 31
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 16
+[D10] 8
+[Seconds] 33
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 16
+[D10] 9
+[Seconds] 35
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 17
+[D10] 0
+[Seconds] 14
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 17
+[D10] 1
+[Seconds] 17
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 17
+[D10] 2
+[Seconds] 20
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 17
+[D10] 3
+[Seconds] 21
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 17
+[D10] 4
+[Seconds] 24
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 17
+[D10] 5
+[Seconds] 27
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 17
+[D10] 6
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 17
+[D10] 7
+[Seconds] 31
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 17
+[D10] 8
+[Seconds] 33
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 17
+[D10] 9
+[Seconds] 35
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 18
+[D10] 0
+[Seconds] 14
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 18
+[D10] 1
+[Seconds] 17
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 18
+[D10] 2
+[Seconds] 20
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 18
+[D10] 3
+[Seconds] 22
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 18
+[D10] 4
+[Seconds] 24
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 18
+[D10] 5
+[Seconds] 27
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 18
+[D10] 6
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 18
+[D10] 7
+[Seconds] 31
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 18
+[D10] 8
+[Seconds] 33
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 18
+[D10] 9
+[Seconds] 35
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 19
+[D10] 0
+[Seconds] 14
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 19
+[D10] 1
+[Seconds] 17
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 19
+[D10] 2
+[Seconds] 20
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 19
+[D10] 3
+[Seconds] 22
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 19
+[D10] 4
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 19
+[D10] 5
+[Seconds] 27
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 19
+[D10] 6
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 19
+[D10] 7
+[Seconds] 32
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 19
+[D10] 8
+[Seconds] 33
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 19
+[D10] 9
+[Seconds] 35
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 20
+[D10] 0
+[Seconds] 14
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 20
+[D10] 1
+[Seconds] 17
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 20
+[D10] 2
+[Seconds] 20
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 20
+[D10] 3
+[Seconds] 22
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 20
+[D10] 4
+[Seconds] 25
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 20
+[D10] 5
+[Seconds] 27
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 20
+[D10] 6
+[Seconds] 29
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 20
+[D10] 7
+[Seconds] 32
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 20
+[D10] 8
+[Seconds] 33
+[RECORD_END]
+[RECORD_BEGIN]
+[Mode] NO_HUDDLE
+[D20] 20
+[D10] 9
+[Seconds] 35
+[RECORD_END]
+[RECORDS_END]
+
+[PFFDATA_END]

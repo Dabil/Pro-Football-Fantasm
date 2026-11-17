@@ -1,0 +1,26 @@
+// Pro Football Fantasm Classic - Enhanced Timing add-on package manifest
+// File paths are relative to this manifest.
+
+[ADDON_BEGIN]
+[MANIFEST_VERSION] 0.1
+[PACKAGE_KEY] PFF_TIMING_ENHANCER
+[PACKAGE_VERSION] 0.1
+[DISPLAY_NAME] Enhanced Timing
+[PACKAGE_TYPE] ADDON
+[SOURCE_FORMAT_REVISION] 2
+[PROVENANCE] OFFICIAL_PFF_ADDON
+[RIGHTS] RIGHTS_PENDING
+
+[COMPATIBILITY_BEGIN]
+[SEASON_PACKAGE_KEY] ANY
+[RULESET_PACKAGE_KEY] ANY
+[RULESET_PACKAGE_VERSION] ANY
+[COMPATIBILITY_END]
+
+// Requires the PFF timing interface and an active snap-by-snap provider.
+[REQUIRED_FEATURE] ENHANCED_TIMING
+
+[FILES_BEGIN]
+[FILE] enhanced_timing.pffdata
+[FILES_END]
+[ADDON_END]
