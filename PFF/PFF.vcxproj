@@ -140,6 +140,7 @@
   <ItemGroup>
     <ClCompile Include="..\vendor\sqlite\sqlite3.c" />
     <ClCompile Include="App\PFFApplication.cpp" />
+    <ClCompile Include="Screens\RosterScreen.cpp" />
     <ClCompile Include="Database\PFFDatabase.cpp" />
     <ClCompile Include="Database\WorldFormationBook.cpp" />
     <ClCompile Include="Database\GameTimeModel.cpp" />
@@ -223,6 +224,8 @@
     <ClInclude Include="Screens\TeamDataScreen.h" />
     <ClInclude Include="Screens\FormCheckBox.h" />
     <ClInclude Include="Screens\TeamScreen.h" />
+    <ClInclude Include="Screens\RosterScreen.h" />
+    <ClInclude Include="Database\RosterPresentation.h" />
     <ClInclude Include="Screens\HeadCoachScreen.h" />
     <ClInclude Include="Screens\FormationEditorScreen.h" />
     <ClInclude Include="Screens\FormationBookDraft.h" />

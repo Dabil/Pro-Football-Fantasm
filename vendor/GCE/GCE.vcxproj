@@ -157,6 +157,9 @@
     <ClInclude Include="Database\TeamDataSql.h" />
     <ClInclude Include="Database\WorldTeamDataBuild.inl" />
     <ClInclude Include="Database\WorldDatabase.h" />
+    <ClInclude Include="Database\WorldRoster.h" />
+    <ClInclude Include="Database\WorldRosterBuild.inl" />
+    <ClInclude Include="Database\WorldRosterRead.inl" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Database\WorldTeamData.cpp" />

@@ -22,7 +22,7 @@ GameTimeView::GameTimeView(Assets::AssetLibrary &assets, std::unique_ptr<PffTest
 {
     auto log = std::make_unique<ScrollBox>();
     auto scrollStyle = log->styleSet();
-    scrollStyle.focused = PFF_Colors::ScrollBoxFocusedStyle;
+    scrollStyle.focused = scrollStyle.focused.withUnderline(false);
     log->setStyleSet(scrollStyle);
     m_log = log.get();
     m_root.addChild(std::move(log));

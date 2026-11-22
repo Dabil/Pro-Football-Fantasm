@@ -23,6 +23,7 @@
   <ItemGroup>
     <ClCompile Include="Screens\TeamDataScreen.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="Screens\TeamScreen.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="Screens\RosterScreen.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="Screens\HeaderView.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="Screens\FooterView.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="Screens\ContentControlView.cpp"><Filter>Source Files</Filter></ClCompile>
@@ -116,6 +117,8 @@
     <ClInclude Include="Screens\TeamDataScreen.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Screens\FormCheckBox.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Screens\TeamScreen.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Screens\RosterScreen.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Database\RosterPresentation.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Screens\HeadCoachScreen.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Screens\FormationEditorScreen.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Screens\FormationBookDraft.h"><Filter>Header Files</Filter></ClInclude>

@@ -15,7 +15,8 @@ public:
         std::function<LoadedWorldContext()> context,LoadedWorldContext selectedWorld,std::int64_t teamSeasonId,
         std::function<void(const LoadedWorldContext&,std::int64_t)> openTeamData = {},
         std::function<void(const LoadedWorldContext&,std::int64_t)> openSchedule = {},
-        std::function<void(const LoadedWorldContext&,std::int64_t)> openHeadCoach = {});
+        std::function<void(const LoadedWorldContext&,std::int64_t)> openHeadCoach = {},
+        std::function<void(const LoadedWorldContext&,std::int64_t)> openRoster = {});
     void onEnter() override;
     bool handleEvent(const Input::Event& event) override;
     void update(const Animation::TickEvent& event) override;
@@ -38,6 +39,9 @@ private:
     Button* m_schedule=nullptr;
     bool m_schedulePending=false;
     Button* m_headCoach=nullptr;
+    Button* m_roster=nullptr;
+    bool m_rosterPending=false;
+    std::function<void(const LoadedWorldContext&,std::int64_t)> m_openRoster;
     bool m_headCoachPending=false;
     std::function<void(const LoadedWorldContext&,std::int64_t)> m_openHeadCoach;
     std::function<void(const LoadedWorldContext&,std::int64_t)> m_openSchedule;

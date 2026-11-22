@@ -477,6 +477,17 @@ CREATE TABLE PlayerRatingProfiles
     FOREIGN KEY (RulesetID) REFERENCES Rulesets(RulesetID)
 );
 
+-- ROSTER-2026-11-21: additive capability, built only in fresh Cores.
+CREATE TABLE CoreRosterData
+(
+    PlayerID INTEGER PRIMARY KEY REFERENCES Players(PlayerID),
+    YearsInLeague INTEGER NOT NULL CHECK(YearsInLeague >= 0),
+    ExperienceOrigin TEXT NOT NULL CHECK(ExperienceOrigin IN ('SOURCE','AGE_MINUS_22')),
+    SourceOrder INTEGER NOT NULL UNIQUE CHECK(SourceOrder > 0),
+    SourceLine INTEGER NOT NULL,
+    InitialDepth INTEGER CHECK(InitialDepth > 0)
+);
+
 CREATE TABLE PlayerRatings
 (
     PlayerRatingProfileID INTEGER NOT NULL,
@@ -1241,6 +1252,8 @@ VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?);
             int height = 0;
             int weight = 0;
             int sourceCsvLine = 0;
+            std::optional<int> yearsInLeague, initialDepth;
+            bool ageProvided = false;
             std::size_t beginLine = 0;
         };
 
@@ -1347,6 +1360,23 @@ VALUES(?, ?, ?);
                 const sqlite3_int64 playerId =
                     lastInsertId(context.db);
                 context.inserted();
+
+                if ((!player.yearsInLeague && (!player.ageProvided || player.age <= 0)) ||
+                    (player.yearsInLeague && *player.yearsInLeague < 0) ||
+                    (player.initialDepth && *player.initialDepth <= 0))
+                    throw BuildException("Invalid roster experience/depth or missing age for Years in League initialization.", file, player.beginLine);
+                Statement rosterInsert(context.db,
+                    "INSERT INTO CoreRosterData VALUES(?,?,?,?,?,?);");
+                bindInt64(rosterInsert.get(), 1, playerId);
+                bindInt(rosterInsert.get(), 2, player.yearsInLeague ? *player.yearsInLeague : std::max(1, player.age - 22));
+                bindText(rosterInsert.get(), 3, player.yearsInLeague ? "SOURCE" : "AGE_MINUS_22");
+                // PlayerID is assigned in admitted source encounter order; store that
+                // order explicitly rather than relying on a future query's row order.
+                bindInt64(rosterInsert.get(), 4, playerId);
+                bindInt64(rosterInsert.get(), 5, static_cast<sqlite3_int64>(player.beginLine));
+                if (player.initialDepth) bindInt(rosterInsert.get(), 6, *player.initialDepth);
+                else bindNull(rosterInsert.get(), 6);
+                rosterInsert.stepDone(context.db);
 
                 profileInsert.reset();
                 bindInt64(profileInsert.get(), 1, playerId);
@@ -1510,7 +1540,20 @@ VALUES(?, ?, ?);
             else if (tag.tag == "INJURY")
                 player.injury = parseInt(tag.value, file, tag.line, "INJURY");
             else if (tag.tag == "AGE")
+            {
                 player.age = parseInt(tag.value, file, tag.line, "AGE");
+                player.ageProvided = true;
+            }
+            else if (tag.tag == "YEARS_IN_LEAGUE")
+            {
+                if (player.yearsInLeague) throw BuildException("Duplicate YEARS_IN_LEAGUE tag.", file, tag.line);
+                player.yearsInLeague = parseInt(tag.value, file, tag.line, "YEARS_IN_LEAGUE");
+            }
+            else if (tag.tag == "DEPTH_SLOT")
+            {
+                if (player.initialDepth) throw BuildException("Duplicate DEPTH_SLOT tag.", file, tag.line);
+                player.initialDepth = parseInt(tag.value, file, tag.line, "DEPTH_SLOT");
+            }
             else if (tag.tag == "HEIGHT_INCHES")
                 player.height = parseInt(tag.value, file, tag.line, "HEIGHT_INCHES");
             else if (tag.tag == "WEIGHT_POUNDS")
@@ -2871,6 +2914,7 @@ CoreDatabaseBuildResult createCoreDatabaseFromSource(
             insertMetadata(db, context, "ChartExecutionReadiness", "NOT_CERTIFIED");
 
             insertMetadata(db, context, "CoreSchemaVersion", "4");
+            insertMetadata(db, context, "RosterDataContractVersion", "1");
             insertMetadata(db, context, "Ruleset", request.ruleSet);
             for (std::size_t i = 0; i < packages.size(); ++i)
             {

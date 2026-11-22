@@ -155,7 +155,32 @@ namespace PFF_Colors
     // ScrollBox focus fills blank cells as well as text, so keep the fill unlined.
     //
 
-    inline const Style ScrollBoxFocusedStyle = UIThemes::WidgetTextFocused.withUnderline(false);
+    // inline const Style ScrollBoxFocusedStyle = UIThemes::WidgetTextFocused.withUnderline(false);
+
+    inline const Style ScrollBoxHeading =
+        style::Fg(Color::FromRgb(0, 0, 0)) + style::Bg(Color::FromRgb(140, 140, 140));
+
+    inline const Style ScrollBoxSubHeading =
+        style::Fg(Color::FromRgb(0, 0, 0)) + style::Bg(Color::FromRgb(120, 120, 120));
+
+    inline const Style ScrollBoxContentArea =
+        style::Fg(Color::FromRgb(0, 0, 0)) + style::Bg(Color::FromRgb(100, 100, 100));
+
+    inline const Style ScrollBoxThumb =
+        style::Fg(Color::FromRgb(178, 178, 178)) + style::Bg(Color::FromRgb(178, 178, 178));
+
+    inline const Style ScrollBoxTrack =
+        style::Fg(Color::FromRgb(0, 0, 0)) + style::Bg(Color::FromRgb(44, 44, 44));
+
+    inline const Style ScrollBoxRowHighlight =
+        style::Fg(Color::FromRgb(0, 0, 0)) + style::Bg(Color::FromRgb(236, 6, 6));
+
+    inline const Style ScrollBoxRowHover =
+        style::Fg(Color::FromRgb(0, 0, 0)) + style::Bg(Color::FromRgb(236, 6, 6));
+
+    ///////////////////////////////////////////////////////////////
+    // B U T T O N S  
+    //
 
     inline const Style ButtonHoverColor =
         style::Fg(ThemeColor::Basic256Rgb(

@@ -1,5 +1,6 @@
 #include "GCE/Database/WorldStorageHash.h"
 #include "GCE/Database/WorldDatabase.h"
+#include "GCE/Database/WorldRoster.h"
 
 #include <sqlite3.h>
 #include "GCE/Database/WorldTeamDataSchema.h"
@@ -2139,6 +2140,8 @@ VALUES(?, 'HEALTHY', NULL, 1, NULL);
         }
     }
 
+    #include "GCE/Database/WorldRosterBuild.inl"
+
     void instantiateSchedule(
         CreationContext& context,
         const std::vector<CoreScheduleRow>& schedule)
@@ -2857,6 +2860,7 @@ VALUES(1, NULL, NULL, NULL, ?, NULL, ?, 'SHA256', ?, ?);
                 competition.coreCompetitionSeasonId,
                 worldStartUtc,
                 firstWeek);
+            instantiateRosterDepth(context);
             instantiateSchedule(context, schedule);
             instantiateLeagueWeeks(context, worldStartUtc);
             instantiateKickoffEvents(context, worldStartUtc);
@@ -3475,4 +3479,6 @@ ORDER BY
 
     return result;
 }
+
+#include "GCE/Database/WorldRosterRead.inl"
 

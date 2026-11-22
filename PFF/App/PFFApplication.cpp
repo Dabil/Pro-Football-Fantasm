@@ -17,6 +17,7 @@
 #include "Screens/LeagueNewsScreen.h"
 #include "Screens/TeamsAndStandingsScreen.h"
 #include "Screens/TeamScreen.h"
+#include "Screens/RosterScreen.h"
 #include "Screens/HeadCoachScreen.h"
 #include "Screens/FormationEditorScreen.h"
 #include "Screens/TeamDataScreen.h"
@@ -218,6 +219,13 @@ void PFFApplication::openTeamScreen(const LoadedWorldContext& world,std::int64_t
                         [this] { handlePffCommandId("nav:back"); }));
                     requestRender();
                 }));
+            requestRender();
+        },
+        [this](const LoadedWorldContext& selected,std::int64_t id)
+        {
+            screenManager().pushScreen(std::make_unique<RosterScreen>(assetLibrary(),
+                [this](std::string_view command){return handlePffCommandId(command);},
+                [this]{return loadedWorldContext();},selected,id));
             requestRender();
         }));
     requestRender();

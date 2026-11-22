@@ -22,7 +22,7 @@ LeagueNewsScreen::LeagueNewsScreen(Assets::AssetLibrary& assets, std::function<v
 {
     auto news = std::make_unique<ScrollBox>();
     auto scrollStyle = news->styleSet();
-    scrollStyle.focused = PFF_Colors::ScrollBoxFocusedStyle;
+    scrollStyle.focused = scrollStyle.focused.withUnderline(false);
     news->setStyleSet(scrollStyle);
     m_news = news.get();
     m_root.addChild(std::move(news));
