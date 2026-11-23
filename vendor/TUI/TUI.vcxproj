@@ -134,6 +134,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Rendering\SdlRenderer.h" />
+    <ClInclude Include="Audio\SdlAudio.h" />
     <ClInclude Include="Rendering\Text\TextInputCaret.h" />
     <ClInclude Include="Animation\AnimatedTextAssetSequence.h" />
     <ClInclude Include="Animation\Animation.h" />
@@ -442,6 +443,9 @@
     <ClCompile Include="Rendering\SdlRenderer.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='x64'">true</ExcludedFromBuild>
       <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty\SDL3-3.4.20\include;$(ProjectDir)ThirdParty\SDL3_ttf-3.2.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <ClCompile Include="Audio\SdlAudio.cpp">
+      <AdditionalIncludeDirectories Condition="'$(Platform)'=='x64'">$(ProjectDir)ThirdParty\SDL3-3.4.20\include;$(ProjectDir)ThirdParty\SDL3_mixer-3.2.4\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <ClCompile Include="Rendering\TerminalRenderer.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
