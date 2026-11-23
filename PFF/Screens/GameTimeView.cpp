@@ -291,6 +291,34 @@ void GameTimeView::update(const Animation::TickEvent &event)
     if (m_callActive) m_callRoot.update(event);
     returnToCallerIfReady();
 }
+
+std::string_view GameTimeView::takeSoundCue()
+{
+    const auto display = m_controller.display();
+    if (display.logRevision == m_audioLogRevision) return {};
+    m_audioLogRevision = display.logRevision;
+    if (!display.play) return {};
+
+    const auto& tags = display.play->tags;
+    const auto id = std::find_if(tags.begin(), tags.end(), [](const auto& tag) {
+        return tag.depth == 2 && tag.name == "RecordID";
+    });
+    if (id == tags.end() || id->value == m_lastAudioRecord) return {};
+    m_lastAudioRecord = id->value;
+
+    if (std::any_of(tags.begin(), tags.end(), [](const auto& tag) {
+        return tag.depth == 2 && tag.name == "RecordKind" && tag.value == "PENALTY";
+    }) || !display.play->value("PENALTY_ENFORCEMENT", "PenaltyKey").empty() ||
+         !display.play->value("TRY_PENALTY", "PenaltyKey").empty())
+        return "Referee/Whistle.wav";
+    if (std::any_of(tags.begin(), tags.end(), [](const auto& tag) {
+        return tag.name == "ActionKind" && (tag.value == "SCORE" || tag.value == "SAFETY");
+    }))
+        return "Crowd/Score.wav";
+    if (display.play->value("PLAY_CONTEXT", "PlayKind") == "KICKOFF")
+        return "Game/Kickoff.wav";
+    return {};
+}
 void GameTimeView::rebuildLog(int width)
 {
     const auto state = m_controller.display();

@@ -2,9 +2,11 @@
 
 #include "App/ApplicationHost.h"
 #include "App/LoadedWorldContext.h"
+#include "Audio/SdlAudio.h"
 
 #include <filesystem>
 #include <string_view>
+#include <vector>
 
 class PFFApplication : public ApplicationHost
 {
@@ -27,6 +29,8 @@ public:
 protected:
     void configureAssetLibrary() override;
     bool onInitialize() override;
+    void onShutdown() override;
+    void update(const Animation::TickEvent& event) override;
 
 private:
     // Handles PFF-specific action commands, then falls back to the generic
@@ -48,6 +52,10 @@ private:
 
 private:
     LoadedWorldContext m_loadedWorldContext;
+    Audio::SdlAudio m_audio;
+    std::vector<std::filesystem::path> m_menuMusic;
+    std::size_t m_nextMenuTrack = 0;
+    bool m_inGameTime = false;
 
     StartupValidationScreenPreference m_validationScreenStart = StartupValidationScreenPreference::ValidationStartFalse;
 };

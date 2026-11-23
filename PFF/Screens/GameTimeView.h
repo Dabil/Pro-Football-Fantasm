@@ -9,6 +9,7 @@
 #include "UI/Widgets/ScrollBox.h"
 #include "UI/Widgets/ListBox.h"
 #include <functional>
+#include <string_view>
 
 class GameTimeView : public Screen
 {
@@ -22,6 +23,7 @@ class GameTimeView : public Screen
     bool handleEvent(const Input::Event &) override;
     void update(const Animation::TickEvent &) override;
     void draw(Surface &) override;
+    std::string_view takeSoundCue();
 
   private:
     void updateControls();
@@ -57,5 +59,7 @@ class GameTimeView : public Screen
     Button *m_resume = nullptr, *m_previous = nullptr;
     Button *m_broadcast = nullptr, *m_detail = nullptr, *m_pbp = nullptr;
     std::size_t m_drawnLogRevision = 0;
+    std::size_t m_audioLogRevision = 0;
+    std::string m_lastAudioRecord;
     int m_logWidth = 0;
 };

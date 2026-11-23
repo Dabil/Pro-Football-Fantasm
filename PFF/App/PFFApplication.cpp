@@ -326,6 +326,19 @@ bool PFFApplication::onInitialize()
 {
     screenManager().clearScreens();
 
+    if (m_audio.initialize())
+    {
+        const auto directory = std::filesystem::path(assetLibrary().getAssetsRoot()) / "Music";
+        std::error_code error;
+        for (std::filesystem::directory_iterator track(directory, error), end; !error && track != end;
+             track.increment(error))
+        {
+            if (track->is_regular_file(error) && track->path().extension() == ".mp3")
+                m_menuMusic.push_back(track->path());
+        }
+        std::sort(m_menuMusic.begin(), m_menuMusic.end());
+    }
+
     registerScreenRoute(
         "pff:main",
         [this]() -> std::unique_ptr<Screen>
@@ -488,6 +501,50 @@ bool PFFApplication::onInitialize()
     requestRender();
 
     return true;
+}
+
+void PFFApplication::onShutdown()
+{
+    m_audio.shutdown();
+    m_menuMusic.clear();
+    m_nextMenuTrack = 0;
+    m_inGameTime = false;
+}
+
+void PFFApplication::update(const Animation::TickEvent& event)
+{
+    ApplicationHost::update(event);
+    if (!isRunning()) return;
+
+    auto* game = dynamic_cast<GameTimeView*>(screenManager().currentScreen());
+    if (game)
+    {
+        if (!m_inGameTime) m_audio.pauseMusic();
+        m_inGameTime = true;
+        const auto cue = game->takeSoundCue();
+        if (!cue.empty())
+            m_audio.playEffect(std::filesystem::path(assetLibrary().getAssetsRoot()) / "Sfx" / cue);
+        return;
+    }
+
+    if (m_inGameTime)
+    {
+        m_inGameTime = false;
+        m_audio.stopEffect();
+        m_audio.resumeMusic();
+    }
+
+    if (m_audio.musicPlaying()) return;
+    while (!m_menuMusic.empty())
+    {
+        if (m_audio.playMusic(m_menuMusic[m_nextMenuTrack]))
+        {
+            m_nextMenuTrack = (m_nextMenuTrack + 1) % m_menuMusic.size();
+            return;
+        }
+        m_menuMusic.erase(m_menuMusic.begin() + m_nextMenuTrack);
+        if (m_nextMenuTrack == m_menuMusic.size()) m_nextMenuTrack = 0;
+    }
 }
 
 

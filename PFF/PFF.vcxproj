@@ -249,4 +249,35 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
+  <Target Name="CopyTuiSdlRuntime" AfterTargets="Build" Condition="'$(Platform)'=='x64'">
+    <PropertyGroup>
+      <TuiSdlRuntimeDir>$(ProjectDir)..\vendor\TUI\ThirdParty\SDL3-3.4.20</TuiSdlRuntimeDir>
+      <TuiSdlTtfDir>$(ProjectDir)..\vendor\TUI\ThirdParty\SDL3_ttf-3.2.2</TuiSdlTtfDir>
+      <TuiSdlMixerDir>$(ProjectDir)..\vendor\TUI\ThirdParty\SDL3_mixer-3.2.4</TuiSdlMixerDir>
+      <TuiSdlFontDir>$(ProjectDir)..\vendor\TUI\ThirdParty\dejavu-fonts-ttf-2.37</TuiSdlFontDir>
+    </PropertyGroup>
+    <Copy SourceFiles="$(TuiSdlRuntimeDir)\SDL3.dll;$(TuiSdlRuntimeDir)\LICENSE.txt"
+          DestinationFiles="$(OutDir)SDL3.dll;$(OutDir)SDL3-LICENSE.txt"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(TuiSdlTtfDir)\SDL3_ttf.dll;$(TuiSdlTtfDir)\LICENSE.txt;$(TuiSdlFontDir)\ttf\DejaVuSansMono.ttf;$(TuiSdlFontDir)\TuiCp437.png;$(TuiSdlFontDir)\LICENSE"
+          DestinationFiles="$(OutDir)SDL3_ttf.dll;$(OutDir)SDL3_ttf-LICENSE.txt;$(OutDir)DejaVuSansMono.ttf;$(OutDir)TuiCp437.png;$(OutDir)DejaVu-LICENSE.txt"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(TuiSdlTtfDir)\FreeType-LICENSE.txt;$(TuiSdlTtfDir)\HarfBuzz-LICENSE.txt;$(TuiSdlTtfDir)\PlutoSVG-LICENSE.txt;$(TuiSdlTtfDir)\PlutoVG-LICENSE.txt"
+          DestinationFolder="$(OutDir)SDL3_ttf-notices"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(TuiSdlMixerDir)\SDL3_mixer.dll;$(TuiSdlMixerDir)\LICENSE.txt"
+          DestinationFiles="$(OutDir)SDL3_mixer.dll;$(OutDir)SDL3_mixer-LICENSE.txt"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(TuiSdlMixerDir)\dr_libs-LICENSE.txt;$(TuiSdlMixerDir)\stb_vorbis-LICENSE.txt;$(TuiSdlMixerDir)\TiMidity-LICENSE.txt"
+          DestinationFolder="$(OutDir)SDL3_mixer-notices"
+          SkipUnchangedFiles="true" />
+    <ItemGroup>
+      <PffMusic Include="$(ProjectDir)Assets\Music\*.mp3" />
+      <PffSoundEffect Include="$(ProjectDir)Assets\Sfx\**\*.wav" />
+    </ItemGroup>
+    <Copy SourceFiles="@(PffMusic)" DestinationFolder="$(OutDir)Assets\Music" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(PffSoundEffect)"
+          DestinationFiles="@(PffSoundEffect->'$(OutDir)Assets\Sfx\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
 </Project>
