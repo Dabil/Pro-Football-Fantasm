@@ -1,5 +1,7 @@
 #include "UI/Widgets/TextInput.h"
 
+#include "Rendering/Text/TextInputCaret.h"
+
 #include <algorithm>
 #include <utility>
 #include <vector>
@@ -526,6 +528,8 @@ void TextInput::draw(Surface& surface)
     {
         return;
     }
+
+    TextInputCaret::record({ cursorX, textY });
 
     const std::vector<TextCluster> clusters =
         GraphemeSegmentation::segment(m_text);

@@ -8,6 +8,9 @@ namespace Input
     {
         KeyCode mapVirtualKey(std::uint16_t virtualKey, char32_t character, const KeyModifiers& modifiers)
         {
+            // VK_PACKET carries committed text, including literal spaces.
+            if (virtualKey == 0xE7 && character != U'\0') return KeyCode::Character;
+
             // VT input commonly encodes Backspace as DEL, with no usable VK.
             if (virtualKey == 0x08) return KeyCode::Backspace;
             if (virtualKey == 0x2E) return KeyCode::Delete;

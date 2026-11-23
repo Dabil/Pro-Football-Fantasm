@@ -13,7 +13,8 @@ enum class StartupRendererPreference
 {
     Auto = 0,
     Console,
-    Terminal
+    Terminal,
+    Sdl
 };
 
 enum class StartupValidationScreenPreference
@@ -36,6 +37,8 @@ class StartupConfigLoader
 {
 public:
     static StartupConfig loadFromStartupConfig();
+    static int loadSdlFontSizeAdjustment();
+    static bool saveSdlFontSizeAdjustment(int adjustment);
 
 private:
     static std::wstring getStartupConfigPath();

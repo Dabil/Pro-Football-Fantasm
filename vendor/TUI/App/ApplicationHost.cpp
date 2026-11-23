@@ -9,7 +9,13 @@
 #include "Rendering/Styles/Themes.h"
 #include "Rendering/TerminalRenderer.h"
 
+#if defined(_M_X64)
+#include "Rendering/SdlRenderer.h"
+#include "Rendering/Text/TextInputCaret.h"
+#endif
+
 #include <chrono>
+#include <iostream>
 #include <optional>
 #include <thread>
 #include <vector>
@@ -77,8 +83,11 @@ ApplicationHost::~ApplicationHost()
 
 bool ApplicationHost::initialize()
 {
-    g_applicationHostInstance = this;
-    SetConsoleCtrlHandler(ConsoleCtrlHandler, TRUE);
+    if (m_rendererSelection != StartupRendererSelection::Sdl)
+    {
+        g_applicationHostInstance = this;
+        SetConsoleCtrlHandler(ConsoleCtrlHandler, TRUE);
+    }
 
     if (!initializeRenderer())
     {
@@ -124,6 +133,7 @@ void ApplicationHost::run()
 
     while (m_running)
     {
+        const auto frameStart = std::chrono::steady_clock::now();
         m_tickClock.tick();
 
         Animation::TickEvent tickEvent =
@@ -134,6 +144,15 @@ void ApplicationHost::run()
         if (m_inputManager)
         {
             m_inputManager->poll();
+
+#if defined(_M_X64)
+            if (m_rendererSelection == StartupRendererSelection::Sdl &&
+                static_cast<SdlRenderer&>(*m_renderer).closeRequested())
+            {
+                shutdown();
+                break;
+            }
+#endif
 
             const auto events = m_inputManager->drainEvents();
             for (const auto& event : events)
@@ -173,7 +192,14 @@ void ApplicationHost::run()
 
         ++m_frameIndex;
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(16));
+        if (m_rendererSelection == StartupRendererSelection::Sdl)
+        {
+            std::this_thread::sleep_until(frameStart + std::chrono::microseconds(16667));
+        }
+        else
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(16));
+        }
     }
 }
 
@@ -461,6 +487,17 @@ void ApplicationHost::render()
 
     m_surface->clear(Themes::Disabled);
 
+#if defined(_M_X64)
+    if (m_rendererSelection == StartupRendererSelection::Sdl)
+    {
+        TextInputCaret::Capture caret;
+        m_screenManager->drawCurrentScreen(*m_surface);
+        static_cast<SdlRenderer&>(*m_renderer).setTextInputCaret(caret.position);
+        m_renderer->present(m_surface->buffer());
+        return;
+    }
+#endif
+
     m_screenManager->drawCurrentScreen(*m_surface);
 
     m_renderer->present(m_surface->buffer());
@@ -468,6 +505,24 @@ void ApplicationHost::render()
 
 bool ApplicationHost::initializeRenderer()
 {
+    if (m_rendererSelection == StartupRendererSelection::Sdl)
+    {
+#if defined(_M_X64)
+        auto sdl = std::make_unique<SdlRenderer>(m_startupDiagnostics);
+        if (!sdl->initialize())
+        {
+            return false;
+        }
+        m_startupDiagnostics.actualHost = TerminalHostKind::SdlWindow;
+        m_startupDiagnostics.actualRenderer = RendererKind::SdlRenderer;
+        m_renderer = std::move(sdl);
+        return true;
+#else
+        std::cerr << "SDL renderer is available in the x64 build. Select Console or Terminal for Win32.\n";
+        return false;
+#endif
+    }
+
     if (m_rendererSelection == StartupRendererSelection::Terminal)
     {
         auto terminalRenderer = std::make_unique<TerminalRenderer>();
@@ -511,6 +566,14 @@ bool ApplicationHost::initializeRenderer()
 
 bool ApplicationHost::initializeInput()
 {
+#if defined(_M_X64)
+    if (m_rendererSelection == StartupRendererSelection::Sdl)
+    {
+        m_inputManager = std::make_unique<Input::InputManager>(
+            static_cast<SdlRenderer&>(*m_renderer).createKeyboardSource());
+        return m_inputManager->initialize();
+    }
+#endif
     m_inputManager = std::make_unique<Input::InputManager>();
 
     return m_inputManager->initialize();

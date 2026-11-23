@@ -46,6 +46,11 @@ namespace
 
     const char* vtAvailabilityText(const BackendStateSnapshot& backendState)
     {
+        if (backendState.rendererIdentity == "SDLRenderer")
+        {
+            return "Not applicable to SDL";
+        }
+
         if (!backendState.virtualTerminalEnableAttempted)
         {
             return "Not probed";
@@ -58,6 +63,11 @@ namespace
 
     const char* activePathSummaryText(const BackendStateSnapshot& backendState)
     {
+        if (backendState.rendererIdentity == "SDLRenderer")
+        {
+            return "SDL window";
+        }
+
         return backendState.activeRenderPathUsesVirtualTerminalOutput ?
             "VT output path" :
             "Non-VT attribute path";
@@ -263,7 +273,11 @@ bool RenderDiagnosticsWriter::write(const RenderDiagnostics& diagnostics)
     out << "Configured input mode: "
         << formatModeValue(backendState.configuredInputMode, backendState.hasConfiguredInputMode) << "\n";
 
-    if (backendState.virtualTerminalProcessingActive &&
+    if (backendState.rendererIdentity == "SDLRenderer")
+    {
+        out << "Interpretation: SDL presents directly to its own window. Console VT settings do not control SDL rendering.\n";
+    }
+    else if (backendState.virtualTerminalProcessingActive &&
         !backendState.activeRenderPathUsesVirtualTerminalOutput)
     {
         out << "Interpretation: VT processing is active/available at the console mode level, "

@@ -4,11 +4,16 @@
 #include <windows.h>
 
 #include <algorithm>
+#include <cwchar>
 #include <cwctype>
 #include <string>
 
 namespace
 {
+    constexpr wchar_t SdlFontSizeAdjustmentKey[] = L"SdlFontSizeAdjustment";
+    // Keep hand-edited values within a safe range before adding the DPI-adjusted width.
+    constexpr long MaxSdlFontSizeAdjustment = 1024;
+
     std::wstring trim(const std::wstring& value)
     {
         std::size_t start = 0;
@@ -70,6 +75,11 @@ namespace
         if (normalized == L"terminal")
         {
             return StartupRendererPreference::Terminal;
+        }
+
+        if (normalized == L"sdl")
+        {
+            return StartupRendererPreference::Sdl;
         }
 
         return StartupRendererPreference::Auto;
@@ -162,4 +172,28 @@ StartupConfig StartupConfigLoader::loadFromStartupConfig()
     config.validationScreenPreference = parseValidationPreference(validationScreenValue);
 
     return config;
+}
+
+int StartupConfigLoader::loadSdlFontSizeAdjustment()
+{
+    const auto value = trim(getConfigString(
+        L"Startup", SdlFontSizeAdjustmentKey, L"0", getStartupConfigPath()));
+    wchar_t* end = nullptr;
+    const long adjustment = std::wcstol(value.c_str(), &end, 10);
+    if (end == value.c_str() || *end != L'\0' ||
+        adjustment < -MaxSdlFontSizeAdjustment || adjustment > MaxSdlFontSizeAdjustment)
+    {
+        return 0;
+    }
+    return static_cast<int>(adjustment);
+}
+
+bool StartupConfigLoader::saveSdlFontSizeAdjustment(int adjustment)
+{
+    const auto path = getStartupConfigPath();
+    if (path == L"startup.config") return false;
+
+    const auto value = std::to_wstring(adjustment);
+    return WritePrivateProfileStringW(
+        L"Startup", SdlFontSizeAdjustmentKey, value.c_str(), path.c_str()) != FALSE;
 }

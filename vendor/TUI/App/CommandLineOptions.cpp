@@ -114,6 +114,12 @@ namespace
             return true;
         }
 
+        if (value == L"sdl")
+        {
+            outPreference = StartupRendererPreference::Sdl;
+            return true;
+        }
+
         return false;
     }
 
@@ -185,7 +191,7 @@ void CommandLineOptionsParser::writeHelpText(std::wostream& stream)
         << L"  --host=console|terminal\n"
         << L"      Request the startup host.\n"
         << L"\n"
-        << L"  --renderer=console|terminal\n"
+        << L"  --renderer=console|terminal|sdl\n"
         << L"      Request the renderer.\n"
         << L"\n"
         << L"  --validation-screen\n"

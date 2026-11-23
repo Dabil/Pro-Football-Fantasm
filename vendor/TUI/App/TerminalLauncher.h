@@ -6,7 +6,8 @@
 enum class StartupRendererSelection
 {
     Console = 0,
-    Terminal
+    Terminal,
+    Sdl
 };
 
 struct StartupLaunchDecision

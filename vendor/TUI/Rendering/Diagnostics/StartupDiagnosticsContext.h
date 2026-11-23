@@ -14,14 +14,16 @@ enum class TerminalHostKind
     ConEmu,
     Mintty,
     RedirectedOrPipe,
-    OtherTerminalHost
+    OtherTerminalHost,
+    SdlWindow
 };
 
 enum class RendererKind
 {
     Unknown = 0,
     ConsoleRenderer,
-    TerminalRenderer
+    TerminalRenderer,
+    SdlRenderer
 };
 
 struct StartupDiagnosticsContext
@@ -72,6 +74,9 @@ inline const char* toString(TerminalHostKind hostKind)
     case TerminalHostKind::OtherTerminalHost:
         return "OtherTerminalHost";
 
+    case TerminalHostKind::SdlWindow:
+        return "SDLWindow";
+
     case TerminalHostKind::Unknown:
     default:
         return "Unknown";
@@ -87,6 +92,9 @@ inline const char* toString(RendererKind rendererKind)
 
     case RendererKind::TerminalRenderer:
         return "TerminalRenderer";
+
+    case RendererKind::SdlRenderer:
+        return "SDLRenderer";
 
     case RendererKind::Unknown:
     default:
@@ -119,6 +127,9 @@ inline const char* toString(StartupRendererPreference preference)
 
     case StartupRendererPreference::Terminal:
         return "Terminal";
+
+    case StartupRendererPreference::Sdl:
+        return "SDL";
 
     case StartupRendererPreference::Auto:
     default:

@@ -348,6 +348,21 @@ StartupLaunchDecision TerminalLauncher::prepareStartup(const StartupOptions& opt
             detail);
     }
 
+    if (options.rendererPreference == StartupRendererPreference::Sdl)
+    {
+        diagnosticsContext.requestedHost = TerminalHostKind::SdlWindow;
+        diagnosticsContext.actualHost = TerminalHostKind::Unknown;
+        diagnosticsContext.requestedRenderer = RendererKind::SdlRenderer;
+        addTraceEntry(
+            diagnosticsContext,
+            RendererSelectionStage::RelaunchDecision,
+            "Skipped terminal relaunch for SDL",
+            "SDL owns its window");
+        decision.rendererSelection = StartupRendererSelection::Sdl;
+        decision.diagnosticsContext = std::move(diagnosticsContext);
+        return decision;
+    }
+
     bool shouldAttemptTerminalHost = false;
 
     switch (options.hostPreference)
